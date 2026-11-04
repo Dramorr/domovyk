@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Домовик — оренда у Львові без ріелторів</title>
+  <meta name="description" content="Пряма оренда житла у Львові між власником і орендарем: перевірені власники, договір через Дію, облік оплат і комуналки. Бета.">
+  <link rel="icon" href="brand/app-icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&family=Unbounded:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green: #1E4D3B; --green-dark: #163A2C; --amber: #F2A93B;
+      --bg: #F7F5F0; --surface: #FFFFFF; --text: #1B2420; --muted: #5C6B64; --line: #E2E6E1;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #0F1E18; --surface: #163A2C; --text: #EEF2EF; --muted: #A9BAB1; --line: #24503F; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.6 Manrope, system-ui, sans-serif; }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+    header { display: flex; align-items: center; gap: 12px; padding: 20px 0; }
+    header img { width: 40px; height: 40px; }
+    .brand { font: 700 22px Unbounded, sans-serif; color: var(--text); text-decoration: none; }
+    .badge { margin-left: auto; font-size: 13px; font-weight: 700; color: var(--green-dark); background: var(--amber); padding: 4px 10px; border-radius: 999px; }
+    .hero { display: grid; grid-template-columns: 1.3fr 1fr; gap: 32px; align-items: center; padding: 40px 0 56px; }
+    h1 { font: 700 clamp(30px, 5vw, 48px)/1.15 Unbounded, sans-serif; margin: 0 0 16px; }
+    h2 { font: 600 24px/1.3 Unbounded, sans-serif; margin: 0 0 20px; }
+    .lead { font-size: 19px; color: var(--muted); margin: 0 0 28px; }
+    .hero img { width: 100%; max-width: 340px; justify-self: center; }
+    .btn { display: inline-block; background: var(--green); color: #fff; padding: 14px 22px; border-radius: 12px; font-weight: 700; text-decoration: none; }
+    .btn.ghost { background: transparent; color: var(--text); border: 2px solid var(--line); margin-left: 8px; }
+    section { padding: 40px 0; border-top: 1px solid var(--line); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
+    .card b { display: block; margin-bottom: 6px; }
+    .card p { margin: 0; color: var(--muted); font-size: 15px; }
+    ol.steps { padding-left: 20px; margin: 0; }
+    ol.steps li { margin-bottom: 8px; }
+    footer { padding: 32px 0 48px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); }
+    footer a { color: inherit; }
+    @media (max-width: 720px) {
+      .hero { grid-template-columns: 1fr; padding-top: 16px; }
+      .hero img { max-width: 220px; order: -1; }
+      .btn.ghost { margin: 12px 0 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <img src="brand/logo-mark.svg" alt="">
+      <a class="brand" href="./">Домовик</a>
+      <span class="badge">бета</span>
+    </header>
+
+    <div class="hero">
+      <div>
+        <h1>Оренда у Львові напряму. Без ріелторів.</h1>
+        <p class="lead">Домовик з'єднує власника й орендаря та бере на себе рутину: договір через Дію, нагадування про оплату, показники лічильників і чат — в одному місці.</p>
+        <a class="btn" href="https://github.com/Dramorr/domovyk">Код на GitHub</a>
+        <a class="btn ghost" href="https://github.com/Dramorr/domovyk/blob/main/docs/SPEC.md">Як це працює</a>
+      </div>
+      <img src="brand/mascot.svg" alt="Домовик — гном у ковпаку з ключем">
+    </div>
+
+    <section>
+      <h2>Чесні правила</h2>
+      <div class="grid">
+        <div class="card"><b>Ми не торкаємось ваших грошей</b><p>Оплата йде напряму власнику. Домовик лише фіксує факт оплати за квитанцією.</p></div>
+        <div class="card"><b>Лише перевірені власники</b><p>Перед публікацією власник підтверджує право власності довідкою з реєстру.</p></div>
+        <div class="card"><b>Ніякого посередництва</b><p>Ріелтор під виглядом власника — бан за всіма ідентифікаторами.</p></div>
+        <div class="card"><b>Мінімум персональних даних</b><p>РНОКПП і телефони зберігаються лише як хеш, реквізити — зашифровані.</p></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Що вміє</h2>
+      <ol class="steps">
+        <li>Пошук за фільтрами й миттєві сповіщення про нові квартири.</li>
+        <li>Заявка, показ, контакти — лише після схвалення.</li>
+        <li>Договір і акт, підписані обома сторонами через Дію.</li>
+        <li>Картка оренди: оплати, комуналка, ремонти, візити, чат.</li>
+        <li>Відгуки лише після реальної взаємодії.</li>
+      </ol>
+    </section>
+
+    <footer>
+      Домовик — бета, у розробці. Відкритий код: <a href="https://github.com/Dramorr/domovyk">github.com/Dramorr/domovyk</a>.
+      Домовик не дає юридичних консультацій; шаблон договору — інструмент, а не порада юриста.
+    </footer>
+  </div>
+</body>
+</html>

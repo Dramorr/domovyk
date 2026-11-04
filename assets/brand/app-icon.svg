@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="512" height="512" role="img" aria-label="Домовик — іконка застосунку">
+  <rect width="120" height="120" rx="28" fill="#1E4D3B"/>
+  <g transform="translate(14 14) scale(0.92)">
+    <path d="M32 40 L50 4 L68 40 Z" fill="#FFFFFF"/>
+    <circle cx="50" cy="6" r="5.5" fill="#F2A93B"/>
+    <rect x="28" y="38" width="44" height="6" rx="3" fill="#FFFFFF"/>
+    <path d="M32 46 L68 46 L68 50 A18 20 0 0 1 32 50 Z" fill="#FFFFFF"/>
+    <circle cx="50" cy="49" r="4.5" fill="#F2A93B"/>
+    <rect x="46" y="66" width="8" height="30" rx="2" fill="#FFFFFF"/>
+    <rect x="54" y="80" width="9" height="5" fill="#FFFFFF"/>
+    <rect x="54" y="89" width="6" height="5" fill="#FFFFFF"/>
+  </g>
+</svg>

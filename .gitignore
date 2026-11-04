@@ -1,0 +1,48 @@
+# --- Секрети: ніколи не комітимо ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.kdbx
+secrets/
+credentials*.json
+service-account*.json
+
+# --- Дані користувачів (документи, квитанції, підписи, дампи) ---
+storage/
+uploads/
+media/
+*.p7s
+*.asice
+*.dump
+*.sql.gz
+backups/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# --- Node / фронтенд Mini App ---
+node_modules/
+web/dist/
+
+# --- Інше ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+.claude/settings.local.json
