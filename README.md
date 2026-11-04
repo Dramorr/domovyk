@@ -10,7 +10,8 @@
 |---|---|
 | `CLAUDE.md` | Правила проєкту для Claude Code: архітектура, межі модулів, конвенції, бренд |
 | `docs/SPEC.md` | Технічне завдання: вимоги `FR-…`, статуси, етапи M0–M8, відкриті питання |
-| `docs/BOT_FLOWS.md` | Сценарії Telegram-бота: екрани, кнопки, стани FSM, каталог сповіщень |
+| `docs/BOT_FLOWS.md` | Сценарії інтерфейсу (Mini App і бот): екрани, кнопки, стани, каталог сповіщень |
+| `docs/decisions/` | Рішення (ADR), напр. [0001 — Mini App як основний інтерфейс](docs/decisions/0001-telegram-mini-app-first.md) |
 | `db/schema.sql` | Цільова схема PostgreSQL 16 + PostGIS (реальні зміни — міграціями Alembic) |
 | `assets/brand/` | Знак (ключ-домовик), іконка застосунку, маскот (з ключем і з ліхтариком) |
 | `site/` | Сторінка проєкту на GitHub Pages (деплой — `.github/workflows/pages.yml`) |
