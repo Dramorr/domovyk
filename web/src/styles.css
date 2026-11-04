@@ -67,10 +67,13 @@ h1 {
 }
 
 .mascot {
-  width: 160px;
-  height: 160px;
+  width: 168px;
+  height: 168px;
   margin: 8px auto 0;
   display: block;
+  padding: 12px;
+  border-radius: 50%;
+  background: #f7f5f0; /* світле коло: маскот видно і в темній темі */
 }
 
 .hint {

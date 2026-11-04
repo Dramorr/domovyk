@@ -12,7 +12,7 @@ type State = { kind: "loading" } | { kind: "ok"; me: Me } | { kind: "error"; err
 function Header() {
   return (
     <header className="header">
-      <img src={`${BRAND}logo-mark.svg`} alt="" width={32} height={32} />
+      <img src={`${BRAND}app-icon.svg`} alt="" width={32} height={32} />
       <span className="brand">Домовик</span>
       <span className="badge">{t("beta")}</span>
     </header>
