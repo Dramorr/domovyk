@@ -22,4 +22,6 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.execute("DROP EXTENSION IF EXISTS postgis")
+    # Свідомо не видаляємо PostGIS: від нього можуть залежати інші розширення
+    # (postgis_topology, tiger у docker-образі) і дані поза нашими таблицями.
+    pass

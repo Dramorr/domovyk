@@ -17,7 +17,10 @@ pytestmark = pytest.mark.integration
 def pg_url() -> Iterator[str]:
     if shutil.which("docker") is None:
         pytest.skip("Docker недоступний")
-    from testcontainers.postgres import PostgresContainer
+    try:
+        from testcontainers.community.postgres import PostgresContainer
+    except ImportError:
+        from testcontainers.postgres import PostgresContainer
 
     with PostgresContainer("postgis/postgis:16-3.5", driver="psycopg") as pg:
         yield pg.get_connection_url()
