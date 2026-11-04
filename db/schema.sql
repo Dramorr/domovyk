@@ -1,5 +1,5 @@
 -- =====================================================================
---  Домовик — цільова схема бази даних, v0.2
+--  Домовик — цільова схема бази даних, v0.3
 --  PostgreSQL 16 + PostGIS
 --
 --  Це ЦІЛЬОВА модель. Реальні зміни в базі робляться тільки
@@ -29,6 +29,7 @@ CREATE TYPE identity_provider   AS ENUM ('telegram', 'phone', 'email', 'bankid',
 CREATE TYPE verification_kind   AS ENUM ('phone', 'identity', 'ownership');
 CREATE TYPE verification_status AS ENUM ('pending', 'verified', 'rejected', 'expired');
 CREATE TYPE currency_code       AS ENUM ('UAH', 'USD', 'EUR');
+CREATE TYPE consent_document    AS ENUM ('terms', 'privacy');
 
 CREATE TYPE property_kind       AS ENUM ('apartment', 'house');
 CREATE TYPE unit_kind           AS ENUM ('entire', 'room');
@@ -128,6 +129,17 @@ CREATE TABLE tenant_profiles (
 );
 CREATE TRIGGER trg_tenant_profiles_updated BEFORE UPDATE ON tenant_profiles
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- Згоди з правилами й політикою конфіденційності (FR-USR-1): факт і версія документа.
+-- Кожна нова версія, з якою людина погодилась, — новий рядок (історія лишається).
+CREATE TABLE user_consents (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id         uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    document        consent_document NOT NULL,
+    version         text NOT NULL,
+    accepted_at     timestamptz NOT NULL
+);
+CREATE INDEX idx_user_consents_user ON user_consents(user_id, document);
 
 -- =====================================================================
 --  2. АДРЕСИ, ОБ'ЄКТИ, ВЛАСНІСТЬ

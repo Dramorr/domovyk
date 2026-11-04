@@ -29,3 +29,35 @@ class InvalidTransition(DomainError):
 
 class Conflict(DomainError):
     code = "conflict"
+
+
+class NotRegistered(DomainError):
+    code = "not_registered"
+
+
+class AlreadyRegistered(Conflict):
+    code = "already_registered"
+
+
+class ConsentOutdated(Conflict):
+    """Користувач погоджувався з іншою версією правил/політики."""
+
+    code = "consent_outdated"
+
+
+class NotAdmin(PermissionDenied):
+    code = "not_admin"
+
+
+class ProtectedRole(PermissionDenied):
+    """Дію не можна застосувати до адміністратора."""
+
+    code = "protected_role"
+
+
+class Banned(PermissionDenied):
+    code = "banned"
+
+
+class AccountInactive(PermissionDenied):
+    code = "account_inactive"

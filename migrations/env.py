@@ -8,10 +8,12 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy.engine import Connection
 
+# Імпорти ORM-моделей модулів — щоб autogenerate їх бачив. Нові модулі додавай сюди.
+import domovyk.modules.analytics.models
+import domovyk.modules.moderation.models
+import domovyk.modules.users.models  # noqa: F401
 from domovyk.config import get_settings
 from domovyk.core.db import Base, make_engine
-
-# Імпорти ORM-моделей модулів додаються сюди по мірі етапів, щоб autogenerate їх бачив.
 
 config = context.config
 if config.config_file_name is not None:

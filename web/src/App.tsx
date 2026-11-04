@@ -1,81 +1,124 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { api, ApiFailure, type ApiError, type Me } from "./api/client";
+import { api, setInitData, type Me, type User } from "./api/client";
 import { t } from "./i18n";
+import { ConsentAndName, PhoneStep } from "./screens/Onboarding";
+import { Profile } from "./screens/Profile";
 import { getWebApp } from "./telegram";
+import { errorText, Mascot, Screen } from "./ui";
 
 const RAW_BOT = ((import.meta.env.VITE_BOT_USERNAME as string | undefined) ?? "").replace(/^@/, "");
 // Нік бота Telegram: 5–32 символи [A-Za-z0-9_]. Заглушка TODO не пройде.
 const BOT_USERNAME = /^[A-Za-z0-9_]{5,32}$/.test(RAW_BOT) && RAW_BOT !== "TODO" ? RAW_BOT : "";
-const BRAND = `${import.meta.env.BASE_URL}../brand/`;
 
-type State = { kind: "loading" } | { kind: "ok"; me: Me } | { kind: "error"; error: ApiError };
-
-function Header() {
-  return (
-    <header className="header">
-      <img src={`${BRAND}app-icon.svg`} alt="" width={32} height={32} />
-      <span className="brand">Домовик</span>
-      <span className="badge">{t("beta")}</span>
-    </header>
-  );
-}
+type State =
+  | { kind: "loading" }
+  | { kind: "error"; message: string; retry: boolean }
+  | { kind: "ready"; me: Me }
+  | { kind: "deleted" };
 
 export function App() {
   const webApp = getWebApp();
   const [state, setState] = useState<State>({ kind: "loading" });
+  const [screen, setScreen] = useState<"home" | "profile">("home");
 
   const load = useCallback(() => {
     if (!webApp) return;
+    setInitData(webApp.initData);
     setState({ kind: "loading" });
     api
-      .me(webApp.initData)
-      .then((me) => setState({ kind: "ok", me }))
-      .catch((e: unknown) =>
-        setState({ kind: "error", error: e instanceof ApiFailure ? e.kind : "network" }),
-      );
+      .me()
+      .then((me) => setState({ kind: "ready", me }))
+      .catch((e: unknown) => setState({ kind: "error", message: errorText(e), retry: true }));
   }, [webApp]);
 
   useEffect(load, [load]);
 
   if (!webApp) {
     return (
-      <main className="screen">
-        <Header />
-        <img className="mascot" src={`${BRAND}mascot.svg`} alt="" />
+      <Screen>
+        <Mascot />
         <p>{t("open_in_telegram")}</p>
         {BOT_USERNAME && (
           <a className="button" href={`https://t.me/${BOT_USERNAME}`}>
             {t("open_bot")}
           </a>
         )}
-      </main>
+      </Screen>
+    );
+  }
+
+  if (state.kind === "loading") {
+    return (
+      <Screen>
+        <p className="hint">{t("loading")}</p>
+      </Screen>
+    );
+  }
+  if (state.kind === "error") {
+    return (
+      <Screen>
+        <Mascot lantern />
+        <p>{state.message}</p>
+        {state.retry && (
+          <button className="button" onClick={load}>
+            {t("retry")}
+          </button>
+        )}
+      </Screen>
+    );
+  }
+  if (state.kind === "deleted") {
+    return (
+      <Screen>
+        <Mascot lantern />
+        <p>{t("prof_deleted")}</p>
+      </Screen>
+    );
+  }
+
+  const { me } = state;
+  const setUser = (user: User) => setState({ kind: "ready", me: { ...me, user } });
+  const user = me.user;
+
+  if (!user || user.status === "deleted") {
+    return <ConsentAndName me={me} webApp={webApp} onRegistered={setUser} />;
+  }
+  if (user.status === "banned") {
+    // Стани акаунта, що перехоплюють усе (BOT_FLOWS §0.5): спокійно, без маскота й жартів.
+    return (
+      <Screen>
+        <h1>{t("banned_title")}</h1>
+        <p>{t("banned_text")}</p>
+      </Screen>
+    );
+  }
+  if (!user.has_phone) {
+    return <PhoneStep webApp={webApp} onDone={setUser} />;
+  }
+
+  if (screen === "profile") {
+    return (
+      <Profile
+        user={user}
+        webApp={webApp}
+        onBack={() => setScreen("home")}
+        onUserChange={setUser}
+        onDeleted={() => setState({ kind: "deleted" })}
+      />
     );
   }
 
   return (
-    <main className="screen">
-      <Header />
-      {state.kind === "loading" && <p className="hint">{t("loading")}</p>}
-      {state.kind === "ok" && (
-        <>
-          <img className="mascot" src={`${BRAND}mascot.svg`} alt="" />
-          <h1>{t("hello", { name: state.me.first_name })}</h1>
-          <p>{t("tagline")}</p>
-          <p className="hint">{t("soon")}</p>
-        </>
-      )}
-      {state.kind === "error" && (
-        <>
-          <img className="mascot" src={`${BRAND}mascot-lantern.svg`} alt="" />
-          <p>{t(`error_${state.error}`)}</p>
-          {state.error !== "no_api" && (
-            <button className="button" onClick={load}>
-              {t("retry")}
-            </button>
-          )}
-        </>
-      )}
-    </main>
+    <Screen>
+      <Mascot />
+      <h1>{t("home_hello", { name: user.display_name })}</h1>
+      {user.role !== "user" && <p className="role">{t(`role_${user.role}`)}</p>}
+      <p>{t("home_tagline")}</p>
+      <p className="hint">{t("home_soon")}</p>
+      <button className="button" onClick={() => setScreen("profile")}>
+        {t("home_profile")}
+      </button>
+    </Screen>
   );
 }

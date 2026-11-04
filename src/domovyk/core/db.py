@@ -30,6 +30,36 @@ class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
 
 
+def split_sql(script: str) -> list[str]:
+    """Розбити SQL-скрипт на команди по `;`, не ламаючи тіла функцій у `$$ … $$`.
+
+    Потрібно для міграцій: asyncpg виконує лише одну команду за запит.
+    """
+    statements: list[str] = []
+    current: list[str] = []
+    in_dollar = False
+    i = 0
+    while i < len(script):
+        if script.startswith("$$", i):
+            in_dollar = not in_dollar
+            current.append("$$")
+            i += 2
+            continue
+        ch = script[i]
+        if ch == ";" and not in_dollar:
+            stmt = "".join(current).strip()
+            if stmt:
+                statements.append(stmt)
+            current = []
+        else:
+            current.append(ch)
+        i += 1
+    tail = "".join(current).strip()
+    if tail:
+        statements.append(tail)
+    return statements
+
+
 def make_engine(database_url: str) -> AsyncEngine:
     return create_async_engine(database_url, pool_pre_ping=True)
 

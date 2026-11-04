@@ -18,9 +18,14 @@ interface WebApp {
   initDataUnsafe: { start_param?: string };
   colorScheme: "light" | "dark";
   themeParams: ThemeParams;
+  version: string;
   ready(): void;
   expand(): void;
+  isVersionAtLeast(version: string): boolean;
   onEvent(event: "themeChanged", cb: () => void): void;
+  openLink(url: string): void;
+  requestContact?(cb: (shared: boolean) => void): void;
+  showConfirm?(message: string, cb: (ok: boolean) => void): void;
 }
 
 declare global {
@@ -37,6 +42,29 @@ export function getWebApp(): WebApp | null {
 
 export function startParam(app: WebApp | null): string | null {
   return app?.initDataUnsafe.start_param ?? new URLSearchParams(location.search).get("start");
+}
+
+/** Поділитися номером (FR-TMA-5). Номер прийде боту повідомленням-контактом від Telegram. */
+export function requestContact(app: WebApp): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (!app.requestContact || !app.isVersionAtLeast("6.9")) {
+      resolve(false);
+      return;
+    }
+    app.requestContact((shared) => resolve(shared));
+  });
+}
+
+export function confirm(app: WebApp | null, message: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (app?.showConfirm && app.isVersionAtLeast("6.2")) app.showConfirm(message, resolve);
+    else resolve(window.confirm(message));
+  });
+}
+
+export function openLink(app: WebApp | null, url: string): void {
+  if (app) app.openLink(url);
+  else window.open(url, "_blank", "noopener");
 }
 
 const THEME_VARS: Record<keyof ThemeParams, string> = {
@@ -57,3 +85,5 @@ export function applyTheme(app: WebApp): void {
     if (value) root.style.setProperty(cssVar, value);
   }
 }
+
+export type { WebApp };

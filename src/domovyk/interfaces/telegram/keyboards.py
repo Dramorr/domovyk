@@ -5,7 +5,13 @@ from __future__ import annotations
 import re
 from urllib.parse import urlencode, urlsplit, urlunsplit
 
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+from aiogram.types import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    ReplyKeyboardMarkup,
+    WebAppInfo,
+)
 
 from domovyk.interfaces.telegram.texts import uk
 
@@ -32,4 +38,13 @@ def open_app_keyboard(base_url: str, start: str | None = None) -> InlineKeyboard
                 )
             ]
         ]
+    )
+
+
+def share_contact_keyboard() -> ReplyKeyboardMarkup:
+    """Reply-клавіатура лише для «Поділитися контактом» (BOT_FLOWS §0.1)."""
+    return ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text=uk.BTN_SHARE_CONTACT, request_contact=True)]],
+        resize_keyboard=True,
+        one_time_keyboard=True,
     )

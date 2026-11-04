@@ -15,6 +15,43 @@ export interface paths {
         get: operations["me_api_v1_me_get"];
         put?: never;
         post?: never;
+        /** Delete Me */
+        delete: operations["delete_me_api_v1_me_delete"];
+        options?: never;
+        head?: never;
+        /** Update Me */
+        patch: operations["update_me_api_v1_me_patch"];
+        trace?: never;
+    };
+    "/api/v1/me/tenant-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Tenant Profile */
+        get: operations["get_tenant_profile_api_v1_me_tenant_profile_get"];
+        /** Put Tenant Profile */
+        put: operations["put_tenant_profile_api_v1_me_tenant_profile_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register */
+        post: operations["register_api_v1_register_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -42,6 +79,17 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ConsentInfo */
+        ConsentInfo: {
+            /** Privacy Url */
+            privacy_url: string;
+            /** Privacy Version */
+            privacy_version: string;
+            /** Terms Url */
+            terms_url: string;
+            /** Terms Version */
+            terms_version: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -58,17 +106,86 @@ export interface components {
         };
         /** MeOut */
         MeOut: {
-            /** First Name */
-            first_name: string;
-            /** Last Name */
-            last_name: string | null;
+            consent: components["schemas"]["ConsentInfo"];
             /** Start Param */
             start_param: string | null;
-            /** Telegram Id */
-            telegram_id: number;
+            telegram: components["schemas"]["TelegramUserOut"];
+            user: components["schemas"]["UserOut"] | null;
+        };
+        /** NameIn */
+        NameIn: {
+            /** Display Name */
+            display_name: string;
+        };
+        /** RegisterIn */
+        RegisterIn: {
+            /** Display Name */
+            display_name: string;
+            /** Privacy Version */
+            privacy_version: string;
+            /** Terms Version */
+            terms_version: string;
+        };
+        /** TelegramUserOut */
+        TelegramUserOut: {
+            /** First Name */
+            first_name: string;
+            /** Id */
+            id: number;
             /** Username */
             username: string | null;
         };
+        /**
+         * TenantProfile
+         * @description Профіль орендаря (FR-USR-3). Усе необов'язкове; його бачить власник у заявці.
+         */
+        TenantProfile: {
+            /** About */
+            about?: string | null;
+            /** Has Children */
+            has_children?: boolean | null;
+            /** Has Pets */
+            has_pets?: boolean | null;
+            /** Household Size */
+            household_size?: number | null;
+            /** Occupation */
+            occupation?: string | null;
+            /** Pets Details */
+            pets_details?: string | null;
+            /** Smoker */
+            smoker?: boolean | null;
+        };
+        /** UserOut */
+        UserOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Display Name */
+            display_name: string;
+            /** Has Phone */
+            has_phone: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            role: components["schemas"]["UserRole"];
+            status: components["schemas"]["UserStatus"];
+            /** Telegram Uid */
+            telegram_uid: number | null;
+        };
+        /**
+         * UserRole
+         * @enum {string}
+         */
+        UserRole: "user" | "moderator" | "admin";
+        /**
+         * UserStatus
+         * @enum {string}
+         */
+        UserStatus: "active" | "under_review" | "restricted" | "banned" | "deleted";
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -109,6 +226,171 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_me_api_v1_me_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_me_api_v1_me_patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NameIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_tenant_profile_api_v1_me_tenant_profile_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantProfile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_tenant_profile_api_v1_me_tenant_profile_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TenantProfile"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantProfile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    register_api_v1_register_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
                 };
             };
             /** @description Validation Error */

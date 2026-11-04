@@ -43,6 +43,15 @@ class Settings(BaseSettings):
     # Скільки секунд initData вважається свіжим (FR-TMA-2).
     init_data_max_age_seconds: int = 24 * 60 * 60
 
+    # Перші адміністратори (Telegram ID через кому) — отримують роль admin при реєстрації.
+    admin_telegram_ids: Annotated[list[int], NoDecode] = Field(default_factory=list)
+
+    # Версії й адреси документів, з якими погоджується користувач (FR-USR-1).
+    terms_version: str = "2026-11-draft"
+    privacy_version: str = "2026-11-draft"
+    terms_url: str = "https://dramorr.github.io/domovyk/legal/terms.html"
+    privacy_url: str = "https://dramorr.github.io/domovyk/legal/privacy.html"
+
     # Сховище станів FSM бота. memory — для dev без Docker/Redis.
     bot_fsm_storage: Literal["redis", "memory"] = "redis"
 
@@ -58,10 +67,12 @@ class Settings(BaseSettings):
     @classmethod
     def _split_cors(cls, data: object) -> object:
         if isinstance(data, dict):
-            for key in ("cors_origins", "CORS_ORIGINS"):
+            for key in ("cors_origins", "CORS_ORIGINS", "admin_telegram_ids", "ADMIN_TELEGRAM_IDS"):
                 raw = data.get(key)
                 if isinstance(raw, str):
                     data[key] = [o.strip() for o in raw.split(",") if o.strip()]
+                elif isinstance(raw, int):
+                    data[key] = [raw]
         return data
 
     @model_validator(mode="after")

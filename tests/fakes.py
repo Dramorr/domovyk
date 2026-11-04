@@ -1,0 +1,245 @@
+"""Фейкові репозиторії в пам'яті для юніт-тестів сервісів. Лише вигадані дані."""
+
+from __future__ import annotations
+
+import uuid
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from typing import Any
+
+from domovyk.container import Services
+from domovyk.core.clock import Clock, FixedClock
+from domovyk.core.tx import NullTxManager, Tx
+from domovyk.domain.users import ConsentDocument, IdentityProvider, UserRole, UserStatus
+from domovyk.modules.analytics.service import AnalyticsService
+from domovyk.modules.moderation.schemas import BanIdentifiers, BanOut
+from domovyk.modules.moderation.service import ModerationService
+from domovyk.modules.users.schemas import TenantProfile, UserOut
+from domovyk.modules.users.service import UsersConfig, UsersService
+
+TEST_HMAC = "test-hmac-secret"
+ADMIN_TG = 1000
+TERMS_V = "t-1"
+PRIVACY_V = "p-1"
+
+
+@dataclass
+class _User:
+    id: uuid.UUID
+    display_name: str
+    role: UserRole
+    status: UserStatus = UserStatus.ACTIVE
+    created_at: datetime = field(default_factory=lambda: datetime(2026, 11, 4, tzinfo=UTC))
+    deleted_at: datetime | None = None
+
+
+@dataclass
+class _Ban:
+    id: uuid.UUID
+    ids: BanIdentifiers
+    user_id: uuid.UUID | None
+    reason: str
+    created_by: uuid.UUID | None
+    created_at: datetime
+    lifted_at: datetime | None = None
+
+
+class FakeDb:
+    def __init__(self) -> None:
+        self.users: dict[uuid.UUID, _User] = {}
+        self.identities: dict[tuple[IdentityProvider, str], uuid.UUID] = {}
+        self.consents: list[tuple[uuid.UUID, ConsentDocument, str]] = []
+        self.profiles: dict[uuid.UUID, TenantProfile] = {}
+        self.bans: list[_Ban] = []
+        self.audit: list[dict[str, Any]] = []
+        self.events: list[tuple[uuid.UUID | None, str, str]] = []
+
+
+class FakeUsersRepository:
+    def __init__(self, db: FakeDb) -> None:
+        self.db = db
+
+    def _out(self, u: _User) -> UserOut:
+        tg = self._uid(u.id, IdentityProvider.TELEGRAM)
+        return UserOut(
+            id=u.id,
+            display_name=u.display_name,
+            role=u.role,
+            status=u.status,
+            telegram_uid=int(tg) if tg else None,
+            has_phone=self._uid(u.id, IdentityProvider.PHONE) is not None,
+            created_at=u.created_at,
+        )
+
+    def _uid(self, user_id: uuid.UUID, provider: IdentityProvider) -> str | None:
+        for (p, uid), owner in self.db.identities.items():
+            if p is provider and owner == user_id:
+                return uid
+        return None
+
+    async def get(self, user_id: uuid.UUID) -> UserOut | None:
+        u = self.db.users.get(user_id)
+        return self._out(u) if u else None
+
+    async def get_by_identity(self, provider: IdentityProvider, uid: str) -> UserOut | None:
+        owner = self.db.identities.get((provider, uid))
+        return await self.get(owner) if owner else None
+
+    async def create(self, display_name: str, role: UserRole) -> uuid.UUID:
+        user = _User(id=uuid.uuid4(), display_name=display_name, role=role)
+        self.db.users[user.id] = user
+        return user.id
+
+    async def add_identity(
+        self,
+        user_id: uuid.UUID,
+        provider: IdentityProvider,
+        uid: str,
+        *,
+        is_contact: bool,
+        verified_at: datetime | None,
+    ) -> None:
+        if (provider, uid) in self.db.identities:
+            raise AssertionError("unique (provider, provider_uid) порушено")
+        self.db.identities[(provider, uid)] = user_id
+
+    async def identity_uid(self, user_id: uuid.UUID, provider: IdentityProvider) -> str | None:
+        return self._uid(user_id, provider)
+
+    async def remove_identities(
+        self, user_id: uuid.UUID, providers: list[IdentityProvider] | None = None
+    ) -> None:
+        for key, owner in list(self.db.identities.items()):
+            if owner == user_id and (providers is None or key[0] in providers):
+                del self.db.identities[key]
+
+    async def set_role(self, user_id: uuid.UUID, role: UserRole) -> None:
+        self.db.users[user_id].role = role
+
+    async def set_status(
+        self, user_id: uuid.UUID, status: UserStatus, *, deleted_at: datetime | None = None
+    ) -> None:
+        self.db.users[user_id].status = status
+        if deleted_at:
+            self.db.users[user_id].deleted_at = deleted_at
+
+    async def set_display_name(self, user_id: uuid.UUID, name: str) -> None:
+        self.db.users[user_id].display_name = name
+
+    async def add_consent(
+        self, user_id: uuid.UUID, document: ConsentDocument, version: str, at: datetime
+    ) -> None:
+        self.db.consents.append((user_id, document, version))
+
+    async def get_tenant_profile(self, user_id: uuid.UUID) -> TenantProfile | None:
+        return self.db.profiles.get(user_id)
+
+    async def upsert_tenant_profile(self, user_id: uuid.UUID, profile: TenantProfile) -> None:
+        self.db.profiles[user_id] = profile
+
+    async def delete_tenant_profile(self, user_id: uuid.UUID) -> None:
+        self.db.profiles.pop(user_id, None)
+
+
+class FakeModerationRepository:
+    def __init__(self, db: FakeDb) -> None:
+        self.db = db
+
+    @staticmethod
+    def _hit(ban: _Ban, ids: BanIdentifiers) -> bool:
+        return any(v is not None and v == getattr(ban.ids, k) for k, v in ids.model_dump().items())
+
+    async def find_active_ban(self, ids: BanIdentifiers, now: datetime) -> BanOut | None:
+        for ban in self.db.bans:
+            if ban.lifted_at is None and self._hit(ban, ids):
+                return BanOut(
+                    id=ban.id, user_id=ban.user_id, reason=ban.reason, created_at=ban.created_at
+                )
+        return None
+
+    async def add_ban(
+        self,
+        ids: BanIdentifiers,
+        *,
+        user_id: uuid.UUID | None,
+        reason: str,
+        created_by: uuid.UUID | None,
+    ) -> uuid.UUID:
+        ban = _Ban(uuid.uuid4(), ids.model_copy(), user_id, reason, created_by, datetime.now(UTC))
+        self.db.bans.append(ban)
+        return ban.id
+
+    async def lift_bans(self, ids: BanIdentifiers, now: datetime) -> int:
+        count = 0
+        for ban in self.db.bans:
+            if ban.lifted_at is None and self._hit(ban, ids):
+                ban.lifted_at = now
+                count += 1
+        return count
+
+    async def add_audit(
+        self,
+        actor_id: uuid.UUID | None,
+        action: str,
+        entity_type: str,
+        entity_id: str,
+        details: dict[str, Any],
+    ) -> None:
+        self.db.audit.append(
+            {"actor_id": actor_id, "action": action, "entity_id": entity_id, "details": details}
+        )
+
+
+class FakeEventsRepository:
+    def __init__(self, db: FakeDb) -> None:
+        self.db = db
+
+    async def add(
+        self, user_id: uuid.UUID | None, name: str, props: dict[str, Any], source: str
+    ) -> None:
+        self.db.events.append((user_id, name, source))
+
+
+def fake_config(**overrides: Any) -> UsersConfig:
+    values: dict[str, Any] = {
+        "hmac_secret": TEST_HMAC,
+        "admin_telegram_ids": frozenset({ADMIN_TG}),
+        "terms_version": TERMS_V,
+        "privacy_version": PRIVACY_V,
+        "terms_url": "https://example.test/terms",
+        "privacy_url": "https://example.test/privacy",
+    }
+    values.update(overrides)
+    return UsersConfig(**values)
+
+
+def make_services(
+    db: FakeDb | None = None, clock: Clock | None = None, **config: Any
+) -> tuple[UsersService, FakeDb]:
+    db = db or FakeDb()
+    clock = clock or FixedClock(datetime(2026, 11, 4, 12, 0, tzinfo=UTC))
+
+    def users_repo(_: Tx) -> FakeUsersRepository:
+        return FakeUsersRepository(db)
+
+    def mod_repo(_: Tx) -> FakeModerationRepository:
+        return FakeModerationRepository(db)
+
+    def events_repo(_: Tx) -> FakeEventsRepository:
+        return FakeEventsRepository(db)
+
+    moderation = ModerationService(mod_repo, clock)
+    analytics = AnalyticsService(events_repo)
+    users = UsersService(
+        NullTxManager(), users_repo, moderation, analytics, clock, fake_config(**config)
+    )
+    return users, db
+
+
+def make_fake_services(db: FakeDb | None = None, **config: Any) -> tuple[Services, FakeDb]:
+    """Набір сервісів для тестів API/бота (як у Container, але на фейках)."""
+    users, db = make_services(db, **config)
+    clock = FixedClock(datetime(2026, 11, 4, 12, 0, tzinfo=UTC))
+    moderation = ModerationService(lambda _: FakeModerationRepository(db), clock)
+    analytics = AnalyticsService(lambda _: FakeEventsRepository(db))
+    return Services(users=users, moderation=moderation, analytics=analytics), db

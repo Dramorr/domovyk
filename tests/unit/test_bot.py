@@ -15,6 +15,20 @@ def test_mini_app_url_drops_invalid_payload() -> None:
     assert mini_app_url(BASE, None) == BASE
 
 
+def test_admin_command_args() -> None:
+    from aiogram.filters import CommandObject
+
+    from domovyk.interfaces.telegram.handlers import _target_id
+
+    assert _target_id(CommandObject(command="ban", args="42 посередник з OLX")) == (
+        42,
+        "посередник з OLX",
+    )
+    assert _target_id(CommandObject(command="grant_mod", args="42")) == (42, "")
+    assert _target_id(CommandObject(command="ban", args="@user x")) == (None, "")
+    assert _target_id(CommandObject(command="ban", args=None)) == (None, "")
+
+
 def test_open_app_keyboard_uses_web_app() -> None:
     kb = open_app_keyboard(BASE, "src")
     button = kb.inline_keyboard[0][0]
