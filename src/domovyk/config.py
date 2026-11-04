@@ -43,6 +43,14 @@ class Settings(BaseSettings):
     # Скільки секунд initData вважається свіжим (FR-TMA-2).
     init_data_max_age_seconds: int = 24 * 60 * 60
 
+    # Сховище станів FSM бота. memory — для dev без Docker/Redis.
+    bot_fsm_storage: Literal["redis", "memory"] = "redis"
+
+    # Тунель для dev (docs/TUNNEL.md): API на ноуті стає доступним Mini App на Pages.
+    ngrok_domain: str = ""  # сталий безкоштовний домен, напр. xxx.ngrok-free.dev
+    ngrok_authtoken: SecretStr = SecretStr("")
+    ngrok_path: str = ""  # шлях до ngrok.exe, якщо його немає в PATH
+
     # Dev-прапорці — лише при APP_ENV=dev (FR-PRP-5).
     dev_skip_ownership_check: bool = False
 

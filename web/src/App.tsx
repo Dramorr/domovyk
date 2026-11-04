@@ -4,7 +4,9 @@ import { api, ApiFailure, type ApiError, type Me } from "./api/client";
 import { t } from "./i18n";
 import { getWebApp } from "./telegram";
 
-const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME as string | undefined;
+const RAW_BOT = ((import.meta.env.VITE_BOT_USERNAME as string | undefined) ?? "").replace(/^@/, "");
+// Нік бота Telegram: 5–32 символи [A-Za-z0-9_]. Заглушка TODO не пройде.
+const BOT_USERNAME = /^[A-Za-z0-9_]{5,32}$/.test(RAW_BOT) && RAW_BOT !== "TODO" ? RAW_BOT : "";
 const BRAND = `${import.meta.env.BASE_URL}../brand/`;
 
 type State = { kind: "loading" } | { kind: "ok"; me: Me } | { kind: "error"; error: ApiError };

@@ -45,7 +45,7 @@ pnpm -C web install && pnpm -C web dev         # Mini App
 
 Або все одразу: `docker compose up`.
 
-Telegram відкриває Mini App лише за HTTPS. Щоб відкрити локальну версію з бота, прокинь тунель (наприклад `cloudflared tunnel --url http://localhost:5173`) і вкажи його адресу в `MINI_APP_URL`. Для API — так само, адресу API передай у `VITE_API_URL` (`web/.env`).
+**Найпростіше для беті:** `uv run python -m domovyk.dev` — API, тунель ngrok і бот одним процесом. Mini App з GitHub Pages ходить до API на ноуті через сталий домен ngrok. Налаштування — [docs/TUNNEL.md](docs/TUNNEL.md).
 
 Перевірки: `uv run pytest`, `uv run ruff check .`, `uv run mypy src`, `pnpm -C web lint`.
 

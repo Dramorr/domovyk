@@ -83,6 +83,7 @@ uv sync                                # залежності
 uv run alembic upgrade head            # міграції
 uv run python -m domovyk.interfaces.telegram   # бот (long polling у dev)
 uv run python -m domovyk.interfaces.api        # API для Mini App (http://127.0.0.1:8000, /docs у dev)
+uv run python -m domovyk.dev                   # dev одним процесом: API + тунель ngrok + бот (docs/TUNNEL.md)
 uv run arq domovyk.workers.WorkerSettings      # воркер
 uv run pytest                          # тести
 uv run ruff check . && uv run ruff format --check . && uv run mypy src
