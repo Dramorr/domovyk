@@ -31,6 +31,8 @@ async def heartbeat(ctx: dict[str, Any]) -> str:
 
 async def startup(ctx: dict[str, Any]) -> None:
     setup_logging()
+    # arq має власний обробник логів; без цього кожен рядок дублюється через root.
+    logging.getLogger("arq").propagate = False
     log.info("Воркер стартує (APP_ENV=%s)", _settings.app_env)
 
 
