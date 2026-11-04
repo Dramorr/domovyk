@@ -1,0 +1,76 @@
+# Локальне середовище. Ті самі версії Postgres/PostGIS і Redis, що й на сервері.
+#   docker compose up -d db redis   — лише інфраструктура (бот/API запускаєш через uv)
+#   docker compose up               — усе: БД, Redis, міграції, API, бот, воркер
+# Секрети береться з .env (не в git). Шаблон — .env.example.
+
+x-app: &app
+  build: .
+  env_file: .env
+  environment:
+    DATABASE_URL: postgresql+asyncpg://domovyk:domovyk@db:5432/domovyk
+    REDIS_URL: redis://redis:6379/0
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  db:
+    image: postgis/postgis:16-3.5
+    environment:
+      POSTGRES_USER: domovyk
+      POSTGRES_PASSWORD: domovyk   # лише для локальної розробки
+      POSTGRES_DB: domovyk
+    ports: ["127.0.0.1:5432:5432"]
+    volumes: [db-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U domovyk -d domovyk"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports: ["127.0.0.1:6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    <<: *app
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+
+  api:
+    <<: *app
+    command: ["python", "-m", "domovyk.interfaces.api"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://domovyk:domovyk@db:5432/domovyk
+      REDIS_URL: redis://redis:6379/0
+      API_HOST: 0.0.0.0
+    ports: ["127.0.0.1:8000:8000"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  bot:
+    <<: *app
+    command: ["python", "-m", "domovyk.interfaces.telegram"]
+    restart: on-failure
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    <<: *app
+    command: ["arq", "domovyk.workers.WorkerSettings"]
+    restart: on-failure
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  db-data:

@@ -3,7 +3,7 @@ name: pages
 on:
   push:
     branches: [main]
-    paths: ["site/**", "assets/brand/**", ".github/workflows/pages.yml"]
+    paths: ["site/**", "web/**", "assets/brand/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -20,11 +20,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: Зібрати Mini App
+        working-directory: web
+        env:
+          # Публічні значення (не секрети): Settings → Secrets and variables → Actions → Variables
+          VITE_API_URL: ${{ vars.API_URL }}
+          VITE_BOT_USERNAME: ${{ vars.BOT_USERNAME }}
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
       - name: Зібрати сайт
         run: |
-          mkdir -p _site/brand
+          mkdir -p _site/brand _site/app
           cp -r site/. _site/
           cp assets/brand/*.svg _site/brand/
+          cp -r web/dist/. _site/app/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

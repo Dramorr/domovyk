@@ -1,0 +1,50 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: ruff
+        run: uv run ruff check . && uv run ruff format --check .
+      - name: mypy
+        run: uv run mypy src
+      - name: pytest (юніт + інтеграційні на testcontainers)
+        run: uv run pytest -q
+      - name: OpenAPI-схема Mini App актуальна
+        run: |
+          uv run python -m domovyk.interfaces.api.export_openapi > web/openapi.json
+          git diff --exit-code web/openapi.json
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Типи API згенеровані з актуальної схеми
+        run: pnpm gen:api && git diff --exit-code src/api/schema.d.ts
+      - run: pnpm lint
+      - run: pnpm build

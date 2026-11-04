@@ -1,0 +1,91 @@
+/* Кольори — з теми Telegram (FR-TMA-6), акценти — бренд. Значення нижче — запасні. */
+:root {
+  --brand: #1e4d3b;
+  --brand-dark: #163a2c;
+  --amber: #f2a93b;
+  --tg-bg: #f7f5f0;
+  --tg-surface: #ffffff;
+  --tg-text: #1b2420;
+  --tg-hint: #5c6b64;
+  --tg-link: #1e4d3b;
+  --tg-button: #1e4d3b;
+  --tg-button-text: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --tg-bg: #0f1e18;
+    --tg-surface: #163a2c;
+    --tg-text: #eef2ef;
+    --tg-hint: #a9bab1;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--tg-bg);
+  color: var(--tg-text);
+  font: 16px/1.55 Manrope, system-ui, sans-serif;
+}
+
+.screen {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 16px 16px calc(24px + env(safe-area-inset-bottom));
+  text-align: center;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  margin-bottom: 24px;
+}
+
+.brand {
+  font: 700 20px Unbounded, sans-serif;
+}
+
+.badge {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--brand-dark);
+  background: var(--amber);
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+h1 {
+  font: 700 24px/1.25 Unbounded, sans-serif;
+  margin: 8px 0 12px;
+}
+
+.mascot {
+  width: 160px;
+  height: 160px;
+  margin: 8px auto 0;
+  display: block;
+}
+
+.hint {
+  color: var(--tg-hint);
+}
+
+.button {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 12px 20px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--tg-button);
+  color: var(--tg-button-text);
+  font: 700 16px Manrope, sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+}

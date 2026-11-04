@@ -82,12 +82,16 @@ docker compose up -d db redis          # Postgres+PostGIS і Redis
 uv sync                                # залежності
 uv run alembic upgrade head            # міграції
 uv run python -m domovyk.interfaces.telegram   # бот (long polling у dev)
+uv run python -m domovyk.interfaces.api        # API для Mini App (http://127.0.0.1:8000, /docs у dev)
 uv run arq domovyk.workers.WorkerSettings      # воркер
 uv run pytest                          # тести
 uv run ruff check . && uv run ruff format --check . && uv run mypy src
 pnpm -C web install && pnpm -C web dev         # Mini App локально (для Telegram — через HTTPS-тунель)
 pnpm -C web build && pnpm -C web lint          # збірка й лінт Mini App
+uv run python -m domovyk.interfaces.api.export_openapi > web/openapi.json && pnpm -C web gen:api   # змінив API — онови типи
 ```
+
+Інтеграційні тести (`tests/integration/`, testcontainers) потребують Docker; без нього вони пропускаються локально, але завжди йдуть у CI.
 
 Якщо команди ще не існують (на початку M0) — створи їх саме такими, щоб цей файл лишався правдою.
 
