@@ -24,6 +24,7 @@ interface WebApp {
   isVersionAtLeast(version: string): boolean;
   onEvent(event: "themeChanged", cb: () => void): void;
   openLink(url: string): void;
+  openTelegramLink?(url: string): void;
   requestContact?(cb: (shared: boolean) => void): void;
   showConfirm?(message: string, cb: (ok: boolean) => void): void;
 }
@@ -65,6 +66,12 @@ export function confirm(app: WebApp | null, message: string): Promise<boolean> {
 export function openLink(app: WebApp | null, url: string): void {
   if (app) app.openLink(url);
   else window.open(url, "_blank", "noopener");
+}
+
+/** Відкрити t.me-посилання (бот із deep link) усередині Telegram. */
+export function openTelegramLink(app: WebApp | null, url: string): void {
+  if (app?.openTelegramLink) app.openTelegramLink(url);
+  else openLink(app, url);
 }
 
 const THEME_VARS: Record<keyof ThemeParams, string> = {

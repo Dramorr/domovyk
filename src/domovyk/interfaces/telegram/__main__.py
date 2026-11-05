@@ -17,6 +17,7 @@ from domovyk.config import Settings, get_settings
 from domovyk.container import Container, Services
 from domovyk.core.logging import setup_logging
 from domovyk.interfaces.telegram.handlers import make_router
+from domovyk.interfaces.telegram.ownership import make_ownership_router
 from domovyk.interfaces.telegram.texts import uk
 
 log = logging.getLogger(__name__)
@@ -39,7 +40,17 @@ async def run_bot(settings: Settings, services: Services | None = None) -> None:
         token=settings.telegram_bot_token.get_secret_value(),
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
-    dp = Dispatcher(storage=_storage(settings), users=services.users)
+    dp = Dispatcher(
+        storage=_storage(settings), users=services.users, properties=services.properties
+    )
+    # Порядок важливий: /start own_… має перехопити роутер власності раніше за загальний /start.
+    dp.include_router(
+        make_ownership_router(
+            settings.mini_app_url,
+            max_mb=settings.ownership_doc_max_mb,
+            retention_days=settings.ownership_doc_retention_days,
+        )
+    )
     dp.include_router(make_router(settings.mini_app_url))
 
     await bot.set_my_commands(

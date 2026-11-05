@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/api/v1/addresses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search Addresses */
+        get: operations["search_addresses_api_v1_addresses_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me": {
         parameters: {
             query?: never;
@@ -36,6 +53,264 @@ export interface paths {
         put: operations["put_tenant_profile_api_v1_me_tenant_profile_put"];
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/moderation/ownership": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ownership Queue */
+        get: operations["ownership_queue_api_v1_moderation_ownership_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/moderation/ownership/{verification_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ownership Case */
+        get: operations["ownership_case_api_v1_moderation_ownership__verification_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/moderation/ownership/{verification_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Ownership */
+        post: operations["approve_ownership_api_v1_moderation_ownership__verification_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/moderation/ownership/{verification_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject Ownership */
+        post: operations["reject_ownership_api_v1_moderation_ownership__verification_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/moderation/ownership/{verification_id}/send-documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send Ownership Documents */
+        post: operations["send_ownership_documents_api_v1_moderation_ownership__verification_id__send_documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/moderation/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Moderation Summary */
+        get: operations["moderation_summary_api_v1_moderation_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/properties": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Properties */
+        get: operations["list_properties_api_v1_properties_get"];
+        put?: never;
+        /** Create Property */
+        post: operations["create_property_api_v1_properties_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/properties/{property_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Property */
+        get: operations["get_property_api_v1_properties__property_id__get"];
+        /** Update Property */
+        put: operations["update_property_api_v1_properties__property_id__put"];
+        post?: never;
+        /** Delete Property */
+        delete: operations["delete_property_api_v1_properties__property_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/properties/{property_id}/ownership": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Ownership */
+        get: operations["get_ownership_api_v1_properties__property_id__ownership_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/properties/{property_id}/ownership/dev-verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dev Verify Ownership */
+        post: operations["dev_verify_ownership_api_v1_properties__property_id__ownership_dev_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/properties/{property_id}/ownership/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload Ownership Document */
+        post: operations["upload_ownership_document_api_v1_properties__property_id__ownership_documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/properties/{property_id}/ownership/documents/{document_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove Ownership Document */
+        delete: operations["remove_ownership_document_api_v1_properties__property_id__ownership_documents__document_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/properties/{property_id}/ownership/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Ownership */
+        post: operations["submit_ownership_api_v1_properties__property_id__ownership_submit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/properties/{property_id}/rooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Room */
+        post: operations["add_room_api_v1_properties__property_id__rooms_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/properties/{property_id}/rooms/{unit_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove Room */
+        delete: operations["remove_room_api_v1_properties__property_id__rooms__unit_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -79,6 +354,59 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AddressCandidate
+         * @description Будинок, знайдений геокодером (PRP-ADDR-CONFIRM).
+         */
+        AddressCandidate: {
+            /** City */
+            city: string;
+            /** District */
+            district?: string | null;
+            /** House Number */
+            house_number: string;
+            /** Lat */
+            lat?: number | null;
+            /** Lon */
+            lon?: number | null;
+            /** Place Id */
+            place_id?: string | null;
+            /** Street */
+            street: string;
+        };
+        /**
+         * AddressIn
+         * @description Адреса будинку: підтверджений кандидат геокодера або введена вручну.
+         */
+        AddressIn: {
+            /**
+             * City
+             * @default Львів
+             */
+            city: string;
+            /** District */
+            district?: string | null;
+            /** House Number */
+            house_number: string;
+            /** Lat */
+            lat?: number | null;
+            /** Lon */
+            lon?: number | null;
+            /** Place Id */
+            place_id?: string | null;
+            /** Street */
+            street: string;
+        };
+        /** ApproveIn */
+        ApproveIn: {
+            /** Owner Name */
+            owner_name: string;
+        };
+        /** Body_upload_ownership_document_api_v1_properties__property_id__ownership_documents_post */
+        Body_upload_ownership_document_api_v1_properties__property_id__ownership_documents_post: {
+            /** File */
+            file: string;
+        };
         /** ConsentInfo */
         ConsentInfo: {
             /** Privacy Url */
@@ -89,6 +417,25 @@ export interface components {
             terms_url: string;
             /** Terms Version */
             terms_version: string;
+        };
+        /** DocumentOut */
+        DocumentOut: {
+            /** Deleted */
+            deleted: boolean;
+            /** Filename */
+            filename: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /**
+             * Uploaded At
+             * Format: date-time
+             */
+            uploaded_at: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -112,10 +459,154 @@ export interface components {
             telegram: components["schemas"]["TelegramUserOut"];
             user: components["schemas"]["UserOut"] | null;
         };
+        /** ModerationSummaryOut */
+        ModerationSummaryOut: {
+            /** Ownership Pending */
+            ownership_pending: number;
+        };
         /** NameIn */
         NameIn: {
             /** Display Name */
             display_name: string;
+        };
+        /**
+         * OwnerSummary
+         * @description Що модератор бачить про власника (MOD-OWN). Без телефону й Telegram.
+         */
+        OwnerSummary: {
+            /** Display Name */
+            display_name: string;
+            /** Properties Count */
+            properties_count: number;
+            /**
+             * Registered At
+             * Format: date-time
+             */
+            registered_at: string;
+            /** Risk Signals */
+            risk_signals: number;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /**
+         * OwnershipOut
+         * @description PRP-OWN: стан підтвердження власності для власника.
+         */
+        OwnershipOut: {
+            /** Dev Bypass Available */
+            dev_bypass_available: boolean;
+            /** Max Document Mb */
+            max_document_mb: number;
+            /** Max Documents */
+            max_documents: number;
+            ownership_status: components["schemas"]["OwnershipStatus"];
+            /**
+             * Property Id
+             * Format: uuid
+             */
+            property_id: string;
+            verification: components["schemas"]["VerificationOut"] | null;
+        };
+        /**
+         * OwnershipStatus
+         * @description Статус власності на об'єкті (SPEC §6: unverified → pending → verified / rejected).
+         * @enum {string}
+         */
+        OwnershipStatus: "unverified" | "pending" | "verified" | "rejected";
+        /** PropertyCreate */
+        PropertyCreate: {
+            address: components["schemas"]["AddressIn"];
+            /** Apartment */
+            apartment?: string | null;
+            /** Area */
+            area?: number | string | null;
+            /** Entrance */
+            entrance?: string | null;
+            /** Floor */
+            floor?: number | null;
+            kind: components["schemas"]["PropertyKind"];
+            /** Rooms */
+            rooms: number;
+        };
+        /**
+         * PropertyKind
+         * @enum {string}
+         */
+        PropertyKind: "apartment" | "house";
+        /** PropertyOut */
+        PropertyOut: {
+            /** Apartment */
+            apartment: string | null;
+            /** Area */
+            area: string | null;
+            /** City */
+            city: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** District */
+            district: string | null;
+            /** Entrance */
+            entrance: string | null;
+            /** Floor */
+            floor: number | null;
+            /** Has Location */
+            has_location: boolean;
+            /** House Number */
+            house_number: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            kind: components["schemas"]["PropertyKind"];
+            /**
+             * Owner User Id
+             * Format: uuid
+             */
+            owner_user_id: string;
+            ownership_status: components["schemas"]["OwnershipStatus"];
+            /** Ownership Verified At */
+            ownership_verified_at: string | null;
+            /** Rooms */
+            rooms: number;
+            /** Street */
+            street: string;
+            /** Units */
+            units: components["schemas"]["UnitOut"][];
+        };
+        /**
+         * PropertyUpdate
+         * @description Що можна змінити без повторної перевірки. Адреса не змінюється (лише новий об'єкт).
+         */
+        PropertyUpdate: {
+            /** Area */
+            area?: number | string | null;
+            /** Entrance */
+            entrance?: string | null;
+            /** Floor */
+            floor?: number | null;
+            /** Rooms */
+            rooms: number;
+        };
+        /** QueueItem */
+        QueueItem: {
+            /** Documents Count */
+            documents_count: number;
+            owner: components["schemas"]["OwnerSummary"];
+            property: components["schemas"]["PropertyOut"];
+            /** Submitted At */
+            submitted_at: string | null;
+            /**
+             * Verification Id
+             * Format: uuid
+             */
+            verification_id: string;
         };
         /** RegisterIn */
         RegisterIn: {
@@ -125,6 +616,23 @@ export interface components {
             privacy_version: string;
             /** Terms Version */
             terms_version: string;
+        };
+        /** RejectIn */
+        RejectIn: {
+            /** Reason */
+            reason: string;
+        };
+        /** RoomIn */
+        RoomIn: {
+            /** Area */
+            area?: number | string | null;
+            /** Name */
+            name: string;
+        };
+        /** SentOut */
+        SentOut: {
+            /** Sent */
+            sent: number;
         };
         /** TelegramUserOut */
         TelegramUserOut: {
@@ -154,6 +662,26 @@ export interface components {
             pets_details?: string | null;
             /** Smoker */
             smoker?: boolean | null;
+        };
+        /**
+         * UnitKind
+         * @enum {string}
+         */
+        UnitKind: "entire" | "room";
+        /** UnitOut */
+        UnitOut: {
+            /** Area */
+            area: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            kind: components["schemas"]["UnitKind"];
+            /** Name */
+            name: string;
         };
         /** UserOut */
         UserOut: {
@@ -199,6 +727,54 @@ export interface components {
             /** Error Type */
             type: string;
         };
+        /** VerificationCase */
+        VerificationCase: {
+            owner: components["schemas"]["OwnerSummary"];
+            property: components["schemas"]["PropertyOut"];
+            verification: components["schemas"]["VerificationOut"];
+        };
+        /** VerificationOut */
+        VerificationOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Decided At */
+            decided_at: string | null;
+            /** Documents */
+            documents: components["schemas"]["DocumentOut"][];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Dev Bypass */
+            is_dev_bypass: boolean;
+            /** Owner Name In Doc */
+            owner_name_in_doc: string | null;
+            /**
+             * Property Id
+             * Format: uuid
+             */
+            property_id: string;
+            /** Reject Reason */
+            reject_reason: string | null;
+            status: components["schemas"]["VerificationStatus"];
+            /** Submitted At */
+            submitted_at: string | null;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /**
+         * VerificationStatus
+         * @description Заявка на перевірку. draft — власник ще додає документи, модератор її не бачить.
+         * @enum {string}
+         */
+        VerificationStatus: "draft" | "pending" | "verified" | "rejected" | "expired";
     };
     responses: never;
     parameters: never;
@@ -208,6 +784,39 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    search_addresses_api_v1_addresses_get: {
+        parameters: {
+            query: {
+                q: string;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddressCandidate"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     me_api_v1_me_get: {
         parameters: {
             query?: never;
@@ -356,6 +965,616 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TenantProfile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ownership_queue_api_v1_moderation_ownership_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueueItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ownership_case_api_v1_moderation_ownership__verification_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                verification_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationCase"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_ownership_api_v1_moderation_ownership__verification_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                verification_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationCase"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_ownership_api_v1_moderation_ownership__verification_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                verification_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerificationCase"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_ownership_documents_api_v1_moderation_ownership__verification_id__send_documents_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                verification_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    moderation_summary_api_v1_moderation_summary_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModerationSummaryOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_properties_api_v1_properties_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_property_api_v1_properties_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PropertyCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_property_api_v1_properties__property_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_property_api_v1_properties__property_id__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PropertyUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_property_api_v1_properties__property_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_ownership_api_v1_properties__property_id__ownership_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnershipOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dev_verify_ownership_api_v1_properties__property_id__ownership_dev_verify_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnershipOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_ownership_document_api_v1_properties__property_id__ownership_documents_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_ownership_document_api_v1_properties__property_id__ownership_documents_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnershipOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_ownership_document_api_v1_properties__property_id__ownership_documents__document_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                property_id: string;
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnershipOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_ownership_api_v1_properties__property_id__ownership_submit_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnershipOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_room_api_v1_properties__property_id__rooms_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoomIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_room_api_v1_properties__property_id__rooms__unit_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                property_id: string;
+                unit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyOut"];
                 };
             };
             /** @description Validation Error */

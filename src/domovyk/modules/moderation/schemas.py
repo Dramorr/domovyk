@@ -17,6 +17,16 @@ class AuditAction(StrEnum):
     BAN_CREATE = "ban.create"
     BAN_LIFT = "ban.lift"
     ACCOUNT_DELETE = "account.delete"
+    OWNERSHIP_APPROVE = "ownership.approve"
+    OWNERSHIP_REJECT = "ownership.reject"
+    OWNERSHIP_DEV_BYPASS = "ownership.dev_bypass"
+
+
+class RiskSignal(StrEnum):
+    """Типи сигналів ризику (risk_signals.signal_type, FR-LST-5, FR-PRP-2)."""
+
+    REREGISTRATION_ATTEMPT = "reregistration_attempt"
+    DUPLICATE_ADDRESS = "duplicate_address"
 
 
 class BanIdentifiers(BaseModel):

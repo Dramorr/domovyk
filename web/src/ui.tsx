@@ -48,3 +48,28 @@ export function errorText(e: unknown): string {
   }
   return t("error_network");
 }
+
+/** Адреса об'єкта для показу власнику (повна: вона його). */
+export function formatAddress(p: { street: string; house_number: string; apartment?: string | null }): string {
+  return p.apartment
+    ? t("address_apt", { street: p.street, house: p.house_number, apartment: p.apartment })
+    : t("address_house", { street: p.street, house: p.house_number });
+}
+
+export function roomsText(rooms: number): string {
+  return rooms === 0 ? t("rooms_studio") : t("rooms_n", { n: String(rooms) });
+}
+
+export function formatDate(iso: string | null | undefined): string {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString("uk-UA", { timeZone: "Europe/Kyiv" });
+}
+
+/** Код доменної помилки, якщо це вона. */
+export function errorCode(e: unknown): string | undefined {
+  return e instanceof ApiFailure && e.kind === "domain" ? e.code : undefined;
+}
+
+export function errorField(e: unknown): string | undefined {
+  return e instanceof ApiFailure ? e.field : undefined;
+}

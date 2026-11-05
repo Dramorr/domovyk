@@ -60,6 +60,16 @@ class Settings(BaseSettings):
     ngrok_authtoken: SecretStr = SecretStr("")
     ngrok_path: str = ""  # шлях до ngrok.exe, якщо його немає в PATH
 
+    # Геокодер адрес (FR-PRP-2): nominatim — OpenStreetMap без ключа; manual — без мережі.
+    geocoder: Literal["nominatim", "manual"] = "nominatim"
+    nominatim_url: str = "https://nominatim.openstreetmap.org"
+
+    # Сховище файлів (документи власності — зашифровані FERNET_KEY). Папка не в git.
+    storage_dir: str = "storage"
+    # Документи власності: розмір і скільки днів зберігати після рішення (FR-PRP-4).
+    ownership_doc_max_mb: int = Field(default=10, ge=1, le=20)
+    ownership_doc_retention_days: int = Field(default=30, ge=1)
+
     # Dev-прапорці — лише при APP_ENV=dev (FR-PRP-5).
     dev_skip_ownership_check: bool = False
 

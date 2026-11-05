@@ -6,6 +6,7 @@
 import json
 import sys
 
+from cryptography.fernet import Fernet
 from pydantic import SecretStr
 
 from domovyk.config import Settings
@@ -13,12 +14,13 @@ from domovyk.interfaces.api.app import create_app
 
 
 def main() -> None:
-    # Токен тут не використовується для перевірок — лише щоб зібрати застосунок.
+    # Секрети тут не використовуються — лише щоб зібрати застосунок (без мережі й БД).
     settings = Settings(
         _env_file=None,
         app_env="test",
-        telegram_bot_token=SecretStr("openapi-export"),
+        telegram_bot_token=SecretStr("123456:openapi-export"),
         hmac_secret=SecretStr("openapi-export"),
+        fernet_key=SecretStr(Fernet.generate_key().decode()),
     )
     schema = create_app(settings).openapi()
     sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]

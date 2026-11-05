@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
+from domovyk.adapters.geocoder.base import Geocoder
+from domovyk.adapters.geocoder.manual import ManualGeocoder
 from domovyk.container import Services
 from domovyk.core.clock import Clock, FixedClock
 from domovyk.core.tx import NullTxManager, Tx
@@ -14,8 +16,17 @@ from domovyk.domain.users import ConsentDocument, IdentityProvider, UserRole, Us
 from domovyk.modules.analytics.service import AnalyticsService
 from domovyk.modules.moderation.schemas import BanIdentifiers, BanOut
 from domovyk.modules.moderation.service import ModerationService
+from domovyk.modules.notifications.service import NotificationsService
+from domovyk.modules.properties.service import PropertiesConfig, PropertiesService
 from domovyk.modules.users.schemas import TenantProfile, UserOut
 from domovyk.modules.users.service import UsersConfig, UsersService
+from tests.fakes_properties import (
+    FakeNotificationsRepository,
+    FakeNotifier,
+    FakePropertiesRepository,
+    MemoryStorage,
+    PropDb,
+)
 
 TEST_HMAC = "test-hmac-secret"
 ADMIN_TG = 1000
@@ -53,6 +64,10 @@ class FakeDb:
         self.bans: list[_Ban] = []
         self.audit: list[dict[str, Any]] = []
         self.events: list[tuple[uuid.UUID | None, str, str]] = []
+        self.risk_signals: list[tuple[uuid.UUID, str, dict[str, Any]]] = []
+        self.prop = PropDb()
+        self.storage = MemoryStorage()
+        self.notifier = FakeNotifier()
 
 
 class FakeUsersRepository:
@@ -140,6 +155,13 @@ class FakeUsersRepository:
     async def delete_tenant_profile(self, user_id: uuid.UUID) -> None:
         self.db.profiles.pop(user_id, None)
 
+    async def list_staff_ids(self) -> list[uuid.UUID]:
+        return [
+            u.id
+            for u in self.db.users.values()
+            if u.role in (UserRole.MODERATOR, UserRole.ADMIN) and u.status is UserStatus.ACTIVE
+        ]
+
 
 class FakeModerationRepository:
     def __init__(self, db: FakeDb) -> None:
@@ -189,6 +211,14 @@ class FakeModerationRepository:
             {"actor_id": actor_id, "action": action, "entity_id": entity_id, "details": details}
         )
 
+    async def add_risk_signal(
+        self, user_id: uuid.UUID, signal_type: str, weight: int, details: dict[str, Any]
+    ) -> None:
+        self.db.risk_signals.append((user_id, signal_type, details))
+
+    async def count_risk_signals(self, user_id: uuid.UUID) -> int:
+        return sum(1 for uid, _, _ in self.db.risk_signals if uid == user_id)
+
 
 class FakeEventsRepository:
     def __init__(self, db: FakeDb) -> None:
@@ -236,10 +266,41 @@ def make_services(
     return users, db
 
 
-def make_fake_services(db: FakeDb | None = None, **config: Any) -> tuple[Services, FakeDb]:
-    """Набір сервісів для тестів API/бота (як у Container, але на фейках)."""
-    users, db = make_services(db, **config)
-    clock = FixedClock(datetime(2026, 11, 4, 12, 0, tzinfo=UTC))
+def make_fake_services(
+    db: FakeDb | None = None,
+    clock: Clock | None = None,
+    *,
+    properties_config: PropertiesConfig | None = None,
+    geocoder: Geocoder | None = None,
+    **config: Any,
+) -> tuple[Services, FakeDb]:
+    """Повний набір сервісів на фейках (як у Container): для тестів сервісів, API й бота."""
+    db = db or FakeDb()
+    clock = clock or FixedClock(datetime(2026, 11, 4, 12, 0, tzinfo=UTC))
+    users, db = make_services(db, clock, **config)
     moderation = ModerationService(lambda _: FakeModerationRepository(db), clock)
     analytics = AnalyticsService(lambda _: FakeEventsRepository(db))
-    return Services(users=users, moderation=moderation, analytics=analytics), db
+    notifications = NotificationsService(
+        NullTxManager(), lambda _: FakeNotificationsRepository(db.prop), users, clock
+    )
+    properties = PropertiesService(
+        NullTxManager(),
+        lambda _: FakePropertiesRepository(db.prop),
+        users,
+        moderation,
+        analytics,
+        notifications,
+        geocoder or ManualGeocoder(),
+        db.storage,
+        clock,
+        properties_config or PropertiesConfig(),
+        notifier=db.notifier,
+    )
+    services = Services(
+        users=users,
+        moderation=moderation,
+        analytics=analytics,
+        notifications=notifications,
+        properties=properties,
+    )
+    return services, db

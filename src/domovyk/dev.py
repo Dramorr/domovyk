@@ -1,4 +1,4 @@
-"""Dev-запуск однією командою: API + тунель ngrok + бот (docs/TUNNEL.md).
+"""Dev-запуск однією командою: API + тунель ngrok + бот + фонові задачі (docs/TUNNEL.md).
 
 `uv run python -m domovyk.dev`
 
@@ -20,6 +20,7 @@ from domovyk.container import Container
 from domovyk.core.logging import setup_logging
 from domovyk.interfaces.api.app import create_app
 from domovyk.interfaces.telegram.__main__ import run_bot
+from domovyk.workers.jobs import dev_background_loop
 
 log = logging.getLogger("domovyk.dev")
 
@@ -46,11 +47,23 @@ async def run() -> None:
         authtoken=settings.ngrok_authtoken.get_secret_value(),
         exe=settings.ngrok_path,
     )
+    # Замість окремого воркера: outbox сповіщень і прибирання документів у цьому ж процесі.
+    background = (
+        asyncio.create_task(
+            dev_background_loop(container.services, container.notifier, settings.mini_app_url)
+        )
+        if container.notifier is not None
+        else None
+    )
     try:
         url = await tunnel.start(settings.api_port)
         log.info("API доступне з інтернету: %s  (це значення API_URL у GitHub)", url)
         await run_bot(settings, container.services)
     finally:
+        if background is not None:
+            background.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await background
         await tunnel.stop()
         server.should_exit = True
         with contextlib.suppress(asyncio.CancelledError):

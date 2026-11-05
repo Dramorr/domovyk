@@ -12,6 +12,8 @@ from alembic.config import Config
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from domovyk.adapters.geocoder.manual import ManualGeocoder
+from domovyk.container import Services
 from domovyk.core.clock import FixedClock
 from domovyk.core.db import make_engine, make_sessionmaker
 from domovyk.core.tx import SqlTxManager
@@ -19,9 +21,14 @@ from domovyk.modules.analytics.repository import SqlEventsRepository
 from domovyk.modules.analytics.service import AnalyticsService
 from domovyk.modules.moderation.repository import SqlModerationRepository
 from domovyk.modules.moderation.service import ModerationService
+from domovyk.modules.notifications.repository import SqlNotificationsRepository
+from domovyk.modules.notifications.service import NotificationsService
+from domovyk.modules.properties.repository import SqlPropertiesRepository
+from domovyk.modules.properties.service import PropertiesConfig, PropertiesService
 from domovyk.modules.users.repository import SqlUsersRepository
 from domovyk.modules.users.service import UsersService
 from tests.fakes import fake_config
+from tests.fakes_properties import FakeNotifier, MemoryStorage
 
 
 @pytest.fixture(scope="session")
@@ -54,7 +61,9 @@ async def engine(migrated_url: str) -> AsyncIterator[AsyncEngine]:
     async with eng.begin() as conn:
         await conn.execute(
             text(
-                "TRUNCATE events, audit_log, bans, user_consents, tenant_profiles, "
+                "TRUNCATE notifications, risk_signals, verification_documents, "
+                "user_verifications, units, properties, buildings, districts, "
+                "events, audit_log, bans, user_consents, tenant_profiles, "
                 "auth_identities, users RESTART IDENTITY CASCADE"
             )
         )
@@ -68,3 +77,38 @@ def users(engine: AsyncEngine) -> UsersService:
     moderation = ModerationService(SqlModerationRepository, clock)
     analytics = AnalyticsService(SqlEventsRepository)
     return UsersService(tx, SqlUsersRepository, moderation, analytics, clock, fake_config())
+
+
+@pytest.fixture
+def it_clock() -> FixedClock:
+    return FixedClock(datetime(2026, 11, 5, 12, 0, tzinfo=UTC))
+
+
+@pytest.fixture
+def services(engine: AsyncEngine, it_clock: FixedClock) -> Services:
+    """Усі сервіси на справжньому Postgres; зовнішнє (сховище, Telegram) — фейки."""
+    tx = SqlTxManager(make_sessionmaker(engine))
+    moderation = ModerationService(SqlModerationRepository, it_clock)
+    analytics = AnalyticsService(SqlEventsRepository)
+    users = UsersService(tx, SqlUsersRepository, moderation, analytics, it_clock, fake_config())
+    notifications = NotificationsService(tx, SqlNotificationsRepository, users, it_clock)
+    properties = PropertiesService(
+        tx,
+        SqlPropertiesRepository,
+        users,
+        moderation,
+        analytics,
+        notifications,
+        ManualGeocoder(),
+        MemoryStorage(),
+        it_clock,
+        PropertiesConfig(),
+        notifier=FakeNotifier(),
+    )
+    return Services(
+        users=users,
+        moderation=moderation,
+        analytics=analytics,
+        notifications=notifications,
+        properties=properties,
+    )

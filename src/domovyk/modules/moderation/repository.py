@@ -6,10 +6,10 @@ import uuid
 from datetime import datetime
 from typing import Any, Protocol
 
-from sqlalchemy import or_, select, update
+from sqlalchemy import func, or_, select, update
 
 from domovyk.core.tx import Tx, session_of
-from domovyk.modules.moderation.models import AuditRow, BanRow
+from domovyk.modules.moderation.models import AuditRow, BanRow, RiskSignalRow
 from domovyk.modules.moderation.schemas import BanIdentifiers, BanOut
 
 
@@ -35,6 +35,12 @@ class ModerationRepository(Protocol):
         entity_id: str,
         details: dict[str, Any],
     ) -> None: ...
+
+    async def add_risk_signal(
+        self, user_id: uuid.UUID, signal_type: str, weight: int, details: dict[str, Any]
+    ) -> None: ...
+
+    async def count_risk_signals(self, user_id: uuid.UUID) -> int: ...
 
 
 def _matches(ids: BanIdentifiers) -> list[Any]:
@@ -117,3 +123,17 @@ class SqlModerationRepository:
             )
         )
         await self._s.flush()
+
+    async def add_risk_signal(
+        self, user_id: uuid.UUID, signal_type: str, weight: int, details: dict[str, Any]
+    ) -> None:
+        self._s.add(
+            RiskSignalRow(user_id=user_id, signal_type=signal_type, weight=weight, details=details)
+        )
+        await self._s.flush()
+
+    async def count_risk_signals(self, user_id: uuid.UUID) -> int:
+        count = await self._s.scalar(
+            select(func.count()).select_from(RiskSignalRow).where(RiskSignalRow.user_id == user_id)
+        )
+        return int(count or 0)

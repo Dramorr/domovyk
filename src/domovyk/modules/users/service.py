@@ -20,6 +20,7 @@ from domovyk.core.errors import (
     InvalidInput,
     NotFound,
     NotRegistered,
+    NotStaff,
     ProtectedRole,
 )
 from domovyk.core.tx import Tx, TxManager
@@ -29,6 +30,7 @@ from domovyk.domain.users import (
     UserRole,
     UserStatus,
     can_use_app,
+    is_staff,
     new_role_for_moderator_change,
     normalize_display_name,
     require_admin,
@@ -103,6 +105,23 @@ class UsersService:
         if not can_use_app(user.status):
             raise AccountInactive()
         return user
+
+    async def require_staff(self, telegram_uid: int) -> UserOut:
+        """Активний модератор або адмін (черги модерації, FR-MOD-1)."""
+        user = await self.require_active(telegram_uid)
+        if not is_staff(user.role):
+            raise NotStaff("Лише для модераторів")
+        return user
+
+    async def get_by_id(self, user_id: uuid.UUID) -> UserOut | None:
+        """Для інших модулів: ім'я, роль, Telegram ID власника тощо."""
+        async with self._tx.begin() as tx:
+            return await self._repo(tx).get(user_id)
+
+    async def staff_ids(self) -> list[uuid.UUID]:
+        """Активні модератори й адміни — кому слати черги модерації."""
+        async with self._tx.begin() as tx:
+            return await self._repo(tx).list_staff_ids()
 
     async def get_tenant_profile(self, telegram_uid: int) -> TenantProfile:
         user = await self.require_active(telegram_uid)

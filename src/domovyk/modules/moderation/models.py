@@ -12,6 +12,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Identity,
+    SmallInteger,
     Text,
     func,
     text,
@@ -45,6 +46,19 @@ class BanRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     lifted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class RiskSignalRow(Base):
+    __tablename__ = "risk_signals"
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE")
+    )
+    signal_type: Mapped[str] = mapped_column(Text)
+    weight: Mapped[int] = mapped_column(SmallInteger, server_default="1")
+    details: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class AuditRow(Base):

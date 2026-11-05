@@ -6,14 +6,25 @@ from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from domovyk.adapters.geocoder.base import Geocoder
+from domovyk.adapters.geocoder.manual import ManualGeocoder
+from domovyk.adapters.geocoder.nominatim import NominatimGeocoder
+from domovyk.adapters.notifier.telegram import TelegramNotifier
+from domovyk.adapters.storage.encrypted import EncryptedFileStorage
+from domovyk.adapters.storage.local import LocalFileStorage
 from domovyk.config import Settings
 from domovyk.core.clock import Clock, system_clock
+from domovyk.core.crypto import Cipher
 from domovyk.core.db import make_engine, make_sessionmaker
 from domovyk.core.tx import SqlTxManager
 from domovyk.modules.analytics.repository import SqlEventsRepository
 from domovyk.modules.analytics.service import AnalyticsService
 from domovyk.modules.moderation.repository import SqlModerationRepository
 from domovyk.modules.moderation.service import ModerationService
+from domovyk.modules.notifications.repository import SqlNotificationsRepository
+from domovyk.modules.notifications.service import NotificationsService
+from domovyk.modules.properties.repository import SqlPropertiesRepository
+from domovyk.modules.properties.service import PropertiesConfig, PropertiesService
 from domovyk.modules.users.repository import SqlUsersRepository
 from domovyk.modules.users.service import UsersConfig, UsersService
 
@@ -23,6 +34,8 @@ class Services:
     users: UsersService
     moderation: ModerationService
     analytics: AnalyticsService
+    notifications: NotificationsService
+    properties: PropertiesService
 
 
 def users_config(settings: Settings) -> UsersConfig:
@@ -36,20 +49,67 @@ def users_config(settings: Settings) -> UsersConfig:
     )
 
 
+def properties_config(settings: Settings) -> PropertiesConfig:
+    return PropertiesConfig(
+        dev_skip_ownership_check=settings.dev_skip_ownership_check and settings.is_dev,
+        allow_self_review=settings.is_dev,
+        max_document_bytes=settings.ownership_doc_max_mb * 1024 * 1024,
+        document_retention_days=settings.ownership_doc_retention_days,
+    )
+
+
+def make_geocoder(settings: Settings) -> Geocoder:
+    if settings.geocoder == "manual":
+        return ManualGeocoder()
+    return NominatimGeocoder(settings.nominatim_url)
+
+
 class Container:
-    """Справжні залежності: PostgreSQL через SQLAlchemy."""
+    """Справжні залежності: PostgreSQL, геокодер, сховище файлів, Telegram."""
 
     def __init__(self, settings: Settings, clock: Clock = system_clock) -> None:
-        settings.require("hmac_secret")
+        settings.require("hmac_secret", "fernet_key")
         self.settings = settings
         self.engine: AsyncEngine = make_engine(settings.database_url)
         tx = SqlTxManager(make_sessionmaker(self.engine))
+        self.geocoder = make_geocoder(settings)
+        storage = EncryptedFileStorage(
+            LocalFileStorage(settings.storage_dir),
+            Cipher(settings.fernet_key.get_secret_value()),
+        )
+        token = settings.telegram_bot_token.get_secret_value()
+        self.notifier = TelegramNotifier.from_token(token) if token else None
+
         analytics = AnalyticsService(SqlEventsRepository)
         moderation = ModerationService(SqlModerationRepository, clock)
         users = UsersService(
             tx, SqlUsersRepository, moderation, analytics, clock, users_config(settings)
         )
-        self.services = Services(users=users, moderation=moderation, analytics=analytics)
+        notifications = NotificationsService(tx, SqlNotificationsRepository, users, clock)
+        properties = PropertiesService(
+            tx,
+            SqlPropertiesRepository,
+            users,
+            moderation,
+            analytics,
+            notifications,
+            self.geocoder,
+            storage,
+            clock,
+            properties_config(settings),
+            notifier=self.notifier,
+        )
+        self.services = Services(
+            users=users,
+            moderation=moderation,
+            analytics=analytics,
+            notifications=notifications,
+            properties=properties,
+        )
 
     async def close(self) -> None:
+        if isinstance(self.geocoder, NominatimGeocoder):
+            await self.geocoder.aclose()
+        if self.notifier is not None:
+            await self.notifier.close()
         await self.engine.dispose()

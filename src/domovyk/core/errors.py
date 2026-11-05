@@ -49,6 +49,46 @@ class NotAdmin(PermissionDenied):
     code = "not_admin"
 
 
+class NotStaff(PermissionDenied):
+    code = "not_staff"
+
+
+class NotOwner(PermissionDenied):
+    """Дія з чужим об'єктом. Для чужого ID відповідаємо як «не знайдено» в інтерфейсах."""
+
+    code = "not_owner"
+
+
+class TooManyDocuments(InvalidInput):
+    code = "too_many_documents"
+
+
+class PhoneRequired(PermissionDenied):
+    code = "phone_required"
+
+
+class PropertyAlreadyYours(Conflict):
+    code = "property_already_yours"
+
+
+class DuplicateAddress(Conflict):
+    """Об'єкт за цією адресою вже є в Домовику (FR-PRP-2)."""
+
+    code = "duplicate_address"
+
+
+class OwnershipNotVerified(PermissionDenied):
+    """Дія потребує підтвердженої власності (FR-PRP-4, правило 5)."""
+
+    code = "ownership_not_verified"
+
+
+class ServiceUnavailable(DomainError):
+    """Зовнішній сервіс (геокодер, Telegram) тимчасово недоступний."""
+
+    code = "service_unavailable"
+
+
 class ProtectedRole(PermissionDenied):
     """Дію не можна застосувати до адміністратора."""
 

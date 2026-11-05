@@ -13,9 +13,9 @@ from domovyk.core.clock import Clock
 from domovyk.core.errors import InvalidInput
 from domovyk.core.tx import Tx
 from domovyk.modules.moderation.repository import ModerationRepository
-from domovyk.modules.moderation.schemas import AuditAction, BanIdentifiers, BanOut
+from domovyk.modules.moderation.schemas import AuditAction, BanIdentifiers, BanOut, RiskSignal
 
-__all__ = ["AuditAction", "BanIdentifiers", "BanOut", "ModerationService"]
+__all__ = ["AuditAction", "BanIdentifiers", "BanOut", "ModerationService", "RiskSignal"]
 
 
 class ModerationService:
@@ -82,3 +82,18 @@ class ModerationService:
         await self._repo(tx).add_audit(
             actor_id, action.value, entity_type, entity_id, details or {}
         )
+
+    async def add_risk_signal(
+        self,
+        tx: Tx,
+        user_id: uuid.UUID,
+        signal: RiskSignal,
+        details: dict[str, Any] | None = None,
+        *,
+        weight: int = 1,
+    ) -> None:
+        """Сигнал для модератора (FR-LST-5, FR-PRP-2). Без персональних даних у details."""
+        await self._repo(tx).add_risk_signal(user_id, signal.value, weight, details or {})
+
+    async def count_risk_signals(self, tx: Tx, user_id: uuid.UUID) -> int:
+        return await self._repo(tx).count_risk_signals(user_id)

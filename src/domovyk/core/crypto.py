@@ -50,7 +50,14 @@ class Cipher:
         return self._fernet.encrypt(plaintext.encode()).decode()
 
     def decrypt(self, token: str) -> str:
+        return self.decrypt_bytes(token.encode()).decode()
+
+    def encrypt_bytes(self, data: bytes) -> bytes:
+        """Для файлів (документи власності у сховищі)."""
+        return self._fernet.encrypt(data)
+
+    def decrypt_bytes(self, token: bytes) -> bytes:
         try:
-            return self._fernet.decrypt(token.encode()).decode()
+            return self._fernet.decrypt(token)
         except InvalidToken as exc:
             raise DecryptionError("Не вдалося розшифрувати значення") from exc

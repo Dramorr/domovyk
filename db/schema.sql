@@ -1,5 +1,5 @@
 -- =====================================================================
---  Домовик — цільова схема бази даних, v0.3
+--  Домовик — цільова схема бази даних, v0.4
 --  PostgreSQL 16 + PostGIS
 --
 --  Це ЦІЛЬОВА модель. Реальні зміни в базі робляться тільки
@@ -27,7 +27,7 @@ CREATE TYPE user_role           AS ENUM ('user', 'moderator', 'admin');
 CREATE TYPE user_status         AS ENUM ('active', 'under_review', 'restricted', 'banned', 'deleted');
 CREATE TYPE identity_provider   AS ENUM ('telegram', 'phone', 'email', 'bankid', 'diia');
 CREATE TYPE verification_kind   AS ENUM ('phone', 'identity', 'ownership');
-CREATE TYPE verification_status AS ENUM ('pending', 'verified', 'rejected', 'expired');
+CREATE TYPE verification_status AS ENUM ('draft', 'pending', 'verified', 'rejected', 'expired');  -- draft: власник ще додає документи
 CREATE TYPE currency_code       AS ENUM ('UAH', 'USD', 'EUR');
 CREATE TYPE consent_document    AS ENUM ('terms', 'privacy');
 
@@ -217,7 +217,8 @@ CREATE TABLE property_delegates (
 );
 
 -- Верифікації. Для ownership: власник завантажує інформаційну довідку
--- з ДРРП (PDF з Дії), модератор перевіряє. Дубль перевірки — збіг ПІБ
+-- з ДРРП (PDF з Дії) і, якщо треба, довіреність чи згоду співвласника
+-- (verification_documents), модератор перевіряє. Дубль перевірки — збіг ПІБ
 -- з сертифіката Дія.Підпису на договорі.
 CREATE TABLE user_verifications (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -227,20 +228,37 @@ CREATE TABLE user_verifications (
     provider        identity_provider,
     identity_hash   text,       -- HMAC-SHA256(РНОКПП, секрет). Сам номер не зберігаємо.
     property_id     uuid REFERENCES properties(id) ON DELETE CASCADE,
-    document_key    text,       -- файл у сховищі; видаляти після рішення + N днів
     owner_name_in_doc text,     -- ПІБ власника(ів) з довідки — для звірки з підписом
     is_dev_bypass   boolean NOT NULL DEFAULT false,  -- створено прапорцем DEV_SKIP_OWNERSHIP_CHECK
     reviewed_by     uuid REFERENCES users(id),
     reject_reason   text,
     created_at      timestamptz NOT NULL DEFAULT now(),
+    submitted_at    timestamptz,   -- draft → pending
     decided_at      timestamptz,
     CHECK (kind <> 'ownership' OR property_id IS NOT NULL)
 );
 CREATE UNIQUE INDEX uq_verified_identity
     ON user_verifications(identity_hash)
     WHERE kind = 'identity' AND status = 'verified';
+-- Одна відкрита перевірка власності на об'єкт.
+CREATE UNIQUE INDEX uq_open_ownership_verification
+    ON user_verifications(property_id)
+    WHERE kind = 'ownership' AND status IN ('draft', 'pending');
 CREATE INDEX idx_verifications_user  ON user_verifications(user_id);
-CREATE INDEX idx_verifications_queue ON user_verifications(created_at) WHERE status = 'pending';
+CREATE INDEX idx_verifications_queue ON user_verifications(submitted_at) WHERE status = 'pending';
+
+-- Файли до перевірки. Лежать у сховищі зашифрованими (Fernet); видаляються
+-- через OWNERSHIP_DOC_RETENTION_DAYS після рішення (deleted_at, рядок лишається).
+CREATE TABLE verification_documents (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    verification_id uuid NOT NULL REFERENCES user_verifications(id) ON DELETE CASCADE,
+    storage_key     text NOT NULL UNIQUE,
+    filename        text NOT NULL,
+    size_bytes      int  NOT NULL CHECK (size_bytes > 0),
+    uploaded_at     timestamptz NOT NULL DEFAULT now(),
+    deleted_at      timestamptz
+);
+CREATE INDEX idx_verification_documents_verification ON verification_documents(verification_id);
 
 -- =====================================================================
 --  3. ОГОЛОШЕННЯ
@@ -702,7 +720,8 @@ CREATE TABLE risk_signals (
     id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     user_id     uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     signal_type text NOT NULL,   -- 'many_addresses', 'duplicate_photos', 'phone_in_text',
-                                 -- 'commission_keywords', 'reregistration_attempt', 'signer_name_mismatch'
+                                 -- 'commission_keywords', 'reregistration_attempt', 'signer_name_mismatch',
+                                 -- 'duplicate_address'
     weight      smallint NOT NULL DEFAULT 1,
     details     jsonb NOT NULL DEFAULT '{}',
     created_at  timestamptz NOT NULL DEFAULT now()

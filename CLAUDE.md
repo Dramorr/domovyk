@@ -14,6 +14,7 @@
 - Сценарії інтерфейсу (екрани, кнопки, стани, сповіщення; де живе екран — Mini App чи бот): `docs/BOT_FLOWS.md`. Екрани й хендлери будуй за ним; змінився сценарій — онови документ.
 - Бренд-файли (логотип, маскот): `assets/brand/`.
 - Рішення: `docs/decisions/NNNN-назва.md` (короткі ADR).
+- Сповіщення: сервіс кладе в outbox (`modules/notifications`), тексти — `interfaces/telegram/notifications.py` + `texts/uk.py`; розсилає воркер, а в dev — фонова петля `domovyk.dev`.
 
 ## Мова
 

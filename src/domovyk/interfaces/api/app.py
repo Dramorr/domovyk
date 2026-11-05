@@ -3,12 +3,24 @@
 Без `from __future__ import annotations`: FastAPI має бачити локальні залежності (Auth).
 """
 
+import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import timedelta
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response, status
+from fastapi import (
+    Depends,
+    FastAPI,
+    File,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    UploadFile,
+    status,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -24,11 +36,22 @@ from domovyk.core.errors import (
     NotFound,
     NotRegistered,
     PermissionDenied,
+    ServiceUnavailable,
 )
 from domovyk.interfaces.api.telegram_auth import (
     InitDataError,
     TelegramAuth,
     validate_init_data,
+)
+from domovyk.modules.properties.service import (
+    AddressCandidate,
+    OwnershipOut,
+    PropertyCreate,
+    PropertyOut,
+    PropertyUpdate,
+    QueueItem,
+    RoomIn,
+    VerificationCase,
 )
 from domovyk.modules.users.service import ConsentInfo, TenantProfile, UserOut
 
@@ -41,6 +64,7 @@ _ERROR_STATUS: list[tuple[type[DomainError], int]] = [
     (PermissionDenied, status.HTTP_403_FORBIDDEN),
     (InvalidInput, 422),
     (Conflict, status.HTTP_409_CONFLICT),
+    (ServiceUnavailable, status.HTTP_503_SERVICE_UNAVAILABLE),
 ]
 
 
@@ -73,6 +97,22 @@ class NameIn(BaseModel):
     display_name: str
 
 
+class ApproveIn(BaseModel):
+    owner_name: str
+
+
+class RejectIn(BaseModel):
+    reason: str
+
+
+class ModerationSummaryOut(BaseModel):
+    ownership_pending: int
+
+
+class SentOut(BaseModel):
+    sent: int
+
+
 def create_app(
     settings: Settings | None = None,
     clock: Clock = system_clock,
@@ -82,6 +122,7 @@ def create_app(
     settings.require("telegram_bot_token")
     bot_token = settings.telegram_bot_token.get_secret_value()
     max_age = timedelta(seconds=settings.init_data_max_age_seconds)
+    upload_limit = settings.ownership_doc_max_mb * 1024 * 1024
 
     container: Container | None = None
     if services is None:
@@ -177,5 +218,110 @@ def create_app(
     @app.put("/api/v1/me/tenant-profile")
     async def put_tenant_profile(auth: Auth, body: TenantProfile) -> TenantProfile:
         return await svc.users.update_tenant_profile(auth.user.id, body)
+
+    # ------------------------------------------------ об'єкти (M2, FR-PRP-1..3)
+
+    @app.get("/api/v1/addresses")
+    async def search_addresses(
+        auth: Auth, q: Annotated[str, Query(max_length=200)]
+    ) -> list[AddressCandidate]:
+        return await svc.properties.search_address(auth.user.id, q)
+
+    @app.get("/api/v1/properties")
+    async def list_properties(auth: Auth) -> list[PropertyOut]:
+        return await svc.properties.list_mine(auth.user.id)
+
+    @app.post("/api/v1/properties", status_code=status.HTTP_201_CREATED)
+    async def create_property(auth: Auth, body: PropertyCreate) -> PropertyOut:
+        return await svc.properties.create_property(auth.user.id, body)
+
+    @app.get("/api/v1/properties/{property_id}")
+    async def get_property(auth: Auth, property_id: uuid.UUID) -> PropertyOut:
+        return await svc.properties.get_mine(auth.user.id, property_id)
+
+    @app.put("/api/v1/properties/{property_id}")
+    async def update_property(
+        auth: Auth, property_id: uuid.UUID, body: PropertyUpdate
+    ) -> PropertyOut:
+        return await svc.properties.update_details(auth.user.id, property_id, body)
+
+    @app.delete("/api/v1/properties/{property_id}", status_code=status.HTTP_204_NO_CONTENT)
+    async def delete_property(auth: Auth, property_id: uuid.UUID) -> Response:
+        await svc.properties.delete_property(auth.user.id, property_id)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    @app.post("/api/v1/properties/{property_id}/rooms", status_code=status.HTTP_201_CREATED)
+    async def add_room(auth: Auth, property_id: uuid.UUID, body: RoomIn) -> PropertyOut:
+        return await svc.properties.add_room(auth.user.id, property_id, body)
+
+    @app.delete("/api/v1/properties/{property_id}/rooms/{unit_id}")
+    async def remove_room(auth: Auth, property_id: uuid.UUID, unit_id: uuid.UUID) -> PropertyOut:
+        return await svc.properties.remove_room(auth.user.id, property_id, unit_id)
+
+    # ------------------------------------------ власність (FR-PRP-4, FR-PRP-5)
+
+    @app.get("/api/v1/properties/{property_id}/ownership")
+    async def get_ownership(auth: Auth, property_id: uuid.UUID) -> OwnershipOut:
+        return await svc.properties.ownership(auth.user.id, property_id)
+
+    @app.post(
+        "/api/v1/properties/{property_id}/ownership/documents",
+        status_code=status.HTTP_201_CREATED,
+    )
+    async def upload_ownership_document(
+        auth: Auth, property_id: uuid.UUID, file: Annotated[UploadFile, File()]
+    ) -> OwnershipOut:
+        # Читаємо не більше ліміту + 1 байт: завеликий файл відхилить сервіс.
+        data = await file.read(upload_limit + 1)
+        return await svc.properties.upload_document(
+            auth.user.id, property_id, file.filename or "document.pdf", data
+        )
+
+    @app.delete("/api/v1/properties/{property_id}/ownership/documents/{document_id}")
+    async def remove_ownership_document(
+        auth: Auth, property_id: uuid.UUID, document_id: uuid.UUID
+    ) -> OwnershipOut:
+        return await svc.properties.remove_document(auth.user.id, property_id, document_id)
+
+    @app.post("/api/v1/properties/{property_id}/ownership/submit")
+    async def submit_ownership(auth: Auth, property_id: uuid.UUID) -> OwnershipOut:
+        return await svc.properties.submit_ownership(auth.user.id, property_id)
+
+    @app.post("/api/v1/properties/{property_id}/ownership/dev-verify")
+    async def dev_verify_ownership(auth: Auth, property_id: uuid.UUID) -> OwnershipOut:
+        return await svc.properties.dev_verify(auth.user.id, property_id)
+
+    # ------------------------------------------------- модерація (MOD-OWN)
+
+    @app.get("/api/v1/moderation/summary")
+    async def moderation_summary(auth: Auth) -> ModerationSummaryOut:
+        return ModerationSummaryOut(
+            ownership_pending=await svc.properties.pending_count(auth.user.id)
+        )
+
+    @app.get("/api/v1/moderation/ownership")
+    async def ownership_queue(auth: Auth) -> list[QueueItem]:
+        return await svc.properties.verification_queue(auth.user.id)
+
+    @app.get("/api/v1/moderation/ownership/{verification_id}")
+    async def ownership_case(auth: Auth, verification_id: uuid.UUID) -> VerificationCase:
+        return await svc.properties.verification_case(auth.user.id, verification_id)
+
+    @app.post("/api/v1/moderation/ownership/{verification_id}/send-documents")
+    async def send_ownership_documents(auth: Auth, verification_id: uuid.UUID) -> SentOut:
+        sent = await svc.properties.send_documents_to_chat(auth.user.id, verification_id)
+        return SentOut(sent=sent)
+
+    @app.post("/api/v1/moderation/ownership/{verification_id}/approve")
+    async def approve_ownership(
+        auth: Auth, verification_id: uuid.UUID, body: ApproveIn
+    ) -> VerificationCase:
+        return await svc.properties.approve(auth.user.id, verification_id, body.owner_name)
+
+    @app.post("/api/v1/moderation/ownership/{verification_id}/reject")
+    async def reject_ownership(
+        auth: Auth, verification_id: uuid.UUID, body: RejectIn
+    ) -> VerificationCase:
+        return await svc.properties.reject(auth.user.id, verification_id, body.reason)
 
     return app

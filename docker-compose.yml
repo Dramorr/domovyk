@@ -9,6 +9,9 @@ x-app: &app
   environment:
     DATABASE_URL: postgresql+asyncpg://domovyk:domovyk@db:5432/domovyk
     REDIS_URL: redis://redis:6379/0
+    STORAGE_DIR: /app/storage
+  # Спільне сховище файлів: документ, що прийшов у бот, бачить API й воркер (зашифрований).
+  volumes: [storage:/app/storage]
   depends_on:
     db:
       condition: service_healthy
@@ -50,6 +53,7 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://domovyk:domovyk@db:5432/domovyk
       REDIS_URL: redis://redis:6379/0
+      STORAGE_DIR: /app/storage
       API_HOST: 0.0.0.0
     ports: ["127.0.0.1:8000:8000"]
     depends_on:
@@ -74,3 +78,4 @@ services:
 
 volumes:
   db-data:
+  storage:

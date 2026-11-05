@@ -48,6 +48,7 @@ class UsersRepository(Protocol):
     async def get_tenant_profile(self, user_id: uuid.UUID) -> TenantProfile | None: ...
     async def upsert_tenant_profile(self, user_id: uuid.UUID, profile: TenantProfile) -> None: ...
     async def delete_tenant_profile(self, user_id: uuid.UUID) -> None: ...
+    async def list_staff_ids(self) -> list[uuid.UUID]: ...
 
 
 class SqlUsersRepository:
@@ -178,3 +179,12 @@ class SqlUsersRepository:
 
     async def delete_tenant_profile(self, user_id: uuid.UUID) -> None:
         await self._s.execute(delete(TenantProfileRow).where(TenantProfileRow.user_id == user_id))
+
+    async def list_staff_ids(self) -> list[uuid.UUID]:
+        rows = await self._s.scalars(
+            select(UserRow.id).where(
+                UserRow.role.in_([UserRole.MODERATOR, UserRole.ADMIN]),
+                UserRow.status == UserStatus.ACTIVE,
+            )
+        )
+        return list(rows)
