@@ -99,9 +99,10 @@ export const api = {
 
   // Власність
   ownership: (id: string) => request<Ownership>("GET", `${p(id)}/ownership`),
-  uploadDocument: (id: string, file: File) => {
+  /** Файл уже прочитаний у пам'ять (див. readFile у Properties.tsx). */
+  uploadDocument: (id: string, data: Blob, filename: string) => {
     const form = new FormData();
-    form.append("file", file, file.name);
+    form.append("file", data, filename);
     return request<Ownership>("POST", `${p(id)}/ownership/documents`, form);
   },
   removeDocument: (id: string, docId: string) =>

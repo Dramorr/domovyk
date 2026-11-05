@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   api,
+  ApiFailure,
   type AddressCandidate,
   type Ownership,
   type Property,
@@ -568,7 +569,8 @@ export function OwnershipScreen({ id, webApp, onBack }: { id: string; webApp: We
       setOwn(await action());
     } catch (e) {
       const code = errorCode(e);
-      if (code === "too_many_documents") setError(t("own_too_many"));
+      if (e instanceof ApiFailure && e.kind === "network") setError(t("own_upload_failed"));
+      else if (code === "too_many_documents") setError(t("own_too_many"));
       else if (code === "invalid_input" && errorField(e) === "file")
         setError(t("own_bad_file", { mb: String(own?.max_document_mb ?? 10) }));
       else setError(errorText(e));
@@ -586,7 +588,21 @@ export function OwnershipScreen({ id, webApp, onBack }: { id: string; webApp: We
       setError(t("own_bad_file", { mb: String(own.max_document_mb) }));
       return;
     }
-    await run(() => api.uploadDocument(id, file));
+    // Спершу читаємо файл повністю: на телефонах Telegram дає файл через тимчасовий
+    // доступ, і потокове читання під час відправки може обірватися ще до сервера.
+    let data: ArrayBuffer;
+    try {
+      data = await file.arrayBuffer();
+    } catch {
+      setError(t("own_read_failed"));
+      return;
+    }
+    if (data.byteLength === 0) {
+      setError(t("own_read_failed"));
+      return;
+    }
+    const blob = new Blob([data], { type: "application/pdf" });
+    await run(() => api.uploadDocument(id, blob, file.name || "document.pdf"));
   }
 
   if (!prop || !own) {
