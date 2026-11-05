@@ -16,7 +16,7 @@
 | `docs/BOT_FLOWS.md` | Сценарії інтерфейсу (Mini App і бот): екрани, кнопки, стани, каталог сповіщень |
 | `docs/decisions/` | Рішення (ADR), напр. [0001 — Mini App як основний інтерфейс](docs/decisions/0001-telegram-mini-app-first.md) |
 | `db/schema.sql` | Цільова схема PostgreSQL 16 + PostGIS (реальні зміни — міграціями Alembic) |
-| `assets/brand/` | Знак (ключ-домовик), іконка застосунку, маскот (з ключем і з ліхтариком) |
+| `assets/brand/` | Знак (голова домовика), іконка застосунку, аватар бота, маскот (з ключем і з ліхтариком) |
 | `src/domovyk/` | Бекенд: конфіг, core, домен, модулі, адаптери, бот, API, воркер |
 | `web/` | Telegram Mini App (React + TypeScript + Vite) |
 | `migrations/` | Міграції Alembic |

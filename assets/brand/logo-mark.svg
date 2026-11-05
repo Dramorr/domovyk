@@ -1,10 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512" role="img" aria-label="Домовик — знак ключ-домовик">
-  <path d="M32 40 L50 4 L68 40 Z" fill="#1E4D3B"/>
-  <circle cx="50" cy="6" r="5.5" fill="#F2A93B"/>
-  <rect x="28" y="38" width="44" height="6" rx="3" fill="#1E4D3B"/>
-  <path d="M32 46 L68 46 L68 50 A18 20 0 0 1 32 50 Z" fill="#1E4D3B"/>
-  <circle cx="50" cy="49" r="4.5" fill="#F2A93B"/>
-  <rect x="46" y="66" width="8" height="30" rx="2" fill="#1E4D3B"/>
-  <rect x="54" y="80" width="9" height="5" fill="#1E4D3B"/>
-  <rect x="54" y="89" width="6" height="5" fill="#1E4D3B"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="14 4 172 172" width="512" height="512" role="img" aria-label="Домовик — знак: голова домовика">
+  <path d="M50 94 Q44 152 100 172 Q156 152 150 94 Z" fill="#FFFFFF" stroke="#CBD6CF" stroke-width="2"/>
+  <path d="M46 96 C 56 58, 80 26, 120 12 C 132 8, 140 16, 132 22 C 120 30, 116 56, 154 96 Z" fill="#1E4D3B"/>
+  <circle cx="134" cy="16" r="8" fill="#F2A93B"/>
+  <rect x="42" y="86" width="116" height="16" rx="8" fill="#163A2C"/>
+  <ellipse cx="78" cy="110" rx="6" ry="4" fill="#F4B8A8"/>
+  <ellipse cx="122" cy="110" rx="6" ry="4" fill="#F4B8A8"/>
+  <circle cx="100" cy="112" r="13" fill="#E8907A"/>
 </svg>
