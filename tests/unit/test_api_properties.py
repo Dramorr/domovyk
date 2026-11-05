@@ -133,3 +133,20 @@ async def test_dev_verify_disabled_by_default(client: httpx.AsyncClient, now: da
     pid = (await client.post("/api/v1/properties", json=FLAT, headers=_auth(now))).json()["id"]
     r = await client.post(f"/api/v1/properties/{pid}/ownership/dev-verify", headers=_auth(now))
     assert r.status_code == 403
+
+
+async def test_profile_endpoint(client: httpx.AsyncClient, now: datetime) -> None:
+    h = _auth(now)
+    pid = (await client.post("/api/v1/properties", json=FLAT, headers=h)).json()["id"]
+    r = await client.put(
+        f"/api/v1/properties/{pid}/details",
+        json={"heating": "individual_gas", "pets": "cats", "utilities_winter_uah": 2500},
+        headers=h,
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["details"]["heating"] == "individual_gas"
+    assert body["completeness"]["level"] == "low"
+    assert "heating" not in body["completeness"]["missing_important"]
+    r = await client.put(f"/api/v1/properties/{pid}/details", json={"heating": "дрова"}, headers=h)
+    assert r.status_code == 422

@@ -6,6 +6,7 @@ import { t } from "./i18n";
 import { ModerationCase, ModerationQueue } from "./screens/Moderation";
 import { ConsentAndName, PhoneStep } from "./screens/Onboarding";
 import { Profile } from "./screens/Profile";
+import { PropertyProfile } from "./screens/PropertyProfile";
 import { NewProperty, OwnershipScreen, PropertyCard, PropertyList } from "./screens/Properties";
 import { getWebApp, startParam } from "./telegram";
 import { errorText, Mascot, Screen } from "./ui";
@@ -23,6 +24,7 @@ type Route =
   | { name: "new-property" }
   | { name: "property"; id: string }
   | { name: "ownership"; id: string }
+  | { name: "profile-form"; id: string }
   | { name: "moderation" }
   | { name: "mod-case"; vid: string };
 
@@ -169,11 +171,14 @@ export function App() {
           webApp={webApp}
           onBack={back}
           onOwnership={() => push({ name: "ownership", id: route.id })}
+          onProfile={() => push({ name: "profile-form", id: route.id })}
           onDeleted={back}
         />
       );
     case "ownership":
       return <OwnershipScreen key={route.id} id={route.id} webApp={webApp} onBack={back} />;
+    case "profile-form":
+      return <PropertyProfile key={route.id} id={route.id} onBack={back} />;
     case "moderation":
       return <ModerationQueue onBack={back} onOpen={(vid) => push({ name: "mod-case", vid })} />;
     case "mod-case":

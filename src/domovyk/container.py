@@ -55,6 +55,8 @@ def properties_config(settings: Settings) -> PropertiesConfig:
         allow_self_review=settings.is_dev,
         max_document_bytes=settings.ownership_doc_max_mb * 1024 * 1024,
         document_retention_days=settings.ownership_doc_retention_days,
+        completeness_medium_from=settings.profile_medium_from,
+        completeness_high_from=settings.profile_high_from,
     )
 
 

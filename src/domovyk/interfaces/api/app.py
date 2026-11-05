@@ -47,6 +47,7 @@ from domovyk.modules.properties.service import (
     AddressCandidate,
     OwnershipOut,
     PropertyCreate,
+    PropertyDetails,
     PropertyOut,
     PropertyUpdate,
     QueueItem,
@@ -249,6 +250,12 @@ def create_app(
     async def delete_property(auth: Auth, property_id: uuid.UUID) -> Response:
         await svc.properties.delete_property(auth.user.id, property_id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    @app.put("/api/v1/properties/{property_id}/details")
+    async def update_property_profile(
+        auth: Auth, property_id: uuid.UUID, body: PropertyDetails
+    ) -> PropertyOut:
+        return await svc.properties.update_profile(auth.user.id, property_id, body)
 
     @app.post("/api/v1/properties/{property_id}/rooms", status_code=status.HTTP_201_CREATED)
     async def add_room(auth: Auth, property_id: uuid.UUID, body: RoomIn) -> PropertyOut:

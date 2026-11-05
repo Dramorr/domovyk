@@ -69,6 +69,9 @@ class Settings(BaseSettings):
     # Документи власності: розмір і скільки днів зберігати після рішення (FR-PRP-4).
     ownership_doc_max_mb: int = Field(default=10, ge=1, le=20)
     ownership_doc_retention_days: int = Field(default=30, ge=1)
+    # Рівні заповненості анкети об'єкта (FR-PRP-8), відсотки.
+    profile_medium_from: int = Field(default=40, ge=0, le=100)
+    profile_high_from: int = Field(default=75, ge=0, le=100)
 
     # Dev-прапорці — лише при APP_ENV=dev (FR-PRP-5).
     dev_skip_ownership_check: bool = False

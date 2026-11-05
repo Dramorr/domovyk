@@ -20,6 +20,7 @@ class AuditAction(StrEnum):
     OWNERSHIP_APPROVE = "ownership.approve"
     OWNERSHIP_REJECT = "ownership.reject"
     OWNERSHIP_DEV_BYPASS = "ownership.dev_bypass"
+    PROPERTY_DELETE = "property.delete"
 
 
 class RiskSignal(StrEnum):

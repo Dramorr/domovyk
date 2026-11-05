@@ -7,6 +7,7 @@ export type TenantProfile = S["TenantProfile"];
 export type AddressCandidate = S["AddressCandidate"];
 export type PropertyCreate = S["PropertyCreate"];
 export type PropertyUpdate = S["PropertyUpdate"];
+export type PropertyDetails = S["PropertyDetails-Input"];
 export type Property = S["PropertyOut"];
 export type Unit = S["UnitOut"];
 export type Ownership = S["OwnershipOut"];
@@ -93,6 +94,7 @@ export const api = {
   property: (id: string) => request<Property>("GET", p(id)),
   updateProperty: (id: string, body: PropertyUpdate) => request<Property>("PUT", p(id), body),
   deleteProperty: (id: string) => request<void>("DELETE", p(id)),
+  updateProfile: (id: string, body: PropertyDetails) => request<Property>("PUT", `${p(id)}/details`, body),
   addRoom: (id: string, body: S["RoomIn"]) => request<Property>("POST", `${p(id)}/rooms`, body),
   removeRoom: (id: string, unitId: string) =>
     request<Property>("DELETE", `${p(id)}/rooms/${encodeURIComponent(unitId)}`),

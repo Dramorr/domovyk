@@ -1,6 +1,18 @@
 {
   "components": {
     "schemas": {
+      "Accessibility": {
+        "description": "Безбар'єрність (DIM.RIA).",
+        "enum": [
+          "step_free_entrance",
+          "wide_doors",
+          "step_free_shower",
+          "grab_bars",
+          "step_free_shelter"
+        ],
+        "title": "Accessibility",
+        "type": "string"
+      },
       "AddressCandidate": {
         "description": "Будинок, знайдений геокодером (PRP-ADDR-CONFIRM).",
         "properties": {
@@ -146,6 +158,36 @@
         "title": "AddressIn",
         "type": "object"
       },
+      "ApartmentBackupPower": {
+        "description": "Резервне живлення самої квартири (ЛУН: «резервне живлення квартири»).",
+        "enum": [
+          "none",
+          "power_station",
+          "inverter",
+          "generator"
+        ],
+        "title": "ApartmentBackupPower",
+        "type": "string"
+      },
+      "Appliance": {
+        "enum": [
+          "fridge",
+          "washing_machine",
+          "dryer",
+          "dishwasher",
+          "oven",
+          "microwave",
+          "hob",
+          "hood",
+          "kettle",
+          "coffee_machine",
+          "tv",
+          "vacuum",
+          "iron"
+        ],
+        "title": "Appliance",
+        "type": "string"
+      },
       "ApproveIn": {
         "properties": {
           "owner_name": {
@@ -159,6 +201,27 @@
         "title": "ApproveIn",
         "type": "object"
       },
+      "BathroomType": {
+        "enum": [
+          "separate",
+          "combined",
+          "several"
+        ],
+        "title": "BathroomType",
+        "type": "string"
+      },
+      "BlackoutReady": {
+        "description": "Що в будинку працює без світла (ЛУН/OLX «автономність при блекауті»).",
+        "enum": [
+          "elevator",
+          "water",
+          "heating",
+          "internet",
+          "lighting"
+        ],
+        "title": "BlackoutReady",
+        "type": "string"
+      },
       "Body_upload_ownership_document_api_v1_properties__property_id__ownership_documents_post": {
         "properties": {
           "file": {
@@ -171,6 +234,112 @@
           "file"
         ],
         "title": "Body_upload_ownership_document_api_v1_properties__property_id__ownership_documents_post",
+        "type": "object"
+      },
+      "BuildingFeature": {
+        "enum": [
+          "closed_territory",
+          "video_surveillance",
+          "concierge",
+          "playground",
+          "bicycle_storage",
+          "intercom"
+        ],
+        "title": "BuildingFeature",
+        "type": "string"
+      },
+      "BuildingType": {
+        "description": "Тип будинку, як його називають у Львові.",
+        "enum": [
+          "austrian_polish",
+          "stalinka",
+          "khrushchovka",
+          "czech",
+          "soviet_panel",
+          "gostynka",
+          "new_build",
+          "private_house",
+          "other"
+        ],
+        "title": "BuildingType",
+        "type": "string"
+      },
+      "ChildrenPolicy": {
+        "enum": [
+          "yes",
+          "no",
+          "discuss"
+        ],
+        "title": "ChildrenPolicy",
+        "type": "string"
+      },
+      "Comfort": {
+        "enum": [
+          "air_conditioner",
+          "floor_heating",
+          "water_filter",
+          "bathtub",
+          "shower",
+          "wardrobe_room",
+          "storage_room",
+          "workspace",
+          "security_door",
+          "alarm"
+        ],
+        "title": "Comfort",
+        "type": "string"
+      },
+      "CompletenessLevel": {
+        "enum": [
+          "low",
+          "medium",
+          "high"
+        ],
+        "title": "CompletenessLevel",
+        "type": "string"
+      },
+      "CompletenessOut": {
+        "description": "Рівень заповненості анкети (FR-PRP-8).",
+        "properties": {
+          "answered": {
+            "title": "Answered",
+            "type": "integer"
+          },
+          "level": {
+            "$ref": "#/components/schemas/CompletenessLevel"
+          },
+          "missing_important": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Important",
+            "type": "array"
+          },
+          "percent": {
+            "title": "Percent",
+            "type": "integer"
+          },
+          "sections": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Sections",
+            "type": "object"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "percent",
+          "level",
+          "answered",
+          "total",
+          "missing_important",
+          "sections"
+        ],
+        "title": "CompletenessOut",
         "type": "object"
       },
       "ConsentInfo": {
@@ -236,6 +405,15 @@
         "title": "DocumentOut",
         "type": "object"
       },
+      "Furnishing": {
+        "enum": [
+          "none",
+          "partial",
+          "full"
+        ],
+        "title": "Furnishing",
+        "type": "string"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -271,6 +449,49 @@
         ],
         "title": "HealthOut",
         "type": "object"
+      },
+      "Heating": {
+        "enum": [
+          "central",
+          "building_boiler",
+          "individual_gas",
+          "individual_electric",
+          "other"
+        ],
+        "title": "Heating",
+        "type": "string"
+      },
+      "HotWater": {
+        "enum": [
+          "central",
+          "heating_boiler",
+          "electric_boiler",
+          "gas_heater"
+        ],
+        "title": "HotWater",
+        "type": "string"
+      },
+      "Internet": {
+        "enum": [
+          "none",
+          "cable",
+          "fiber",
+          "mobile"
+        ],
+        "title": "Internet",
+        "type": "string"
+      },
+      "Layout": {
+        "enum": [
+          "separate",
+          "adjacent",
+          "mixed",
+          "studio",
+          "kitchen_studio",
+          "multilevel"
+        ],
+        "title": "Layout",
+        "type": "string"
       },
       "MeOut": {
         "properties": {
@@ -310,6 +531,17 @@
         ],
         "title": "MeOut",
         "type": "object"
+      },
+      "Meter": {
+        "description": "Окремі лічильники квартири — потрібні для комуналки (M5).",
+        "enum": [
+          "electricity",
+          "water",
+          "gas",
+          "heat"
+        ],
+        "title": "Meter",
+        "type": "string"
       },
       "ModerationSummaryOut": {
         "properties": {
@@ -429,6 +661,29 @@
         "title": "OwnershipStatus",
         "type": "string"
       },
+      "Parking": {
+        "enum": [
+          "none",
+          "street",
+          "yard",
+          "underground",
+          "garage"
+        ],
+        "title": "Parking",
+        "type": "string"
+      },
+      "PetsPolicy": {
+        "description": "Детальніше за «так/ні» (як на OLX): власник одразу каже, кого можна.",
+        "enum": [
+          "no",
+          "cats",
+          "small_dogs",
+          "any",
+          "discuss"
+        ],
+        "title": "PetsPolicy",
+        "type": "string"
+      },
       "PropertyCreate": {
         "properties": {
           "address": {
@@ -500,6 +755,861 @@
         "title": "PropertyCreate",
         "type": "object"
       },
+      "PropertyDetails-Input": {
+        "description": "Анкета об'єкта (FR-PRP-8, ADR 0003). Усе необов'язкове: None — «ще не відповів».\n\nFalse, 0 чи порожній перелік — теж відповідь («ні», «нічого з переліку»).\nАнкета не фінальна: нові поля додаються зі збільшенням PROFILE_VERSION.",
+        "properties": {
+          "accessibility": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Accessibility"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accessibility"
+          },
+          "apartment_backup_power": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApartmentBackupPower"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "appliances": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Appliance"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Appliances"
+          },
+          "area_kitchen": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "maximum": 200.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area Kitchen"
+          },
+          "area_living": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "maximum": 1000.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area Living"
+          },
+          "balconies": {
+            "anyOf": [
+              {
+                "maximum": 6.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Balconies"
+          },
+          "bathroom": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BathroomType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "blackout_ready": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/BlackoutReady"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blackout Ready"
+          },
+          "building_features": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/BuildingFeature"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Building Features"
+          },
+          "building_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BuildingType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ceiling_height": {
+            "anyOf": [
+              {
+                "maximum": 8.0,
+                "minimum": 2.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ceiling Height"
+          },
+          "children": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChildrenPolicy"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "comfort": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Comfort"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comfort"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 3000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "first_rental": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Rental"
+          },
+          "floors_total": {
+            "anyOf": [
+              {
+                "maximum": 60.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Floors Total"
+          },
+          "furnishing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Furnishing"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "has_elevator": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Has Elevator"
+          },
+          "heating": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Heating"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hot_water": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HotWater"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "internet": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Internet"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "layout": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Layout"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "max_occupants": {
+            "anyOf": [
+              {
+                "maximum": 20.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Occupants"
+          },
+          "meters": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Meter"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meters"
+          },
+          "parking": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Parking"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pets": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PetsPolicy"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "repair": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Repair"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "residence_registration": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Residence Registration"
+          },
+          "shelter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Shelter"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "smoking": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SmokingPolicy"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stove": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Stove"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "utilities_summer_uah": {
+            "anyOf": [
+              {
+                "maximum": 100000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Utilities Summer Uah"
+          },
+          "utilities_winter_uah": {
+            "anyOf": [
+              {
+                "maximum": 100000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Utilities Winter Uah"
+          },
+          "wall_material": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WallMaterial"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "windows_view": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WindowsView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "year_built": {
+            "anyOf": [
+              {
+                "maximum": 2035.0,
+                "minimum": 1700.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year Built"
+          }
+        },
+        "title": "PropertyDetails",
+        "type": "object"
+      },
+      "PropertyDetails-Output": {
+        "description": "Анкета об'єкта (FR-PRP-8, ADR 0003). Усе необов'язкове: None — «ще не відповів».\n\nFalse, 0 чи порожній перелік — теж відповідь («ні», «нічого з переліку»).\nАнкета не фінальна: нові поля додаються зі збільшенням PROFILE_VERSION.",
+        "properties": {
+          "accessibility": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Accessibility"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accessibility"
+          },
+          "apartment_backup_power": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApartmentBackupPower"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "appliances": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Appliance"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Appliances"
+          },
+          "area_kitchen": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area Kitchen"
+          },
+          "area_living": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area Living"
+          },
+          "balconies": {
+            "anyOf": [
+              {
+                "maximum": 6.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Balconies"
+          },
+          "bathroom": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BathroomType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "blackout_ready": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/BlackoutReady"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blackout Ready"
+          },
+          "building_features": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/BuildingFeature"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Building Features"
+          },
+          "building_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BuildingType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ceiling_height": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ceiling Height"
+          },
+          "children": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChildrenPolicy"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "comfort": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Comfort"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comfort"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 3000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "first_rental": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Rental"
+          },
+          "floors_total": {
+            "anyOf": [
+              {
+                "maximum": 60.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Floors Total"
+          },
+          "furnishing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Furnishing"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "has_elevator": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Has Elevator"
+          },
+          "heating": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Heating"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hot_water": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HotWater"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "internet": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Internet"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "layout": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Layout"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "max_occupants": {
+            "anyOf": [
+              {
+                "maximum": 20.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Occupants"
+          },
+          "meters": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Meter"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meters"
+          },
+          "parking": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Parking"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pets": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PetsPolicy"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "repair": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Repair"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "residence_registration": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Residence Registration"
+          },
+          "shelter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Shelter"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "smoking": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SmokingPolicy"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stove": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Stove"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "utilities_summer_uah": {
+            "anyOf": [
+              {
+                "maximum": 100000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Utilities Summer Uah"
+          },
+          "utilities_winter_uah": {
+            "anyOf": [
+              {
+                "maximum": 100000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Utilities Winter Uah"
+          },
+          "wall_material": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WallMaterial"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "windows_view": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WindowsView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "year_built": {
+            "anyOf": [
+              {
+                "maximum": 2035.0,
+                "minimum": 1700.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year Built"
+          }
+        },
+        "title": "PropertyDetails",
+        "type": "object"
+      },
       "PropertyKind": {
         "enum": [
           "apartment",
@@ -537,10 +1647,23 @@
             "title": "City",
             "type": "string"
           },
+          "completeness": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CompletenessOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
             "type": "string"
+          },
+          "details": {
+            "$ref": "#/components/schemas/PropertyDetails-Output"
           },
           "district": {
             "anyOf": [
@@ -777,6 +1900,18 @@
         "title": "RejectIn",
         "type": "object"
       },
+      "Repair": {
+        "description": "Стан (як на OLX/DIM.RIA).",
+        "enum": [
+          "designer",
+          "euro",
+          "cosmetic",
+          "livable",
+          "needs_repair"
+        ],
+        "title": "Repair",
+        "type": "string"
+      },
       "RoomIn": {
         "properties": {
           "area": {
@@ -818,6 +1953,36 @@
         ],
         "title": "SentOut",
         "type": "object"
+      },
+      "Shelter": {
+        "description": "Укриття (як на ЛУН): у будинку чи поруч.",
+        "enum": [
+          "none",
+          "basement",
+          "underground_parking",
+          "dedicated",
+          "nearby"
+        ],
+        "title": "Shelter",
+        "type": "string"
+      },
+      "SmokingPolicy": {
+        "enum": [
+          "no",
+          "balcony",
+          "yes"
+        ],
+        "title": "SmokingPolicy",
+        "type": "string"
+      },
+      "Stove": {
+        "enum": [
+          "gas",
+          "electric",
+          "induction"
+        ],
+        "title": "Stove",
+        "type": "string"
       },
       "TelegramUserOut": {
         "properties": {
@@ -1226,6 +2391,27 @@
           "expired"
         ],
         "title": "VerificationStatus",
+        "type": "string"
+      },
+      "WallMaterial": {
+        "enum": [
+          "brick",
+          "panel",
+          "monolith_frame",
+          "block",
+          "wood",
+          "other"
+        ],
+        "title": "WallMaterial",
+        "type": "string"
+      },
+      "WindowsView": {
+        "enum": [
+          "yard",
+          "street",
+          "both"
+        ],
+        "title": "WindowsView",
         "type": "string"
       }
     }
@@ -2142,6 +3328,72 @@
           }
         },
         "summary": "Update Property"
+      }
+    },
+    "/api/v1/properties/{property_id}/details": {
+      "put": {
+        "operationId": "update_property_profile_api_v1_properties__property_id__details_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "property_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Property Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PropertyDetails-Input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropertyOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Property Profile"
       }
     },
     "/api/v1/properties/{property_id}/ownership": {

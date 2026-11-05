@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from domovyk.domain.properties import (
     DEFAULT_CITY,
@@ -14,6 +14,32 @@ from domovyk.domain.properties import (
     PropertyKind,
     UnitKind,
     VerificationStatus,
+)
+from domovyk.domain.property_profile import (
+    Accessibility,
+    ApartmentBackupPower,
+    Appliance,
+    BathroomType,
+    BlackoutReady,
+    BuildingFeature,
+    BuildingType,
+    ChildrenPolicy,
+    Comfort,
+    CompletenessLevel,
+    Furnishing,
+    Heating,
+    HotWater,
+    Internet,
+    Layout,
+    Meter,
+    Parking,
+    PetsPolicy,
+    Repair,
+    Shelter,
+    SmokingPolicy,
+    Stove,
+    WallMaterial,
+    WindowsView,
 )
 
 
@@ -65,6 +91,80 @@ class RoomIn(BaseModel):
     area: Decimal | None = None
 
 
+class PropertyDetails(BaseModel):
+    """Анкета об'єкта (FR-PRP-8, ADR 0003). Усе необов'язкове: None — «ще не відповів».
+
+    False, 0 чи порожній перелік — теж відповідь («ні», «нічого з переліку»).
+    Анкета не фінальна: нові поля додаються зі збільшенням PROFILE_VERSION.
+    """
+
+    description: str | None = Field(default=None, max_length=3000)
+    # будинок
+    building_type: BuildingType | None = None
+    wall_material: WallMaterial | None = None
+    year_built: int | None = Field(default=None, ge=1700, le=2035)
+    floors_total: int | None = Field(default=None, ge=1, le=60)
+    has_elevator: bool | None = None
+    parking: Parking | None = None
+    shelter: Shelter | None = None
+    building_features: list[BuildingFeature] | None = None
+    # квартира
+    area_living: Decimal | None = Field(default=None, gt=0, le=1000)
+    area_kitchen: Decimal | None = Field(default=None, gt=0, le=200)
+    layout: Layout | None = None
+    bathroom: BathroomType | None = None
+    ceiling_height: Decimal | None = Field(default=None, ge=2, le=8)
+    balconies: int | None = Field(default=None, ge=0, le=6)
+    windows_view: WindowsView | None = None
+    repair: Repair | None = None
+    first_rental: bool | None = None
+    # інженерія й комуналка
+    heating: Heating | None = None
+    hot_water: HotWater | None = None
+    stove: Stove | None = None
+    internet: Internet | None = None
+    meters: list[Meter] | None = None
+    utilities_winter_uah: int | None = Field(default=None, ge=0, le=100_000)
+    utilities_summer_uah: int | None = Field(default=None, ge=0, le=100_000)
+    # блекаут
+    apartment_backup_power: ApartmentBackupPower | None = None
+    blackout_ready: list[BlackoutReady] | None = None
+    # обладнання
+    furnishing: Furnishing | None = None
+    appliances: list[Appliance] | None = None
+    comfort: list[Comfort] | None = None
+    accessibility: list[Accessibility] | None = None
+    # правила (типові для оголошень цього об'єкта)
+    pets: PetsPolicy | None = None
+    children: ChildrenPolicy | None = None
+    smoking: SmokingPolicy | None = None
+    max_occupants: int | None = Field(default=None, ge=1, le=20)
+    residence_registration: bool | None = None
+
+    @field_validator(
+        "building_features", "meters", "blackout_ready", "appliances", "comfort", "accessibility"
+    )
+    @classmethod
+    def _unique(cls, value: list[str] | None) -> list[str] | None:
+        return list(dict.fromkeys(value)) if value is not None else None
+
+    @field_validator("area_living", "area_kitchen", "ceiling_height")
+    @classmethod
+    def _two_decimals(cls, value: Decimal | None) -> Decimal | None:
+        return value.quantize(Decimal("0.01")) if value is not None else None
+
+
+class CompletenessOut(BaseModel):
+    """Рівень заповненості анкети (FR-PRP-8)."""
+
+    percent: int
+    level: CompletenessLevel
+    answered: int
+    total: int
+    missing_important: list[str]  # ключі полів PropertyDetails / базових полів
+    sections: dict[str, int]
+
+
 class UnitOut(BaseModel):
     id: uuid.UUID
     kind: UnitKind
@@ -91,6 +191,8 @@ class PropertyOut(BaseModel):
     ownership_verified_at: datetime | None
     units: list[UnitOut]
     created_at: datetime
+    details: PropertyDetails = Field(default_factory=PropertyDetails)
+    completeness: CompletenessOut | None = None  # рахує сервіс
 
 
 class DocumentOut(BaseModel):

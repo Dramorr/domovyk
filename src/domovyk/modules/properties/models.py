@@ -92,6 +92,8 @@ class PropertyRow(Base):
     )
     ownership_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     settings: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default="{}")
+    # Анкета об'єкта (FR-PRP-8): PropertyDetails + "v" (версія анкети).
+    details: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

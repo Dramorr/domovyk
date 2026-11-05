@@ -373,3 +373,14 @@ async def test_delete_property_removes_files(env: tuple[Services, FakeDb]) -> No
     await s.properties.delete_property(OWNER, prop.id)
     assert db.storage.files == {}
     assert await s.properties.list_mine(OWNER) == []
+
+
+async def test_delete_property_while_pending_cancels_review(env: tuple[Services, FakeDb]) -> None:
+    s, db = env
+    prop, _ = await _submitted(s)
+    assert await s.properties.pending_count(ADMIN_TG) == 1
+    await s.properties.delete_property(OWNER, prop.id)
+    assert await s.properties.pending_count(ADMIN_TG) == 0
+    assert db.storage.files == {}
+    assert db.audit[-1]["action"] == "property.delete"
+    assert db.audit[-1]["details"] == {"ownership_status": "pending", "documents": 1}

@@ -323,3 +323,43 @@ h2 {
 .card.dev {
   border: 2px dashed var(--amber);
 }
+
+/* ---- Анкета об'єкта ---- */
+
+.completeness .bar {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--tg-bg);
+  overflow: hidden;
+}
+
+.completeness .fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--amber);
+}
+
+.completeness .fill.high {
+  background: var(--brand);
+}
+
+.completeness .fill.low {
+  background: #c9a15b;
+}
+
+fieldset.multi {
+  border: 0;
+  padding: 0;
+  margin: 12px 0;
+}
+
+fieldset.multi legend {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+select.input {
+  appearance: auto;
+}

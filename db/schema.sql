@@ -1,5 +1,5 @@
 -- =====================================================================
---  Домовик — цільова схема бази даних, v0.4
+--  Домовик — цільова схема бази даних, v0.5
 --  PostgreSQL 16 + PostGIS
 --
 --  Це ЦІЛЬОВА модель. Реальні зміни в базі робляться тільки
@@ -183,6 +183,7 @@ CREATE TABLE properties (
     ownership_status        ownership_status NOT NULL DEFAULT 'unverified',
     ownership_verified_at   timestamptz,
     settings                jsonb NOT NULL DEFAULT '{}',   -- внутрішні налаштування об'єкта
+    details                 jsonb NOT NULL DEFAULT '{}',   -- анкета об'єкта (FR-PRP-8, ADR 0003): PropertyDetails + "v"
     created_at              timestamptz NOT NULL DEFAULT now(),
     updated_at              timestamptz NOT NULL DEFAULT now(),
     CHECK (kind = 'house' OR apartment_number_norm IS NOT NULL)

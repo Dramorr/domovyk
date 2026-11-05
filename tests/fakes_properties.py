@@ -23,7 +23,13 @@ from domovyk.modules.properties.repository import (
     PendingRow,
     StoredDocument,
 )
-from domovyk.modules.properties.schemas import DocumentOut, PropertyOut, UnitOut, VerificationOut
+from domovyk.modules.properties.schemas import (
+    DocumentOut,
+    PropertyDetails,
+    PropertyOut,
+    UnitOut,
+    VerificationOut,
+)
 
 _T0 = datetime(2026, 11, 5, 12, 0, tzinfo=UTC)
 
@@ -45,6 +51,7 @@ class _Property:
     ownership: OwnershipStatus = OwnershipStatus.UNVERIFIED
     verified_at: datetime | None = None
     created_at: datetime = _T0
+    details: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -149,6 +156,9 @@ class FakePropertiesRepository:
             ownership_verified_at=p.verified_at,
             units=units,
             created_at=p.created_at,
+            details=PropertyDetails.model_validate(
+                {k: v for k, v in p.details.items() if k != "v"}
+            ),
         )
 
     async def get_property(self, property_id: uuid.UUID) -> PropertyOut | None:
@@ -185,6 +195,9 @@ class FakePropertiesRepository:
             del self.db.verifications[v.id]
             for d in [d for d in self.db.documents.values() if d.verification_id == v.id]:
                 del self.db.documents[d.id]
+
+    async def set_profile(self, property_id: uuid.UUID, details: dict[str, Any]) -> None:
+        self.db.properties[property_id].details = dict(details)
 
     async def set_ownership(
         self, property_id: uuid.UUID, status: OwnershipStatus, verified_at: datetime | None

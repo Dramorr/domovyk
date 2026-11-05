@@ -197,6 +197,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/properties/{property_id}/details": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Property Profile */
+        put: operations["update_property_profile_api_v1_properties__property_id__details_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/properties/{property_id}/ownership": {
         parameters: {
             query?: never;
@@ -355,6 +372,12 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
+         * Accessibility
+         * @description Безбар'єрність (DIM.RIA).
+         * @enum {string}
+         */
+        Accessibility: "step_free_entrance" | "wide_doors" | "step_free_shower" | "grab_bars" | "step_free_shelter";
+        /**
          * AddressCandidate
          * @description Будинок, знайдений геокодером (PRP-ADDR-CONFIRM).
          */
@@ -397,15 +420,82 @@ export interface components {
             /** Street */
             street: string;
         };
+        /**
+         * ApartmentBackupPower
+         * @description Резервне живлення самої квартири (ЛУН: «резервне живлення квартири»).
+         * @enum {string}
+         */
+        ApartmentBackupPower: "none" | "power_station" | "inverter" | "generator";
+        /**
+         * Appliance
+         * @enum {string}
+         */
+        Appliance: "fridge" | "washing_machine" | "dryer" | "dishwasher" | "oven" | "microwave" | "hob" | "hood" | "kettle" | "coffee_machine" | "tv" | "vacuum" | "iron";
         /** ApproveIn */
         ApproveIn: {
             /** Owner Name */
             owner_name: string;
         };
+        /**
+         * BathroomType
+         * @enum {string}
+         */
+        BathroomType: "separate" | "combined" | "several";
+        /**
+         * BlackoutReady
+         * @description Що в будинку працює без світла (ЛУН/OLX «автономність при блекауті»).
+         * @enum {string}
+         */
+        BlackoutReady: "elevator" | "water" | "heating" | "internet" | "lighting";
         /** Body_upload_ownership_document_api_v1_properties__property_id__ownership_documents_post */
         Body_upload_ownership_document_api_v1_properties__property_id__ownership_documents_post: {
             /** File */
             file: string;
+        };
+        /**
+         * BuildingFeature
+         * @enum {string}
+         */
+        BuildingFeature: "closed_territory" | "video_surveillance" | "concierge" | "playground" | "bicycle_storage" | "intercom";
+        /**
+         * BuildingType
+         * @description Тип будинку, як його називають у Львові.
+         * @enum {string}
+         */
+        BuildingType: "austrian_polish" | "stalinka" | "khrushchovka" | "czech" | "soviet_panel" | "gostynka" | "new_build" | "private_house" | "other";
+        /**
+         * ChildrenPolicy
+         * @enum {string}
+         */
+        ChildrenPolicy: "yes" | "no" | "discuss";
+        /**
+         * Comfort
+         * @enum {string}
+         */
+        Comfort: "air_conditioner" | "floor_heating" | "water_filter" | "bathtub" | "shower" | "wardrobe_room" | "storage_room" | "workspace" | "security_door" | "alarm";
+        /**
+         * CompletenessLevel
+         * @enum {string}
+         */
+        CompletenessLevel: "low" | "medium" | "high";
+        /**
+         * CompletenessOut
+         * @description Рівень заповненості анкети (FR-PRP-8).
+         */
+        CompletenessOut: {
+            /** Answered */
+            answered: number;
+            level: components["schemas"]["CompletenessLevel"];
+            /** Missing Important */
+            missing_important: string[];
+            /** Percent */
+            percent: number;
+            /** Sections */
+            sections: {
+                [key: string]: number;
+            };
+            /** Total */
+            total: number;
         };
         /** ConsentInfo */
         ConsentInfo: {
@@ -437,6 +527,11 @@ export interface components {
              */
             uploaded_at: string;
         };
+        /**
+         * Furnishing
+         * @enum {string}
+         */
+        Furnishing: "none" | "partial" | "full";
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -451,6 +546,26 @@ export interface components {
             /** Version */
             version: string;
         };
+        /**
+         * Heating
+         * @enum {string}
+         */
+        Heating: "central" | "building_boiler" | "individual_gas" | "individual_electric" | "other";
+        /**
+         * HotWater
+         * @enum {string}
+         */
+        HotWater: "central" | "heating_boiler" | "electric_boiler" | "gas_heater";
+        /**
+         * Internet
+         * @enum {string}
+         */
+        Internet: "none" | "cable" | "fiber" | "mobile";
+        /**
+         * Layout
+         * @enum {string}
+         */
+        Layout: "separate" | "adjacent" | "mixed" | "studio" | "kitchen_studio" | "multilevel";
         /** MeOut */
         MeOut: {
             consent: components["schemas"]["ConsentInfo"];
@@ -459,6 +574,12 @@ export interface components {
             telegram: components["schemas"]["TelegramUserOut"];
             user: components["schemas"]["UserOut"] | null;
         };
+        /**
+         * Meter
+         * @description Окремі лічильники квартири — потрібні для комуналки (M5).
+         * @enum {string}
+         */
+        Meter: "electricity" | "water" | "gas" | "heat";
         /** ModerationSummaryOut */
         ModerationSummaryOut: {
             /** Ownership Pending */
@@ -516,6 +637,17 @@ export interface components {
          * @enum {string}
          */
         OwnershipStatus: "unverified" | "pending" | "verified" | "rejected";
+        /**
+         * Parking
+         * @enum {string}
+         */
+        Parking: "none" | "street" | "yard" | "underground" | "garage";
+        /**
+         * PetsPolicy
+         * @description Детальніше за «так/ні» (як на OLX): власник одразу каже, кого можна.
+         * @enum {string}
+         */
+        PetsPolicy: "no" | "cats" | "small_dogs" | "any" | "discuss";
         /** PropertyCreate */
         PropertyCreate: {
             address: components["schemas"]["AddressIn"];
@@ -532,6 +664,134 @@ export interface components {
             rooms: number;
         };
         /**
+         * PropertyDetails
+         * @description Анкета об'єкта (FR-PRP-8, ADR 0003). Усе необов'язкове: None — «ще не відповів».
+         *
+         *     False, 0 чи порожній перелік — теж відповідь («ні», «нічого з переліку»).
+         *     Анкета не фінальна: нові поля додаються зі збільшенням PROFILE_VERSION.
+         */
+        "PropertyDetails-Input": {
+            /** Accessibility */
+            accessibility?: components["schemas"]["Accessibility"][] | null;
+            apartment_backup_power?: components["schemas"]["ApartmentBackupPower"] | null;
+            /** Appliances */
+            appliances?: components["schemas"]["Appliance"][] | null;
+            /** Area Kitchen */
+            area_kitchen?: number | string | null;
+            /** Area Living */
+            area_living?: number | string | null;
+            /** Balconies */
+            balconies?: number | null;
+            bathroom?: components["schemas"]["BathroomType"] | null;
+            /** Blackout Ready */
+            blackout_ready?: components["schemas"]["BlackoutReady"][] | null;
+            /** Building Features */
+            building_features?: components["schemas"]["BuildingFeature"][] | null;
+            building_type?: components["schemas"]["BuildingType"] | null;
+            /** Ceiling Height */
+            ceiling_height?: number | string | null;
+            children?: components["schemas"]["ChildrenPolicy"] | null;
+            /** Comfort */
+            comfort?: components["schemas"]["Comfort"][] | null;
+            /** Description */
+            description?: string | null;
+            /** First Rental */
+            first_rental?: boolean | null;
+            /** Floors Total */
+            floors_total?: number | null;
+            furnishing?: components["schemas"]["Furnishing"] | null;
+            /** Has Elevator */
+            has_elevator?: boolean | null;
+            heating?: components["schemas"]["Heating"] | null;
+            hot_water?: components["schemas"]["HotWater"] | null;
+            internet?: components["schemas"]["Internet"] | null;
+            layout?: components["schemas"]["Layout"] | null;
+            /** Max Occupants */
+            max_occupants?: number | null;
+            /** Meters */
+            meters?: components["schemas"]["Meter"][] | null;
+            parking?: components["schemas"]["Parking"] | null;
+            pets?: components["schemas"]["PetsPolicy"] | null;
+            repair?: components["schemas"]["Repair"] | null;
+            /** Residence Registration */
+            residence_registration?: boolean | null;
+            shelter?: components["schemas"]["Shelter"] | null;
+            smoking?: components["schemas"]["SmokingPolicy"] | null;
+            stove?: components["schemas"]["Stove"] | null;
+            /** Utilities Summer Uah */
+            utilities_summer_uah?: number | null;
+            /** Utilities Winter Uah */
+            utilities_winter_uah?: number | null;
+            wall_material?: components["schemas"]["WallMaterial"] | null;
+            windows_view?: components["schemas"]["WindowsView"] | null;
+            /** Year Built */
+            year_built?: number | null;
+        };
+        /**
+         * PropertyDetails
+         * @description Анкета об'єкта (FR-PRP-8, ADR 0003). Усе необов'язкове: None — «ще не відповів».
+         *
+         *     False, 0 чи порожній перелік — теж відповідь («ні», «нічого з переліку»).
+         *     Анкета не фінальна: нові поля додаються зі збільшенням PROFILE_VERSION.
+         */
+        "PropertyDetails-Output": {
+            /** Accessibility */
+            accessibility?: components["schemas"]["Accessibility"][] | null;
+            apartment_backup_power?: components["schemas"]["ApartmentBackupPower"] | null;
+            /** Appliances */
+            appliances?: components["schemas"]["Appliance"][] | null;
+            /** Area Kitchen */
+            area_kitchen?: string | null;
+            /** Area Living */
+            area_living?: string | null;
+            /** Balconies */
+            balconies?: number | null;
+            bathroom?: components["schemas"]["BathroomType"] | null;
+            /** Blackout Ready */
+            blackout_ready?: components["schemas"]["BlackoutReady"][] | null;
+            /** Building Features */
+            building_features?: components["schemas"]["BuildingFeature"][] | null;
+            building_type?: components["schemas"]["BuildingType"] | null;
+            /** Ceiling Height */
+            ceiling_height?: string | null;
+            children?: components["schemas"]["ChildrenPolicy"] | null;
+            /** Comfort */
+            comfort?: components["schemas"]["Comfort"][] | null;
+            /** Description */
+            description?: string | null;
+            /** First Rental */
+            first_rental?: boolean | null;
+            /** Floors Total */
+            floors_total?: number | null;
+            furnishing?: components["schemas"]["Furnishing"] | null;
+            /** Has Elevator */
+            has_elevator?: boolean | null;
+            heating?: components["schemas"]["Heating"] | null;
+            hot_water?: components["schemas"]["HotWater"] | null;
+            internet?: components["schemas"]["Internet"] | null;
+            layout?: components["schemas"]["Layout"] | null;
+            /** Max Occupants */
+            max_occupants?: number | null;
+            /** Meters */
+            meters?: components["schemas"]["Meter"][] | null;
+            parking?: components["schemas"]["Parking"] | null;
+            pets?: components["schemas"]["PetsPolicy"] | null;
+            repair?: components["schemas"]["Repair"] | null;
+            /** Residence Registration */
+            residence_registration?: boolean | null;
+            shelter?: components["schemas"]["Shelter"] | null;
+            smoking?: components["schemas"]["SmokingPolicy"] | null;
+            stove?: components["schemas"]["Stove"] | null;
+            /** Utilities Summer Uah */
+            utilities_summer_uah?: number | null;
+            /** Utilities Winter Uah */
+            utilities_winter_uah?: number | null;
+            wall_material?: components["schemas"]["WallMaterial"] | null;
+            windows_view?: components["schemas"]["WindowsView"] | null;
+            /** Year Built */
+            year_built?: number | null;
+        };
+        /**
          * PropertyKind
          * @enum {string}
          */
@@ -544,11 +804,13 @@ export interface components {
             area: string | null;
             /** City */
             city: string;
+            completeness?: components["schemas"]["CompletenessOut"] | null;
             /**
              * Created At
              * Format: date-time
              */
             created_at: string;
+            details?: components["schemas"]["PropertyDetails-Output"];
             /** District */
             district: string | null;
             /** Entrance */
@@ -622,6 +884,12 @@ export interface components {
             /** Reason */
             reason: string;
         };
+        /**
+         * Repair
+         * @description Стан (як на OLX/DIM.RIA).
+         * @enum {string}
+         */
+        Repair: "designer" | "euro" | "cosmetic" | "livable" | "needs_repair";
         /** RoomIn */
         RoomIn: {
             /** Area */
@@ -634,6 +902,22 @@ export interface components {
             /** Sent */
             sent: number;
         };
+        /**
+         * Shelter
+         * @description Укриття (як на ЛУН): у будинку чи поруч.
+         * @enum {string}
+         */
+        Shelter: "none" | "basement" | "underground_parking" | "dedicated" | "nearby";
+        /**
+         * SmokingPolicy
+         * @enum {string}
+         */
+        SmokingPolicy: "no" | "balcony" | "yes";
+        /**
+         * Stove
+         * @enum {string}
+         */
+        Stove: "gas" | "electric" | "induction";
         /** TelegramUserOut */
         TelegramUserOut: {
             /** First Name */
@@ -775,6 +1059,16 @@ export interface components {
          * @enum {string}
          */
         VerificationStatus: "draft" | "pending" | "verified" | "rejected" | "expired";
+        /**
+         * WallMaterial
+         * @enum {string}
+         */
+        WallMaterial: "brick" | "panel" | "monolith_frame" | "block" | "wood" | "other";
+        /**
+         * WindowsView
+         * @enum {string}
+         */
+        WindowsView: "yard" | "street" | "both";
     };
     responses: never;
     parameters: never;
@@ -1335,6 +1629,43 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_property_profile_api_v1_properties__property_id__details_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PropertyDetails-Input"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyOut"];
+                };
             };
             /** @description Validation Error */
             422: {

@@ -52,6 +52,7 @@ from domovyk.domain.properties import (
     validate_floor,
     validate_rooms,
 )
+from domovyk.domain.property_profile import PROFILE_VERSION, completeness
 from domovyk.modules.analytics.service import AnalyticsService, EventName, EventSource
 from domovyk.modules.moderation.service import AuditAction, ModerationService, RiskSignal
 from domovyk.modules.notifications.service import NotificationsService, NotificationType
@@ -62,9 +63,11 @@ from domovyk.modules.properties.repository import (
 )
 from domovyk.modules.properties.schemas import (
     AddressCandidate,
+    CompletenessOut,
     OwnershipOut,
     OwnerSummary,
     PropertyCreate,
+    PropertyDetails,
     PropertyOut,
     PropertyUpdate,
     QueueItem,
@@ -80,6 +83,7 @@ __all__ = [
     "PropertiesConfig",
     "PropertiesService",
     "PropertyCreate",
+    "PropertyDetails",
     "PropertyOut",
     "PropertyUpdate",
     "QueueItem",
@@ -102,6 +106,9 @@ class PropertiesConfig:
     max_document_bytes: int = 10 * 1024 * 1024  # OWN-2: PDF до 10 МБ
     document_retention_days: int = 30  # FR-PRP-4, п. 4
     queue_limit: int = 50
+    # Рівень заповненості анкети (FR-PRP-8): з якого відсотка «середній» і «високий».
+    completeness_medium_from: int = 40
+    completeness_high_from: int = 75
 
 
 class PropertiesService:
@@ -253,7 +260,22 @@ class PropertiesService:
     async def list_mine(self, telegram_uid: int) -> list[PropertyOut]:
         user = await self._users.require_active(telegram_uid)
         async with self._tx.begin() as tx:
-            return await self._repo(tx).list_by_owner(user.id)
+            props = await self._repo(tx).list_by_owner(user.id)
+        return [self._with_completeness(p) for p in props]
+
+    async def update_profile(
+        self, telegram_uid: int, property_id: uuid.UUID, details: PropertyDetails
+    ) -> PropertyOut:
+        """Анкета об'єкта (FR-PRP-8): замінюється цілком. Адреса й власність не зачіпаються."""
+        user = await self._users.require_active(telegram_uid)
+        async with self._tx.begin() as tx:
+            repo = self._repo(tx)
+            prop = await self._owned(repo, property_id, user.id)
+            _check_profile(prop, details)
+            data = details.model_dump(mode="json", exclude_none=True)
+            data["v"] = PROFILE_VERSION
+            await repo.set_profile(property_id, data)
+            return await self._must_get(repo, property_id)
 
     async def get_mine(self, telegram_uid: int, property_id: uuid.UUID) -> PropertyOut:
         user = await self._users.require_active(telegram_uid)
@@ -277,7 +299,10 @@ class PropertiesService:
             return await self._must_get(repo, property_id)
 
     async def delete_property(self, telegram_uid: int, property_id: uuid.UUID) -> None:
-        """Видалити об'єкт разом із документами перевірок.
+        """Видалити об'єкт разом із перевірками власності та їхніми документами.
+
+        Перевірку, що чекає на модератора, теж знімаємо: вона зникає з черги.
+        Слід лишається в audit_log (адреса не пишеться — лише ID і статус).
 
         TODO(M3): заборонити, поки є живе оголошення чи оренда (через їхні service.py).
         """
@@ -285,10 +310,16 @@ class PropertiesService:
         async with self._tx.begin() as tx:
             repo = self._repo(tx)
             prop = await self._owned(repo, property_id, user.id)
-            if prop.ownership_status is OwnershipStatus.PENDING:
-                raise Conflict("Об'єкт зараз на перевірці", field="ownership")
             docs = await repo.all_documents_of_property(property_id)
             await repo.delete_property(property_id)
+            await self._moderation.audit(
+                tx,
+                user.id,
+                AuditAction.PROPERTY_DELETE,
+                "property",
+                str(property_id),
+                {"ownership_status": prop.ownership_status.value, "documents": len(docs)},
+            )
         for doc in docs:
             await self._delete_file(doc.storage_key)
 
@@ -506,7 +537,7 @@ class PropertiesService:
                 items.append(
                     QueueItem(
                         verification_id=row.verification_id,
-                        property=prop,
+                        property=self._with_completeness(prop),
                         owner=await self._owner_summary(tx, repo, row.user_id),
                         submitted_at=row.submitted_at,
                         documents_count=row.documents_count,
@@ -645,22 +676,41 @@ class PropertiesService:
 
     # --------------------------------------------------------------- службове
 
-    @staticmethod
-    async def _must_get(repo: PropertiesRepository, property_id: uuid.UUID) -> PropertyOut:
+    async def _must_get(self, repo: PropertiesRepository, property_id: uuid.UUID) -> PropertyOut:
         prop = await repo.get_property(property_id)
         if prop is None:
             raise NotFound("Об'єкт не знайдено")
-        return prop
+        return self._with_completeness(prop)
 
-    @staticmethod
     async def _owned(
-        repo: PropertiesRepository, property_id: uuid.UUID, user_id: uuid.UUID
+        self, repo: PropertiesRepository, property_id: uuid.UUID, user_id: uuid.UUID
     ) -> PropertyOut:
         """Чужий об'єкт виглядає як неіснуючий — не розкриваємо, що він є."""
         prop = await repo.get_property(property_id)
         if prop is None or prop.owner_user_id != user_id:
             raise NotFound("Об'єкт не знайдено")
-        return prop
+        return self._with_completeness(prop)
+
+    def _with_completeness(self, prop: PropertyOut) -> PropertyOut:
+        answers: dict[str, object] = prop.details.model_dump()
+        answers.update(rooms=prop.rooms, area_total=prop.area, floor=prop.floor)
+        c = completeness(
+            answers,
+            medium_from=self._config.completeness_medium_from,
+            high_from=self._config.completeness_high_from,
+        )
+        return prop.model_copy(
+            update={
+                "completeness": CompletenessOut(
+                    percent=c.percent,
+                    level=c.level,
+                    answered=c.answered,
+                    total=c.total,
+                    missing_important=list(c.missing_important),
+                    sections=c.sections,
+                )
+            }
+        )
 
     @staticmethod
     async def _verification(
@@ -715,6 +765,19 @@ class PropertiesService:
             await self._storage.delete(key)
         except Exception:  # файл видалить наступне прибирання; не валимо операцію
             log.exception("Не вдалося видалити файл зі сховища")
+
+
+def _check_profile(prop: PropertyOut, d: PropertyDetails) -> None:
+    """Узгодженість анкети з карткою об'єкта."""
+    if prop.area is not None:
+        if d.area_living is not None and d.area_living > prop.area:
+            raise InvalidInput("Житлова площа більша за загальну", field="area_living")
+        if d.area_kitchen is not None and d.area_kitchen > prop.area:
+            raise InvalidInput("Кухня більша за загальну площу", field="area_kitchen")
+    if d.floors_total is not None and prop.floor is not None and prop.floor > d.floors_total:
+        raise InvalidInput("Поверх вищий за поверховість будинку", field="floors_total")
+    if d.description is not None and not d.description.strip():
+        raise InvalidInput("Порожній опис", field="description")
 
 
 def _valid_house(house_number: str) -> bool:

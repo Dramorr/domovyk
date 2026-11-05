@@ -129,3 +129,22 @@ async def test_db_constraints(services: Services, engine: AsyncEngine) -> None:
         with pytest.raises(IntegrityError):
             await conn.execute(insert, {"u": prop.owner_user_id, "p": prop.id})
         await conn.rollback()
+
+
+async def test_profile_jsonb_roundtrip(services: Services) -> None:
+    from domovyk.modules.properties.schemas import PropertyDetails
+
+    await _user(services, OWNER)
+    prop = await services.properties.create_property(OWNER, _flat())
+    details = PropertyDetails(
+        heating="individual_gas",
+        ceiling_height=Decimal("2.75"),
+        appliances=["fridge", "dishwasher"],
+        has_elevator=False,
+    )
+    saved = await services.properties.update_profile(OWNER, prop.id, details)
+    again = await services.properties.get_mine(OWNER, prop.id)
+    assert again.details == saved.details
+    assert again.details.ceiling_height == Decimal("2.75")
+    assert again.details.has_elevator is False
+    assert again.completeness is not None and again.completeness.percent > 0

@@ -14,6 +14,7 @@ import { botLink, CITY, DIIA_URL } from "../config";
 import { t, type TextKey } from "../i18n";
 import { confirm, openLink, openTelegramLink, type WebApp } from "../telegram";
 import { errorCode, errorField, errorText, formatAddress, formatDate, roomsText, Screen } from "../ui";
+import { CompletenessBar } from "./PropertyProfile";
 
 function ownershipLabel(status: Property["ownership_status"]): string {
   return t(`own_status_${status}` as TextKey);
@@ -85,6 +86,7 @@ export function PropertyList({
           <span className="row-sub">
             {roomsText(p.rooms)}
             {p.area ? ` · ${t("sqm", { area: p.area })}` : ""} · {ownershipLabel(p.ownership_status)}
+            {p.completeness && ` · ${t("pf_completeness", { percent: String(p.completeness.percent) })}`}
           </span>
         </button>
       ))}
@@ -351,12 +353,14 @@ export function PropertyCard({
   webApp,
   onBack,
   onOwnership,
+  onProfile,
   onDeleted,
 }: {
   id: string;
   webApp: WebApp;
   onBack: () => void;
   onOwnership: () => void;
+  onProfile: () => void;
   onDeleted: () => void;
 }) {
   const [prop, setProp] = useState<Property | null>(null);
@@ -403,11 +407,8 @@ export function PropertyCard({
   };
 
   async function remove() {
-    if (prop?.ownership_status === "pending") {
-      setError(t("prp_delete_pending"));
-      return;
-    }
-    if (!(await confirm(webApp, t("prp_delete_confirm")))) return;
+    const question = prop?.ownership_status === "pending" ? "prp_delete_confirm_pending" : "prp_delete_confirm";
+    if (!(await confirm(webApp, t(question)))) return;
     await run(async () => {
       await api.deleteProperty(id);
       onDeleted();
@@ -424,6 +425,14 @@ export function PropertyCard({
         {prop.area && ` · ${t("sqm", { area: prop.area })}`}
         {prop.district && ` · ${prop.district}`}
       </p>
+
+      <section className="card">
+        <h2>{t("pf_title")}</h2>
+        <CompletenessBar p={prop} />
+        <button className="button secondary" onClick={onProfile}>
+          {t("pf_open")}
+        </button>
+      </section>
 
       <section className="card">
         <h2>{t("prp_card_ownership")}</h2>

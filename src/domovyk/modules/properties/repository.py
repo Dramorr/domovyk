@@ -24,6 +24,7 @@ from domovyk.modules.properties.models import (
 )
 from domovyk.modules.properties.schemas import (
     DocumentOut,
+    PropertyDetails,
     PropertyOut,
     UnitOut,
     VerificationOut,
@@ -98,6 +99,7 @@ class PropertiesRepository(Protocol):
         area: Decimal | None,
     ) -> None: ...
     async def delete_property(self, property_id: uuid.UUID) -> None: ...
+    async def set_profile(self, property_id: uuid.UUID, details: dict[str, Any]) -> None: ...
     async def set_ownership(
         self, property_id: uuid.UUID, status: OwnershipStatus, verified_at: datetime | None
     ) -> None: ...
@@ -157,6 +159,12 @@ def _property_query() -> Any:
         .join(BuildingRow, BuildingRow.id == PropertyRow.building_id)
         .outerjoin(DistrictRow, DistrictRow.id == BuildingRow.district_id)
     )
+
+
+def _details(raw: dict[str, Any] | None) -> PropertyDetails:
+    """Анкета з БД. Невідомі (старі) ключі ігноруються, "v" — службове."""
+    data = {k: v for k, v in (raw or {}).items() if k in PropertyDetails.model_fields}
+    return PropertyDetails.model_validate(data)
 
 
 class SqlPropertiesRepository:
@@ -286,6 +294,7 @@ class SqlPropertiesRepository:
             ownership_verified_at=p.ownership_verified_at,
             units=units,
             created_at=p.created_at,
+            details=_details(p.details),
         )
 
     async def get_property(self, property_id: uuid.UUID) -> PropertyOut | None:
@@ -338,6 +347,11 @@ class SqlPropertiesRepository:
 
     async def delete_property(self, property_id: uuid.UUID) -> None:
         await self._s.execute(delete(PropertyRow).where(PropertyRow.id == property_id))
+
+    async def set_profile(self, property_id: uuid.UUID, details: dict[str, Any]) -> None:
+        await self._s.execute(
+            update(PropertyRow).where(PropertyRow.id == property_id).values(details=details)
+        )
 
     async def set_ownership(
         self, property_id: uuid.UUID, status: OwnershipStatus, verified_at: datetime | None
