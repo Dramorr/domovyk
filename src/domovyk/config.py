@@ -72,6 +72,8 @@ class Settings(BaseSettings):
     # Рівні заповненості анкети об'єкта (FR-PRP-8), відсотки.
     profile_medium_from: int = Field(default=40, ge=0, le=100)
     profile_high_from: int = Field(default=75, ge=0, le=100)
+    # Мінімальна заповненість анкети для публікації оголошення, %.
+    listing_min_completeness: int = Field(default=40, ge=0, le=100)
 
     # Dev-прапорці — лише при APP_ENV=dev (FR-PRP-5).
     dev_skip_ownership_check: bool = False

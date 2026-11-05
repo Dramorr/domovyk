@@ -490,6 +490,10 @@ export interface components {
             missing_important: string[];
             /** Percent */
             percent: number;
+            /** Publish Min */
+            publish_min: number;
+            /** Publishable */
+            publishable: boolean;
             /** Sections */
             sections: {
                 [key: string]: number;

@@ -79,7 +79,8 @@ async def test_full_ownership_cycle(
 
     notifier = FakeNotifier()
     sent = await s.notifications.send_pending(make_renderer("https://x.test/app/"), notifier)
-    assert sent == 2  # модератору — черга, власнику — результат
+    # модератору — тривога про дубль адреси й черга, власнику — результат
+    assert sent == 3
     assert {m.chat_id for m in notifier.messages} == {ADMIN_TG, OWNER}
 
     it_clock.advance(timedelta(days=31))

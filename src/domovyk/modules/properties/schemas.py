@@ -159,6 +159,8 @@ class CompletenessOut(BaseModel):
 
     percent: int
     level: CompletenessLevel
+    publish_min: int  # мінімум для оголошення, % (LISTING_MIN_COMPLETENESS)
+    publishable: bool
     answered: int
     total: int
     missing_important: list[str]  # ключі полів PropertyDetails / базових полів

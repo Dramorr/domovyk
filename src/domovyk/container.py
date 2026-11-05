@@ -57,6 +57,7 @@ def properties_config(settings: Settings) -> PropertiesConfig:
         document_retention_days=settings.ownership_doc_retention_days,
         completeness_medium_from=settings.profile_medium_from,
         completeness_high_from=settings.profile_high_from,
+        listing_min_completeness=settings.listing_min_completeness,
     )
 
 

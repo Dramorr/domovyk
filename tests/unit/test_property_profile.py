@@ -10,13 +10,14 @@ from pydantic import ValidationError
 
 from domovyk.container import Services
 from domovyk.core.clock import FixedClock
-from domovyk.core.errors import InvalidInput, NotFound
-from domovyk.domain.properties import PropertyKind
+from domovyk.core.errors import ContactsInText, InvalidInput, NotFound, ProfileIncomplete
+from domovyk.domain.properties import OwnershipStatus, PropertyKind
 from domovyk.domain.property_profile import (
     DESCRIPTION_MIN,
     FIELDS,
     CompletenessLevel,
     completeness,
+    find_contacts,
     is_answered,
 )
 from domovyk.modules.properties.schemas import AddressIn, PropertyCreate, PropertyDetails
@@ -160,3 +161,61 @@ async def test_profile_consistency_checks(env: tuple[Services, FakeDb]) -> None:
         await s.properties.update_profile(OWNER, pid, PropertyDetails(floors_total=2))
     with pytest.raises(NotFound):
         await s.properties.update_profile(OTHER, pid, FULL)
+
+
+@pytest.mark.parametrize(
+    ("text", "kinds"),
+    [
+        ("Дзвоніть 067 123 45 67", ["phone"]),
+        ("+38 (067) 123-45-67 Ірина", ["phone"]),
+        ("Фото на olx.ua/obj", ["link"]),
+        ("Пишіть у t.me/realtor_lviv", ["link"]),
+        ("Мій телеграм @lviv_rent", ["handle"]),
+        ("пошта owner@example.com", ["email"]),
+    ],
+)
+def test_find_contacts(text: str, kinds: list[str]) -> None:
+    assert find_contacts(text) == kinds
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Квартира 54 м², 3 поверх з 9, ремонт 2021 року, комуналка взимку 3200 грн.",
+        "Будинок 1985 року, поруч зупинка № 25 і школа № 12.",
+    ],
+)
+def test_no_false_contacts(text: str) -> None:
+    assert find_contacts(text) == []
+
+
+def test_publish_threshold() -> None:
+    low = completeness({"rooms": 2}, **LEVELS, publish_from=40)
+    assert not low.publishable
+    full = FULL.model_dump()
+    full.update(rooms=2, area_total=Decimal(54), floor=3)
+    assert completeness(full, **LEVELS, publish_from=40).publishable
+
+
+async def test_contacts_in_description_rejected(env: tuple[Services, FakeDb]) -> None:
+    s, _ = env
+    prop = await _flat(s)
+    text = "Затишна квартира біля парку, тихі сусіди, все нове. Телефонуйте 067 123 45 67, Ірина."
+    with pytest.raises(ContactsInText):
+        await s.properties.update_profile(OWNER, prop.id, PropertyDetails(description=text))  # type: ignore[attr-defined]
+
+
+async def test_require_listable(env: tuple[Services, FakeDb]) -> None:
+    s, db = env
+    prop = await _flat(s)
+    pid = prop.id  # type: ignore[attr-defined]
+    owner = await s.users.find_by_telegram(OWNER)
+    assert owner is not None
+    # Власність підтверджено (як після модерації), а анкета порожня.
+    db.prop.properties[pid].ownership = OwnershipStatus.VERIFIED
+    with pytest.raises(ProfileIncomplete) as exc:
+        await s.properties.require_listable(owner.id, pid)
+    assert exc.value.details["required"] == 40
+    await s.properties.update_profile(OWNER, pid, FULL)
+    ok = await s.properties.require_listable(owner.id, pid)
+    assert ok.completeness is not None and ok.completeness.publishable

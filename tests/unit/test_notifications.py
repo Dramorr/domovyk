@@ -83,3 +83,18 @@ def test_rejected_text_escapes_reason() -> None:
     assert msg is not None
     assert "&lt;b&gt;x&lt;/b&gt;" in msg.text
     assert render(PendingNotification(2, uuid.uuid4(), "unknown", {})) is None
+
+
+def test_moderation_alert_text_has_ban_hint() -> None:
+    render = make_renderer(APP)
+    msg = render(
+        PendingNotification(
+            3,
+            uuid.uuid4(),
+            NotificationType.MODERATION_ALERT,
+            {"reason": "duplicate_address", "user_name": "<Іван>", "telegram_uid": 43},
+        )
+    )
+    assert msg is not None
+    assert "/ban 43" in msg.text and "&lt;Іван&gt;" in msg.text
+    assert msg.buttons[0].web_app_url == APP + "?start=mod"

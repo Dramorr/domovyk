@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { api, type Property, type PropertyDetails } from "../api/client";
 import { t, type TextKey } from "../i18n";
 import { PROFILE_SECTIONS, type FieldSpec } from "../profileSpec";
-import { errorField, errorText, formatAddress, Screen } from "../ui";
+import { errorCode, errorField, errorText, formatAddress, Screen } from "../ui";
 
 type Values = Record<string, unknown>;
 
@@ -27,6 +27,9 @@ export function CompletenessBar({ p }: { p: Property }) {
       <p className="small">
         {t("pf_completeness", { percent: String(c.percent) })} · {label(`pf_level_${c.level}`)}
       </p>
+      {!c.publishable && (
+        <p className="hint small">{t("pf_publish_min", { min: String(c.publish_min), left: String(c.publish_min - c.percent) })}</p>
+      )}
     </div>
   );
 }
@@ -158,7 +161,8 @@ export function PropertyProfile({ id, onBack }: { id: string; onBack: () => void
       setMessage(t("pf_saved"));
     } catch (e) {
       const field = errorField(e);
-      setError(field ? t("prp_bad_field", { field: label(`pf_${field}`) }) : errorText(e));
+      if (errorCode(e) === "contacts_in_text") setError(t("pf_contacts_in_text"));
+      else setError(field ? t("prp_bad_field", { field: label(`pf_${field}`) }) : errorText(e));
     } finally {
       setBusy(false);
     }

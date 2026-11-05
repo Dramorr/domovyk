@@ -59,6 +59,18 @@ class NotOwner(PermissionDenied):
     code = "not_owner"
 
 
+class ContactsInText(InvalidInput):
+    """Телефон, посилання чи нік у тексті: контакти відкриваються лише після схвалення заявки."""
+
+    code = "contacts_in_text"
+
+
+class ProfileIncomplete(PermissionDenied):
+    """Анкета об'єкта заповнена менше за мінімум для публікації (FR-PRP-8)."""
+
+    code = "profile_incomplete"
+
+
 class TooManyDocuments(InvalidInput):
     code = "too_many_documents"
 

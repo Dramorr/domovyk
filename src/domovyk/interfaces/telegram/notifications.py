@@ -39,6 +39,16 @@ def make_renderer(base_url: str) -> Renderer:
                     uk.NOTIFY_MODERATION_QUEUE,
                     [Button(uk.BTN_OPEN_MODERATION, web_app_url=mini_app_url(base_url, "mod"))],
                 )
+            case NotificationType.MODERATION_ALERT:
+                reason = str(p.get("reason") or "")
+                return RenderedMessage(
+                    uk.NOTIFY_MODERATION_ALERT.format(
+                        reason=uk.ALERT_REASONS.get(reason, escape(reason)),
+                        name=escape(str(p.get("user_name") or "")),
+                        tg_id=escape(str(p.get("telegram_uid") or "—")),
+                    ),
+                    [Button(uk.BTN_OPEN_MODERATION, web_app_url=mini_app_url(base_url, "mod"))],
+                )
             case NotificationType.OWNERSHIP_VERIFIED:
                 return RenderedMessage(
                     uk.NOTIFY_OWNERSHIP_VERIFIED.format(address=format_address(p)),

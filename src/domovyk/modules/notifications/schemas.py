@@ -14,6 +14,7 @@ class NotificationType(StrEnum):
     """Типи сповіщень (каталог — BOT_FLOWS §18). Текст для кожного — в інтерфейсі бота."""
 
     MODERATION_QUEUE = "moderation_queue"
+    MODERATION_ALERT = "moderation_alert"  # підозріла дія — перевірити одразу
     OWNERSHIP_VERIFIED = "ownership_verified"
     OWNERSHIP_REJECTED = "ownership_rejected"
 

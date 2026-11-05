@@ -12,6 +12,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
@@ -324,6 +325,7 @@ class CompletenessLevel(StrEnum):
 class Completeness:
     percent: int
     level: CompletenessLevel
+    publishable: bool  # досягнуто мінімуму для оголошення
     answered: int
     total: int
     missing_important: tuple[str, ...]
@@ -340,9 +342,13 @@ def is_answered(key: str, value: object) -> bool:
 
 
 def completeness(
-    answers: Mapping[str, object], *, medium_from: int, high_from: int
+    answers: Mapping[str, object],
+    *,
+    medium_from: int,
+    high_from: int,
+    publish_from: int = 0,
 ) -> Completeness:
-    """Рівень заповненості анкети. Пороги рівнів — з конфігурації (не з коду)."""
+    """Рівень заповненості анкети. Пороги — з конфігурації (не з коду)."""
     total_weight = sum(f.weight for f in FIELDS)
     got = 0
     answered = 0
@@ -365,4 +371,36 @@ def completeness(
     else:
         level = CompletenessLevel.LOW
     sections = {s: round(100 * section_got.get(s, 0) / w) for s, w in section_total.items()}
-    return Completeness(percent, level, answered, len(FIELDS), tuple(missing), sections)
+    return Completeness(
+        percent, level, percent >= publish_from, answered, len(FIELDS), tuple(missing), sections
+    )
+
+
+# ------------------------------------------------- контакти в тексті (правило 9)
+
+# Телефон: 9+ цифр поспіль, можна з пробілами, дужками, дефісами, «+».
+_PHONE_RE = re.compile(r"(?<!\d)(?:\+?\d[\s()\-.]*){9,}(?!\d)")
+_LINK_RE = re.compile(
+    r"(?:https?://|www\.|t\.me/|\b[\w-]+\.(?:com|ua|net|org|me|info|io)\b)", re.IGNORECASE
+)
+_HANDLE_RE = re.compile(r"(?<![\w.])@[A-Za-z][\w]{3,}")
+_EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+")
+
+
+def find_contacts(text: str) -> list[str]:
+    """Що в тексті схоже на контакт: phone, link, handle, email. Порожньо — чисто.
+
+    Контакти відкриваються лише після схвалення заявки (правило 9), тому в описі
+    їх бути не може: це жорстка заборона, а не «сигнал» для модератора.
+    """
+    found = []
+    if _PHONE_RE.search(text):
+        found.append("phone")
+    rest = _EMAIL_RE.sub(" ", text)  # пошту рахуємо окремо, а не як посилання чи нік
+    if _LINK_RE.search(rest):
+        found.append("link")
+    if rest != text:
+        found.append("email")
+    elif _HANDLE_RE.search(text):
+        found.append("handle")
+    return found

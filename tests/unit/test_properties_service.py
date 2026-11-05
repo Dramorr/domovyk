@@ -128,6 +128,10 @@ async def test_duplicate_address_of_other_owner_gives_risk_signal(
         (other.id, "duplicate_address", {"existing_property_id": str(first.id)})
     ]
     assert await s.properties.list_mine(OTHER) == []
+    # Модератор (адмін) дізнається одразу, з Telegram ID для /ban.
+    (alert,) = [n for n in db.prop.notifications if n.type == "moderation_alert"]
+    assert alert.payload["telegram_uid"] == OTHER
+    assert alert.payload["reason"] == "duplicate_address"
     # Інша квартира того ж будинку — можна.
     await s.properties.create_property(OTHER, _flat(house="12а", apt="6"))
 

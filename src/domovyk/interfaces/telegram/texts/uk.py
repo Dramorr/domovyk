@@ -95,3 +95,12 @@ NOTIFY_OWNERSHIP_REJECTED = (
 )
 BTN_OPEN_MODERATION = "🛡 Відкрити модерацію"
 BTN_OPEN_PROPERTY = "🏠 Відкрити об'єкт"
+
+# Підозріла дія: модератор перевіряє одразу (без жартів, спокійно й чітко)
+NOTIFY_MODERATION_ALERT = (
+    "⚠️ Потрібна перевірка: {reason}.\nКористувач: {name}, Telegram ID <code>{tg_id}</code>.\n"
+    "Якщо це посередник — <code>/ban {tg_id} причина</code>."
+)
+ALERT_REASONS = {
+    "duplicate_address": "спроба додати об'єкт за адресою, яка вже є в іншого власника",
+}

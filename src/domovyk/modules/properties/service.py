@@ -20,12 +20,14 @@ from domovyk.adapters.storage.base import FileStorage
 from domovyk.core.clock import Clock
 from domovyk.core.errors import (
     Conflict,
+    ContactsInText,
     DuplicateAddress,
     InvalidInput,
     NotFound,
     OwnershipNotVerified,
     PermissionDenied,
     PhoneRequired,
+    ProfileIncomplete,
     PropertyAlreadyYours,
     ServiceUnavailable,
     TooManyDocuments,
@@ -52,7 +54,7 @@ from domovyk.domain.properties import (
     validate_floor,
     validate_rooms,
 )
-from domovyk.domain.property_profile import PROFILE_VERSION, completeness
+from domovyk.domain.property_profile import PROFILE_VERSION, completeness, find_contacts
 from domovyk.modules.analytics.service import AnalyticsService, EventName, EventSource
 from domovyk.modules.moderation.service import AuditAction, ModerationService, RiskSignal
 from domovyk.modules.notifications.service import NotificationsService, NotificationType
@@ -109,6 +111,8 @@ class PropertiesConfig:
     # Рівень заповненості анкети (FR-PRP-8): з якого відсотка «середній» і «високий».
     completeness_medium_from: int = 40
     completeness_high_from: int = 75
+    # Мінімальна заповненість анкети для публікації оголошення (FR-PRP-8).
+    listing_min_completeness: int = 40
 
 
 class PropertiesService:
@@ -247,7 +251,9 @@ class PropertiesService:
                 )
                 return await self._must_get(repo, property_id)
 
-        # Дубль чужої адреси: сигнал фіксуємо окремою транзакцією й лише тоді відмовляємо.
+        # Дубль чужої адреси: факт пишемо як доказ і одразу кличемо модераторів —
+        # підозрілий акаунт перевіряють негайно, а не чекають накопичення сигналів.
+        staff = await self._users.staff_ids()
         async with self._tx.begin() as tx:
             await self._moderation.add_risk_signal(
                 tx,
@@ -255,6 +261,21 @@ class PropertiesService:
                 RiskSignal.DUPLICATE_ADDRESS,
                 {"existing_property_id": str(duplicate_of)},
             )
+            stamp = self._clock.now().strftime("%Y%m%d%H%M%S")
+            for staff_id in staff:
+                if staff_id == user.id:
+                    continue
+                await self._notifications.enqueue(
+                    tx,
+                    staff_id,
+                    NotificationType.MODERATION_ALERT,
+                    {
+                        "reason": RiskSignal.DUPLICATE_ADDRESS.value,
+                        "user_name": user.display_name,
+                        "telegram_uid": user.telegram_uid,
+                    },
+                    dedupe_key=f"moderation_alert:{user.id}:{duplicate_of}:{staff_id}:{stamp}",
+                )
         raise DuplicateAddress("Об'єкт за цією адресою вже є в Домовику")
 
     async def list_mine(self, telegram_uid: int) -> list[PropertyOut]:
@@ -362,6 +383,17 @@ class PropertiesService:
             raise NotFound("Об'єкт не знайдено")
         if prop.ownership_status is not OwnershipStatus.VERIFIED:
             raise OwnershipNotVerified("Спершу підтверди власність")
+        return prop
+
+    async def require_listable(self, user_id: uuid.UUID, property_id: uuid.UUID) -> PropertyOut:
+        """Перед публікацією оголошення (M6): власність підтверджена й анкета ≥ мінімуму."""
+        prop = self._with_completeness(await self.require_verified_owner(user_id, property_id))
+        if prop.completeness is None or not prop.completeness.publishable:
+            raise ProfileIncomplete(
+                "Анкета заповнена замало для оголошення",
+                percent=prop.completeness.percent if prop.completeness else 0,
+                required=self._config.listing_min_completeness,
+            )
         return prop
 
     # ------------------------------------------------------- власність: власник
@@ -698,12 +730,15 @@ class PropertiesService:
             answers,
             medium_from=self._config.completeness_medium_from,
             high_from=self._config.completeness_high_from,
+            publish_from=self._config.listing_min_completeness,
         )
         return prop.model_copy(
             update={
                 "completeness": CompletenessOut(
                     percent=c.percent,
                     level=c.level,
+                    publish_min=self._config.listing_min_completeness,
+                    publishable=c.publishable,
                     answered=c.answered,
                     total=c.total,
                     missing_important=list(c.missing_important),
@@ -776,8 +811,11 @@ def _check_profile(prop: PropertyOut, d: PropertyDetails) -> None:
             raise InvalidInput("Кухня більша за загальну площу", field="area_kitchen")
     if d.floors_total is not None and prop.floor is not None and prop.floor > d.floors_total:
         raise InvalidInput("Поверх вищий за поверховість будинку", field="floors_total")
-    if d.description is not None and not d.description.strip():
-        raise InvalidInput("Порожній опис", field="description")
+    if d.description is not None:
+        if not d.description.strip():
+            raise InvalidInput("Порожній опис", field="description")
+        if find_contacts(d.description):
+            raise ContactsInText("Контакти в описі", field="description")
 
 
 def _valid_house(house_number: str) -> bool:

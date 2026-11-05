@@ -319,6 +319,14 @@
             "title": "Percent",
             "type": "integer"
           },
+          "publish_min": {
+            "title": "Publish Min",
+            "type": "integer"
+          },
+          "publishable": {
+            "title": "Publishable",
+            "type": "boolean"
+          },
           "sections": {
             "additionalProperties": {
               "type": "integer"
@@ -334,6 +342,8 @@
         "required": [
           "percent",
           "level",
+          "publish_min",
+          "publishable",
           "answered",
           "total",
           "missing_important",
