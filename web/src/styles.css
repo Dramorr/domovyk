@@ -80,6 +80,13 @@ h1 {
   color: var(--tg-hint);
 }
 
+/* Багаторядкові абзаци — по ширині; короткі (в один рядок) лишаються по центру. */
+.screen p {
+  text-align: justify;
+  text-align-last: center;
+  hyphens: auto;
+}
+
 .button {
   display: inline-block;
   margin-top: 12px;

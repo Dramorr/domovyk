@@ -6,3 +6,4 @@ h1 { font-size: 28px; line-height: 1.2; }
 h2 { font-size: 19px; margin-top: 28px; }
 a { color: var(--green); }
 .draft { background: var(--amber); color: #163A2C; padding: 10px 14px; border-radius: 12px; font-size: 15px; }
+main p, main li { text-align: justify; hyphens: auto; }
