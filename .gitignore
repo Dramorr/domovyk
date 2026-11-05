@@ -13,9 +13,9 @@ credentials*.json
 service-account*.json
 
 # --- Дані користувачів (документи, квитанції, підписи, дампи) ---
-storage/
-uploads/
-media/
+/storage/
+/uploads/
+/media/
 *.p7s
 *.asice
 *.dump
