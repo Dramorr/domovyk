@@ -3,7 +3,33 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
     <title>Домовик</title>
+    <script>
+      // Самовідновлення: вебвʼю Telegram може віддати закешовану стару сторінку, чиїх файлів
+      // збірки вже немає на Pages, — і буде білий екран. Тоді один раз перезавантажуємось
+      // з унікальною адресою, зберігаючи #tgWebAppData.
+      (function () {
+        var q = new URLSearchParams(location.search);
+        if (q.has("_r")) return;
+        function reload() {
+          q.set("_r", String(Date.now()));
+          location.replace(location.pathname + "?" + q.toString() + location.hash);
+        }
+        window.addEventListener(
+          "error",
+          function (e) {
+            var t = e.target;
+            if (t && (t.tagName === "SCRIPT" || t.tagName === "LINK") && /\/assets\//.test(t.src || t.href || "")) reload();
+          },
+          true,
+        );
+        setTimeout(function () {
+          var root = document.getElementById("root");
+          if (root && !root.hasChildNodes()) reload();
+        }, 8000);
+      })();
+    </script>
     <link rel="icon" href="../brand/app-icon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
