@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Cities */
+        get: operations["list_cities_api_v1_cities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/invites/{token}": {
         parameters: {
             query?: never;
@@ -642,6 +659,8 @@ export interface components {
         AddressCandidate: {
             /** City */
             city: string;
+            /** City Code */
+            city_code: string;
             /** District */
             district?: string | null;
             /** House Number */
@@ -660,11 +679,8 @@ export interface components {
          * @description Адреса будинку: підтверджений кандидат геокодера або введена вручну.
          */
         AddressIn: {
-            /**
-             * City
-             * @default Львів
-             */
-            city: string;
+            /** City Code */
+            city_code?: string | null;
             /** District */
             district?: string | null;
             /** House Number */
@@ -732,6 +748,23 @@ export interface components {
          * @enum {string}
          */
         ChildrenPolicy: "yes" | "no" | "discuss";
+        /**
+         * CityOut
+         * @description Місто з довідника (ADR 0008). active — працюємо; soon — скоро.
+         */
+        CityOut: {
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /** Region */
+            region: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "soon";
+        };
         /**
          * Comfort
          * @enum {string}
@@ -1458,6 +1491,8 @@ export interface components {
             area: string | null;
             /** City */
             city: string;
+            /** City Code */
+            city_code: string;
             completeness?: components["schemas"]["CompletenessOut"] | null;
             /**
              * Created At
@@ -1753,6 +1788,7 @@ export interface operations {
         parameters: {
             query: {
                 q: string;
+                city?: string | null;
             };
             header?: {
                 authorization?: string | null;
@@ -1769,6 +1805,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AddressCandidate"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_cities_api_v1_cities_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CityOut"][];
                 };
             };
             /** @description Validation Error */

@@ -43,11 +43,25 @@ def _pg_enum[E: (PropertyKind, UnitKind, OwnershipStatus, VerificationStatus, Id
     )
 
 
+class CityRow(Base):
+    """Довідник міст (ADR 0008). status: active — працюємо, soon — скоро."""
+
+    __tablename__ = "cities"
+
+    code: Mapped[str] = mapped_column(Text, primary_key=True)
+    name: Mapped[str] = mapped_column(Text, unique=True)
+    region: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(Text, server_default="soon")
+    timezone: Mapped[str] = mapped_column(Text, server_default="Europe/Kyiv")
+    sort_order: Mapped[int] = mapped_column(SmallInteger, server_default="0")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class DistrictRow(Base):
     __tablename__ = "districts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    city: Mapped[str] = mapped_column(Text, server_default="Львів")
+    city_code: Mapped[str] = mapped_column(Text, ForeignKey("cities.code"))
     name: Mapped[str] = mapped_column(Text)
     parent_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("districts.id"))
 
@@ -58,7 +72,7 @@ class BuildingRow(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
     )
-    city: Mapped[str] = mapped_column(Text, server_default="Львів")
+    city_code: Mapped[str] = mapped_column(Text, ForeignKey("cities.code"))
     street: Mapped[str] = mapped_column(Text)
     house_number: Mapped[str] = mapped_column(Text)
     normalized_key: Mapped[str] = mapped_column(Text, unique=True)

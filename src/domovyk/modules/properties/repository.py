@@ -16,6 +16,7 @@ from domovyk.core.tx import Tx, session_of
 from domovyk.domain.properties import OwnershipStatus, PropertyKind, UnitKind, VerificationStatus
 from domovyk.modules.properties.models import (
     BuildingRow,
+    CityRow,
     DistrictRow,
     PropertyRow,
     UnitRow,
@@ -23,6 +24,7 @@ from domovyk.modules.properties.models import (
     VerificationRow,
 )
 from domovyk.modules.properties.schemas import (
+    CityOut,
     DocumentOut,
     PropertyDetails,
     PropertyOut,
@@ -35,7 +37,7 @@ OWNERSHIP_KIND = "ownership"
 
 @dataclass(frozen=True)
 class NewBuilding:
-    city: str
+    city_code: str
     street: str
     house_number: str
     normalized_key: str
@@ -79,6 +81,8 @@ class PendingRow:
 
 
 class PropertiesRepository(Protocol):
+    async def list_cities(self) -> list[CityOut]: ...
+    async def get_city(self, code: str) -> CityOut | None: ...
     async def find_building(self, normalized_key: str) -> uuid.UUID | None: ...
     async def create_building(self, building: NewBuilding) -> uuid.UUID: ...
     async def find_property_at(
@@ -146,7 +150,8 @@ class PropertiesRepository(Protocol):
 
 _PROPERTY_COLUMNS: tuple[Any, ...] = (
     PropertyRow,
-    BuildingRow.city,
+    BuildingRow.city_code,
+    CityRow.name.label("city"),
     BuildingRow.street,
     BuildingRow.house_number,
     DistrictRow.name.label("district"),
@@ -158,8 +163,13 @@ def _property_query() -> Any:
     return (
         select(*_PROPERTY_COLUMNS)
         .join(BuildingRow, BuildingRow.id == PropertyRow.building_id)
+        .join(CityRow, CityRow.code == BuildingRow.city_code)
         .outerjoin(DistrictRow, DistrictRow.id == BuildingRow.district_id)
     )
+
+
+def _city(row: CityRow) -> CityOut:
+    return CityOut(code=row.code, name=row.name, region=row.region, status=row.status)
 
 
 def _details(raw: dict[str, Any] | None) -> PropertyDetails:
@@ -172,6 +182,16 @@ class SqlPropertiesRepository:
     def __init__(self, tx: Tx) -> None:
         self._s = session_of(tx)
 
+    # -------------------------------------------------------------- міста
+
+    async def list_cities(self) -> list[CityOut]:
+        rows = await self._s.scalars(select(CityRow).order_by(CityRow.sort_order, CityRow.name))
+        return [_city(r) for r in rows]
+
+    async def get_city(self, code: str) -> CityOut | None:
+        row = await self._s.get(CityRow, code)
+        return _city(row) if row else None
+
     # -------------------------------------------------------------- будинки
 
     async def find_building(self, normalized_key: str) -> uuid.UUID | None:
@@ -179,17 +199,19 @@ class SqlPropertiesRepository:
             select(BuildingRow.id).where(BuildingRow.normalized_key == normalized_key)
         )
 
-    async def _district_id(self, city: str, name: str) -> int:
+    async def _district_id(self, city_code: str, name: str) -> int:
         stmt = (
             insert(DistrictRow)
-            .values(city=city, name=name)
-            .on_conflict_do_nothing(index_elements=[DistrictRow.city, DistrictRow.name])
+            .values(city_code=city_code, name=name)
+            .on_conflict_do_nothing(index_elements=[DistrictRow.city_code, DistrictRow.name])
             .returning(DistrictRow.id)
         )
         district_id = await self._s.scalar(stmt)
         if district_id is None:
             district_id = await self._s.scalar(
-                select(DistrictRow.id).where(DistrictRow.city == city, DistrictRow.name == name)
+                select(DistrictRow.id).where(
+                    DistrictRow.city_code == city_code, DistrictRow.name == name
+                )
             )
         if district_id is None:
             raise RuntimeError("Район не знайдено після вставки")
@@ -197,12 +219,14 @@ class SqlPropertiesRepository:
 
     async def create_building(self, building: NewBuilding) -> uuid.UUID:
         district_id = (
-            await self._district_id(building.city, building.district) if building.district else None
+            await self._district_id(building.city_code, building.district)
+            if building.district
+            else None
         )
         stmt = (
             insert(BuildingRow)
             .values(
-                city=building.city,
+                city_code=building.city_code,
                 street=building.street,
                 house_number=building.house_number,
                 normalized_key=building.normalized_key,
@@ -281,6 +305,7 @@ class SqlPropertiesRepository:
             id=p.id,
             owner_user_id=p.owner_user_id,
             kind=p.kind,
+            city_code=row.city_code,
             city=row.city,
             street=row.street,
             house_number=row.house_number,

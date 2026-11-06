@@ -20,6 +20,10 @@
             "title": "City",
             "type": "string"
           },
+          "city_code": {
+            "title": "City Code",
+            "type": "string"
+          },
           "district": {
             "anyOf": [
               {
@@ -74,6 +78,7 @@
           }
         },
         "required": [
+          "city_code",
           "city",
           "street",
           "house_number"
@@ -84,11 +89,17 @@
       "AddressIn": {
         "description": "Адреса будинку: підтверджений кандидат геокодера або введена вручну.",
         "properties": {
-          "city": {
-            "default": "Львів",
-            "maxLength": 60,
-            "title": "City",
-            "type": "string"
+          "city_code": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City Code"
           },
           "district": {
             "anyOf": [
@@ -281,6 +292,39 @@
         ],
         "title": "ChildrenPolicy",
         "type": "string"
+      },
+      "CityOut": {
+        "description": "Місто з довідника (ADR 0008). active — працюємо; soon — скоро.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "region": {
+            "title": "Region",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "soon"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "region",
+          "status"
+        ],
+        "title": "CityOut",
+        "type": "object"
       },
       "Comfort": {
         "enum": [
@@ -2633,6 +2677,10 @@
             "title": "City",
             "type": "string"
           },
+          "city_code": {
+            "title": "City Code",
+            "type": "string"
+          },
           "completeness": {
             "anyOf": [
               {
@@ -2740,6 +2788,7 @@
           "id",
           "owner_user_id",
           "kind",
+          "city_code",
           "city",
           "street",
           "house_number",
@@ -3474,6 +3523,23 @@
             }
           },
           {
+            "in": "query",
+            "name": "city",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 32,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "City"
+            }
+          },
+          {
             "in": "header",
             "name": "authorization",
             "required": false,
@@ -3517,6 +3583,56 @@
           }
         },
         "summary": "Search Addresses"
+      }
+    },
+    "/api/v1/cities": {
+      "get": {
+        "operationId": "list_cities_api_v1_cities_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CityOut"
+                  },
+                  "title": "Response List Cities Api V1 Cities Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Cities"
       }
     },
     "/api/v1/invites/{token}": {

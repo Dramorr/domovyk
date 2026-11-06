@@ -72,6 +72,8 @@ class Settings(BaseSettings):
     # Рівні заповненості анкети об'єкта (FR-PRP-8), відсотки.
     profile_medium_from: int = Field(default=40, ge=0, le=100)
     profile_high_from: int = Field(default=75, ge=0, le=100)
+    # Типове місто (код із довідника cities), коли клієнт його не передав (ADR 0008).
+    default_city: str = "lviv"
     # Скільки живих оренд одночасно може мати відповідальний орендар (FR-LSE-8).
     # Більше — поки заблоковано; пізніше — платна можливість.
     tenant_max_open_leases: int = Field(default=2, ge=1, le=20)

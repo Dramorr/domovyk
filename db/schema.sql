@@ -1,5 +1,5 @@
 -- =====================================================================
---  Домовик — цільова схема бази даних, v0.7
+--  Домовик — цільова схема бази даних, v0.8
 --  PostgreSQL 16 + PostGIS
 --
 --  Це ЦІЛЬОВА модель. Реальні зміни в базі робляться тільки
@@ -145,20 +145,32 @@ CREATE INDEX idx_user_consents_user ON user_consents(user_id, document);
 -- =====================================================================
 --  2. АДРЕСИ, ОБ'ЄКТИ, ВЛАСНІСТЬ
 -- =====================================================================
+-- Довідник міст (ADR 0008): починаємо зі Львова, далі — інші міста.
+-- Усе міське (будинки, райони, постачальники, пошук) посилається на cities.code.
+CREATE TABLE cities (
+    code        text PRIMARY KEY CHECK (code ~ '^[a-z][a-z0-9_]{1,30}$'),  -- 'lviv'
+    name        text NOT NULL UNIQUE,                                      -- 'Львів'
+    region      text NOT NULL,
+    status      text NOT NULL DEFAULT 'soon' CHECK (status IN ('active', 'soon')),
+    timezone    text NOT NULL DEFAULT 'Europe/Kyiv',
+    sort_order  smallint NOT NULL DEFAULT 0,
+    created_at  timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE TABLE districts (
     id          serial PRIMARY KEY,
-    city        text NOT NULL DEFAULT 'Львів',
+    city_code   text NOT NULL REFERENCES cities(code),
     name        text NOT NULL,
     parent_id   int REFERENCES districts(id),
-    UNIQUE (city, name)
+    UNIQUE (city_code, name)
 );
 
 CREATE TABLE buildings (
     id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    city                text NOT NULL DEFAULT 'Львів',
+    city_code           text NOT NULL REFERENCES cities(code),
     street              text NOT NULL,
     house_number        text NOT NULL,
-    normalized_key      text NOT NULL UNIQUE,   -- 'lviv|bolharska|5'
+    normalized_key      text NOT NULL UNIQUE,   -- 'lviv|вул болгарська|5'
     district_id         int REFERENCES districts(id),
     location            geography(Point, 4326),
     geocoder_place_id   text,
@@ -168,6 +180,7 @@ CREATE TABLE buildings (
 );
 CREATE INDEX idx_buildings_location ON buildings USING gist(location);
 CREATE INDEX idx_buildings_district ON buildings(district_id);
+CREATE INDEX idx_buildings_city ON buildings(city_code);
 
 -- Фізичний об'єкт: квартира або будинок.
 CREATE TABLE properties (
@@ -377,6 +390,7 @@ CREATE TABLE search_filters (
     id                      uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id                 uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name                    text,
+    city_code               text NOT NULL REFERENCES cities(code),  -- пошук завжди в одному місті
     property_kinds          property_kind[] NOT NULL DEFAULT '{}',
     unit_kinds              unit_kind[]     NOT NULL DEFAULT '{}',
     district_ids            int[] NOT NULL DEFAULT '{}',
@@ -568,7 +582,7 @@ CREATE TABLE utility_providers (
     window_rule     jsonb NOT NULL DEFAULT '{}',
     cabinet_url     text,
     payment_url     text,
-    city            text NOT NULL DEFAULT 'Львів'
+    city_code       text NOT NULL REFERENCES cities(code)
 );
 
 CREATE TABLE meters (
@@ -847,12 +861,15 @@ INSERT INTO amenities (code, name_uk) VALUES
     ('shelter_nearby',     'Укриття поруч');
 
 -- Вікна подачі показників — станом на листопад 2026, перевіряти перед запуском.
-INSERT INTO utility_providers (code, name, meter_kinds, window_rule, cabinet_url) VALUES
+INSERT INTO cities (code, name, region, status, sort_order) VALUES
+    ('lviv', 'Львів', 'Львівська область', 'active', 1);
+
+INSERT INTO utility_providers (code, name, meter_kinds, window_rule, cabinet_url, city_code) VALUES
     ('lviv_vodokanal', 'ЛМКП «Львівводоканал»', '{water_cold}',
-        '{"from_day": 10, "to": "last_working_day"}', 'https://infolviv.com.ua'),
+        '{"from_day": 10, "to": "last_working_day"}', 'https://infolviv.com.ua', 'lviv'),
     ('lviv_teploenergo', 'ЛМКП «Львівтеплоенерго»', '{water_hot,heat}',
-        '{"from_day": 10, "to": "last_working_day"}', 'https://lte.leotel.com.ua'),
+        '{"from_day": 10, "to": "last_working_day"}', 'https://lte.leotel.com.ua', 'lviv'),
     ('lviv_energozbut', '«Львівенергозбут»', '{electricity}',
-        '{"from_days_before_month_end": 2, "to_day_next_month": 3}', 'https://lez.com.ua'),
+        '{"from_days_before_month_end": 2, "to_day_next_month": 3}', 'https://lez.com.ua', 'lviv'),
     ('gazmerezhi_lviv', '«Газмережі», Львівська філія', '{gas}',
-        '{"from_day": 1, "to_day": 5}', 'https://my.grmu.com.ua');
+        '{"from_day": 1, "to_day": 5}', 'https://my.grmu.com.ua', 'lviv');

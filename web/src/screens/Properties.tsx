@@ -2,15 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import {
-  api,
-  ApiFailure,
-  type AddressCandidate,
-  type Ownership,
-  type Property,
-  type PropertyCreate,
-} from "../api/client";
-import { botLink, CITY, DIIA_URL } from "../config";
+import { api, ApiFailure, type AddressCandidate, type Ownership, type Property, type PropertyCreate, type City } from "../api/client";
+import { botLink, DIIA_URL } from "../config";
 import { t, type TextKey } from "../i18n";
 import { confirm, openLink, openTelegramLink, type WebApp } from "../telegram";
 import { Icon } from "../icons";
@@ -170,6 +163,20 @@ export function NewProperty({ onBack, onCreated }: { onBack: () => void; onCreat
   const [found, setFound] = useState<AddressCandidate[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // ADR 0008: місто з довідника. Вибір показуємо, лише коли активних міст більше одного.
+  const [cities, setCities] = useState<City[]>([]);
+  const [city, setCity] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    api
+      .cities()
+      .then((all) => {
+        const active = all.filter((c) => c.status === "active");
+        setCities(active);
+        setCity((c) => c ?? active[0]?.code);
+      })
+      .catch(() => undefined);
+  }, []);
 
   const set = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
 
@@ -177,7 +184,7 @@ export function NewProperty({ onBack, onCreated }: { onBack: () => void; onCreat
     setBusy(true);
     setError(null);
     try {
-      setFound(await api.searchAddress(query));
+      setFound(await api.searchAddress(query, city));
     } catch (e) {
       setError(errorText(e));
     } finally {
@@ -195,9 +202,9 @@ export function NewProperty({ onBack, onCreated }: { onBack: () => void; onCreat
     return {
       kind: draft.kind,
       address: draft.manual || !a
-        ? { city: CITY, street: draft.street, house_number: draft.house }
+        ? { city_code: city ?? null, street: draft.street, house_number: draft.house }
         : {
-            city: a.city,
+            city_code: a.city_code,
             street: a.street,
             house_number: a.house_number,
             district: a.district ?? null,
@@ -263,6 +270,26 @@ export function NewProperty({ onBack, onCreated }: { onBack: () => void; onCreat
 
       {step === "address" && !draft.manual && (
         <section className="card">
+          {cities.length > 1 && (
+            <div className="field">
+              {t("prp_city")}
+              <div className="chips">
+                {cities.map((c) => (
+                  <button
+                    key={c.code}
+                    className={`chip${c.code === city ? " active" : ""}`}
+                    aria-pressed={c.code === city}
+                    onClick={() => {
+                      setCity(c.code);
+                      setFound(null);
+                    }}
+                  >
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <label className="field">
             {t("prp_street_label")}
             <input

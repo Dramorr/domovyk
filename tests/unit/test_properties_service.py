@@ -106,12 +106,17 @@ async def test_house_needs_no_apartment(env: tuple[Services, FakeDb]) -> None:
     assert prop.apartment is None
 
 
-async def test_only_lviv(env: tuple[Services, FakeDb]) -> None:
+async def test_only_active_cities(env: tuple[Services, FakeDb]) -> None:
+    """ADR 0008: об'єкт — лише в місті зі статусом active; без міста — типове (Львів)."""
     s, _ = env
-    data = _flat()
-    data.address.city = "Київ"
-    with pytest.raises(InvalidInput):
-        await s.properties.create_property(OWNER, data)
+    prop = await s.properties.create_property(OWNER, _flat())
+    assert (prop.city_code, prop.city) == ("lviv", "Львів")
+    for code in ("kyiv", "atlantis", "Львів"):
+        data = _flat()
+        data.address.city_code = code
+        with pytest.raises(InvalidInput):
+            await s.properties.create_property(OWNER, data)
+    assert [c.code for c in await s.properties.cities()] == ["lviv", "kyiv"]
 
 
 async def test_duplicate_address_of_other_owner_gives_risk_signal(

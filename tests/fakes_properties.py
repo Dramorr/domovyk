@@ -24,6 +24,7 @@ from domovyk.modules.properties.repository import (
     StoredDocument,
 )
 from domovyk.modules.properties.schemas import (
+    CityOut,
     DocumentOut,
     PropertyDetails,
     PropertyOut,
@@ -92,8 +93,13 @@ class _Notification:
     last_error: str | None = None
 
 
+LVIV = CityOut(code="lviv", name="Львів", region="Львівська область", status="active")
+SOON = CityOut(code="kyiv", name="Київ", region="м. Київ", status="soon")
+
+
 @dataclass
 class PropDb:
+    cities: dict[str, CityOut] = field(default_factory=lambda: {c.code: c for c in (LVIV, SOON)})
     buildings: dict[str, _Building] = field(default_factory=dict)
     properties: dict[uuid.UUID, _Property] = field(default_factory=dict)
     units: dict[uuid.UUID, _Unit] = field(default_factory=dict)
@@ -108,6 +114,12 @@ class PropDb:
 class FakePropertiesRepository:
     def __init__(self, db: PropDb) -> None:
         self.db = db
+
+    async def list_cities(self) -> list[CityOut]:
+        return list(self.db.cities.values())
+
+    async def get_city(self, code: str) -> CityOut | None:
+        return self.db.cities.get(code)
 
     async def find_building(self, normalized_key: str) -> uuid.UUID | None:
         b = self.db.buildings.get(normalized_key)
@@ -145,7 +157,8 @@ class FakePropertiesRepository:
             id=p.id,
             owner_user_id=p.data.owner_user_id,
             kind=p.data.kind,
-            city=b.city,
+            city_code=b.city_code,
+            city=self.db.cities[b.city_code].name,
             street=b.street,
             house_number=b.house_number,
             district=b.district,

@@ -64,6 +64,7 @@ def properties_config(settings: Settings) -> PropertiesConfig:
         completeness_medium_from=settings.profile_medium_from,
         completeness_high_from=settings.profile_high_from,
         listing_min_completeness=settings.listing_min_completeness,
+        default_city=settings.default_city,
     )
 
 

@@ -1,12 +1,12 @@
-// Онбординг (BOT_FLOWS §1, FR-USR-1): згода → ім'я → номер телефону.
+// Онбординг (BOT_FLOWS §1, FR-USR-1/7): знайомство (слайди, згода на останньому) → ім'я → номер.
 
-import { useState } from "react";
+import { useEffect, useRef, useState, type TouchEvent } from "react";
 
 import { api, ApiFailure, type Me, type User } from "../api/client";
-import { t } from "../i18n";
+import { t, type TextKey } from "../i18n";
 import { openLink, requestContact, type WebApp } from "../telegram";
-import { Icon } from "../icons";
-import { errorText, Mascot, Screen } from "../ui";
+import { Icon, type IconName } from "../icons";
+import { BRAND, errorText, Mascot, Screen } from "../ui";
 
 const NAME_RE = /^\p{L}[\p{L} '’ʼ-]*$/u;
 
@@ -24,33 +24,24 @@ export function ConsentAndName({
   webApp: WebApp;
   onRegistered: (user: User) => void;
 }) {
-  const [step, setStep] = useState<"consent" | "name">("consent");
+  const [step, setStep] = useState<"intro" | "name">("intro");
+  const [introAt, setIntroAt] = useState(0);
   const [name, setName] = useState(me.telegram.first_name);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  if (step === "consent") {
+  if (step === "intro") {
     return (
-      <Screen>
-        <Mascot />
-        <h1>{t("onb_welcome_title")}</h1>
-        <p>{t("onb_welcome_text")}</p>
-        <p className="hint">{t("onb_beta_note")}</p>
-        <p>{t("onb_consent_text")}</p>
-        <p className="links">
-          <button className="link" onClick={() => openLink(webApp, me.consent.terms_url)}>
-            {t("onb_terms")}
-          </button>
-          {" · "}
-          <button className="link" onClick={() => openLink(webApp, me.consent.privacy_url)}>
-            {t("onb_privacy")}
-          </button>
-        </p>
-        {error && <p className="error">{error}</p>}
-        <button className="button" onClick={() => setStep("name")}>
-          {t("onb_accept")}
-        </button>
-      </Screen>
+      <Intro
+        startAt={introAt}
+        error={error}
+        onTerms={() => openLink(webApp, me.consent.terms_url)}
+        onPrivacy={() => openLink(webApp, me.consent.privacy_url)}
+        onAccept={() => {
+          setError(null);
+          setStep("name");
+        }}
+      />
     );
   }
 
@@ -70,7 +61,8 @@ export function ConsentAndName({
       onRegistered(user);
     } catch (e) {
       if (e instanceof ApiFailure && e.code === "consent_outdated") {
-        setStep("consent");
+        setIntroAt(SLIDES.length);
+        setStep("intro");
         setError(t("onb_consent_outdated"));
       } else if (e instanceof ApiFailure && e.code === "invalid_input") {
         setError(t("onb_name_invalid"));
@@ -85,7 +77,12 @@ export function ConsentAndName({
   }
 
   return (
-    <Screen onBack={() => setStep("consent")}>
+    <Screen
+      onBack={() => {
+        setIntroAt(SLIDES.length);
+        setStep("intro");
+      }}
+    >
       <h1>{t("onb_name_title")}</h1>
       <p className="hint">{t("onb_name_text")}</p>
       <input
@@ -103,6 +100,161 @@ export function ConsentAndName({
     </Screen>
   );
 }
+
+// ---------------------------------------------------------------- знайомство (ONB-0, FR-USR-7)
+
+type SlideKey = "welcome" | "tenant" | "landlord";
+type Slide = { key: SlideKey; icon?: IconName };
+
+/** Слайди про можливості. Тексти — у uk.json (`onb_intro_<key>_title/_text`). */
+const SLIDES: Slide[] = [
+  { key: "welcome" },
+  { key: "tenant", icon: "search" },
+  { key: "landlord", icon: "building" },
+];
+
+const SWIPE_PX = 48;
+
+/** Неактивні слайди недоступні з клавіатури. Типи React 18 ще не знають `inert`. */
+function inert(on: boolean): object {
+  return on ? { inert: "" } : {};
+}
+
+function SlideArt({ icon, lantern = false }: { icon?: IconName; lantern?: boolean }) {
+  return (
+    <div className="intro-art">
+      <img src={`${BRAND}${lantern ? "mascot-lantern" : "mascot"}.svg`} alt="" />
+      {icon && (
+        <span className="intro-badge">
+          <Icon name={icon} size={26} />
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** Кілька слайдів перед реєстрацією; останній — бета, правила й кнопка згоди. */
+export function Intro({
+  startAt = 0,
+  error,
+  onTerms,
+  onPrivacy,
+  onAccept,
+}: {
+  startAt?: number;
+  error: string | null;
+  onTerms: () => void;
+  onPrivacy: () => void;
+  onAccept: () => void;
+}) {
+  const last = SLIDES.length; // індекс фінального слайда (згода)
+  const [at, setAt] = useState(Math.min(startAt, last));
+  const touchX = useRef<number | null>(null);
+  const go = (i: number) => setAt(Math.max(0, Math.min(last, i)));
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "ArrowRight") setAt((i) => Math.min(last, i + 1));
+      if (e.key === "ArrowLeft") setAt((i) => Math.max(0, i - 1));
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [last]);
+
+  function onTouchStart(e: TouchEvent) {
+    touchX.current = e.touches[0]?.clientX ?? null;
+  }
+
+  function onTouchEnd(e: TouchEvent) {
+    const from = touchX.current;
+    const to = e.changedTouches[0]?.clientX;
+    touchX.current = null;
+    if (from === null || to === undefined || Math.abs(to - from) < SWIPE_PX) return;
+    go(to < from ? at + 1 : at - 1);
+  }
+
+  const dots = [...SLIDES.map((sl) => sl.key as string), "final"];
+
+  return (
+    <Screen>
+      <div className="intro" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+        <div className="intro-top">
+          {at < last && (
+            <button className="link" onClick={() => go(last)}>
+              {t("onb_intro_skip")}
+            </button>
+          )}
+        </div>
+
+        <div className="intro-viewport" aria-roledescription={t("onb_intro_carousel")}>
+          <div className="intro-track" style={{ transform: `translateX(-${at * 100}%)` }}>
+            {SLIDES.map((sl, i) => (
+              <section
+                key={sl.key}
+                className="intro-slide"
+                aria-roledescription={t("onb_intro_slide")}
+                aria-hidden={i !== at}
+                {...inert(i !== at)}
+              >
+                <SlideArt icon={sl.icon} />
+                <h1>{t(`onb_intro_${sl.key}_title` as TextKey)}</h1>
+                <p>{t(`onb_intro_${sl.key}_text` as TextKey)}</p>
+              </section>
+            ))}
+            <section
+              className="intro-slide"
+              aria-roledescription={t("onb_intro_slide")}
+              aria-hidden={at !== last}
+              {...inert(at !== last)}
+            >
+              <SlideArt icon="shield" lantern />
+              <h1>{t("onb_intro_final_title")}</h1>
+              <p>
+                <span className="badge">{t("onb_intro_beta")}</span> {t("onb_beta_note")}
+              </p>
+              <p>{t("onb_consent_text")}</p>
+              <p className="links">
+                <button className="link" onClick={onTerms}>
+                  {t("onb_terms")}
+                </button>
+                {" · "}
+                <button className="link" onClick={onPrivacy}>
+                  {t("onb_privacy")}
+                </button>
+              </p>
+            </section>
+          </div>
+        </div>
+
+        <div className="intro-bottom">
+          <div className="intro-dots">
+            {dots.map((key, i) => (
+              <button
+                key={key}
+                className={`intro-dot${i === at ? " active" : ""}`}
+                aria-current={i === at ? "step" : undefined}
+                aria-label={t("onb_intro_goto", { n: String(i + 1) })}
+                onClick={() => go(i)}
+              />
+            ))}
+          </div>
+          {error && <p className="error">{error}</p>}
+          {at < last ? (
+            <button className="button" onClick={() => go(at + 1)}>
+              {t("onb_intro_next")} <Icon name="chevron" size={20} />
+            </button>
+          ) : (
+            <button className="button" onClick={onAccept}>
+              {t("onb_accept")}
+            </button>
+          )}
+        </div>
+      </div>
+    </Screen>
+  );
+}
+
+// ---------------------------------------------------------------- номер телефону
 
 const POLL_MS = 1500;
 const POLL_TRIES = 12;

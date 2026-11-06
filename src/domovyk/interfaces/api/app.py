@@ -57,6 +57,7 @@ from domovyk.modules.leases.service import (
 )
 from domovyk.modules.properties.service import (
     AddressCandidate,
+    CityOut,
     OwnershipOut,
     PropertyCreate,
     PropertyDetails,
@@ -264,11 +265,17 @@ def create_app(
 
     # ------------------------------------------------ об'єкти (M2, FR-PRP-1..3)
 
+    @app.get("/api/v1/cities")
+    async def list_cities(auth: Auth) -> list[CityOut]:
+        return await svc.properties.cities()
+
     @app.get("/api/v1/addresses")
     async def search_addresses(
-        auth: Auth, q: Annotated[str, Query(max_length=200)]
+        auth: Auth,
+        q: Annotated[str, Query(max_length=200)],
+        city: Annotated[str | None, Query(max_length=32)] = None,
     ) -> list[AddressCandidate]:
-        return await svc.properties.search_address(auth.user.id, q)
+        return await svc.properties.search_address(auth.user.id, q, city)
 
     @app.get("/api/v1/properties")
     async def list_properties(auth: Auth) -> list[PropertyOut]:

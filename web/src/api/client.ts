@@ -6,6 +6,7 @@ export type User = S["UserOut"];
 export type Mode = S["AppMode"];
 export type TenantProfile = S["TenantProfile"];
 export type AddressCandidate = S["AddressCandidate"];
+export type City = S["CityOut"];
 export type PropertyCreate = S["PropertyCreate"];
 export type PropertyUpdate = S["PropertyUpdate"];
 export type PropertyDetails = S["PropertyDetails-Input"];
@@ -102,8 +103,12 @@ export const api = {
     request<TenantProfile>("PUT", "/api/v1/me/tenant-profile", body),
 
   // Об'єкти (M2)
-  searchAddress: (q: string) =>
-    request<AddressCandidate[]>("GET", `/api/v1/addresses?q=${encodeURIComponent(q)}`),
+  cities: () => request<City[]>("GET", "/api/v1/cities"),
+  searchAddress: (q: string, city?: string) =>
+    request<AddressCandidate[]>(
+      "GET",
+      `/api/v1/addresses?q=${encodeURIComponent(q)}${city ? `&city=${encodeURIComponent(city)}` : ""}`,
+    ),
   properties: () => request<Property[]>("GET", "/api/v1/properties"),
   createProperty: (body: PropertyCreate) => request<Property>("POST", "/api/v1/properties", body),
   property: (id: string) => request<Property>("GET", p(id)),

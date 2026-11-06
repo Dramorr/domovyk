@@ -35,7 +35,6 @@ from domovyk.core.errors import (
 )
 from domovyk.core.tx import Tx, TxManager
 from domovyk.domain.properties import (
-    DEFAULT_CITY,
     OWNERSHIP,
     VERIFICATION,
     OwnershipStatus,
@@ -52,6 +51,7 @@ from domovyk.domain.properties import (
     normalize_apartment,
     normalize_house_number,
     validate_area,
+    validate_city_code,
     validate_floor,
     validate_rooms,
 )
@@ -66,6 +66,7 @@ from domovyk.modules.properties.repository import (
 )
 from domovyk.modules.properties.schemas import (
     AddressCandidate,
+    CityOut,
     CompletenessOut,
     OwnershipOut,
     OwnerSummary,
@@ -82,6 +83,7 @@ from domovyk.modules.users.service import UserOut, UsersService
 
 __all__ = [
     "AddressCandidate",
+    "CityOut",
     "OwnershipOut",
     "PropertiesConfig",
     "PropertiesService",
@@ -114,6 +116,8 @@ class PropertiesConfig:
     completeness_high_from: int = 75
     # Мінімальна заповненість анкети для публікації оголошення (FR-PRP-8).
     listing_min_completeness: int = 40
+    # Місто за замовчуванням, коли клієнт його не передав (ADR 0008).
+    default_city: str = "lviv"
 
 
 class PropertiesService:
@@ -146,20 +150,37 @@ class PropertiesService:
 
     # ----------------------------------------------------------------- адреси
 
-    async def search_address(self, telegram_uid: int, query: str) -> list[AddressCandidate]:
-        """PRP-NEW крок 2: знайти будинок у Львові (FR-PRP-2)."""
+    async def cities(self) -> list[CityOut]:
+        """Довідник міст: де Домовик працює (active) і куди йде (soon). ADR 0008."""
+        async with self._tx.begin() as tx:
+            return await self._repo(tx).list_cities()
+
+    async def _active_city(self, code: str | None) -> CityOut:
+        code = validate_city_code(code or self._config.default_city)
+        async with self._tx.begin() as tx:
+            city = await self._repo(tx).get_city(code)
+        if city is None or city.status != "active":
+            raise InvalidInput("У цьому місті Домовик поки не працює", field="city")
+        return city
+
+    async def search_address(
+        self, telegram_uid: int, query: str, city_code: str | None = None
+    ) -> list[AddressCandidate]:
+        """PRP-NEW крок 2: знайти будинок у вибраному місті (FR-PRP-2)."""
         await self.require_owner_account(telegram_uid)
+        city = await self._active_city(city_code)
         query = " ".join(query.split())
         if not QUERY_MIN <= len(query) <= QUERY_MAX:
             raise InvalidInput("Введи вулицю й номер будинку", field="query")
         try:
-            found = await self._geocoder.search(query, city=DEFAULT_CITY)
+            found = await self._geocoder.search(query, city=city.name)
         except GeocoderError as exc:
             log.warning("Геокодер недоступний: %s", exc)
             raise ServiceUnavailable("Пошук адрес тимчасово не працює") from exc
         return [
             AddressCandidate(
-                city=a.city,
+                city_code=city.code,
+                city=city.name,
                 street=a.street,
                 house_number=a.house_number,
                 district=a.district,
@@ -189,9 +210,7 @@ class PropertiesService:
     ) -> PropertyOut:
         """PRP-NEW (FR-PRP-1..3). Дубль адреси блокує створення й дає сигнал модератору."""
         user = await self.require_owner_account(telegram_uid)
-        if " ".join(data.address.city.split()).lower() != DEFAULT_CITY.lower():
-            raise InvalidInput("Поки що лише Львів", field="city")
-        city = DEFAULT_CITY
+        city = (await self._active_city(data.address.city_code)).code
         street = clean_street(data.address.street)
         house = normalize_house_number(data.address.house_number)
         key = building_key(city, street, house)
@@ -220,7 +239,7 @@ class PropertiesService:
                 if building_id is None:
                     building_id = await repo.create_building(
                         NewBuilding(
-                            city=city,
+                            city_code=city,
                             street=street,
                             house_number=house,
                             normalized_key=key,

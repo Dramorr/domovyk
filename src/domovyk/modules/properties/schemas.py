@@ -5,11 +5,11 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
 from domovyk.domain.properties import (
-    DEFAULT_CITY,
     OwnershipStatus,
     PropertyKind,
     UnitKind,
@@ -43,9 +43,19 @@ from domovyk.domain.property_profile import (
 )
 
 
+class CityOut(BaseModel):
+    """Місто з довідника (ADR 0008). active — працюємо; soon — скоро."""
+
+    code: str
+    name: str
+    region: str
+    status: Literal["active", "soon"]
+
+
 class AddressCandidate(BaseModel):
     """Будинок, знайдений геокодером (PRP-ADDR-CONFIRM)."""
 
+    city_code: str
     city: str
     street: str
     house_number: str
@@ -58,7 +68,8 @@ class AddressCandidate(BaseModel):
 class AddressIn(BaseModel):
     """Адреса будинку: підтверджений кандидат геокодера або введена вручну."""
 
-    city: str = Field(default=DEFAULT_CITY, max_length=60)
+    # Код міста з довідника; None — типове місто з конфігурації.
+    city_code: str | None = Field(default=None, max_length=32)
     street: str = Field(max_length=100)
     house_number: str = Field(max_length=20)
     district: str | None = Field(default=None, max_length=80)
@@ -179,6 +190,7 @@ class PropertyOut(BaseModel):
     id: uuid.UUID
     owner_user_id: uuid.UUID
     kind: PropertyKind
+    city_code: str
     city: str
     street: str
     house_number: str

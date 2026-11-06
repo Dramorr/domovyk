@@ -149,3 +149,26 @@ async def test_profile_jsonb_roundtrip(services: Services) -> None:
     assert again.details.ceiling_height == Decimal("2.75")
     assert again.details.has_elevator is False
     assert again.completeness is not None and again.completeness.percent > 0
+
+
+async def test_cities(services: Services, engine: AsyncEngine) -> None:
+    """ADR 0008: довідник міст; будинок посилається на місто, ключ починається з коду."""
+    from domovyk.core.errors import InvalidInput
+
+    await _user(services, OWNER)
+    assert [(c.code, c.status) for c in await services.properties.cities()] == [("lviv", "active")]
+    prop = await services.properties.create_property(OWNER, _flat())
+    assert (prop.city_code, prop.city, prop.district) == ("lviv", "Львів", "Шевченківський район")
+    async with engine.begin() as conn:
+        key = await conn.scalar(text("SELECT normalized_key FROM buildings"))
+        assert key.startswith("lviv|")
+        await conn.execute(
+            text("INSERT INTO cities (code, name, region) VALUES ('kyiv', 'Київ', 'м. Київ')")
+        )
+    data = _flat(house="14")
+    data.address.city_code = "kyiv"  # статус soon — ще не працюємо
+    with pytest.raises(InvalidInput):
+        await services.properties.create_property(OWNER, data)
+    async with engine.connect() as conn:
+        with pytest.raises(IntegrityError):  # будинок у місті, якого немає в довіднику
+            await conn.execute(text("UPDATE buildings SET city_code = 'atlantis'"))

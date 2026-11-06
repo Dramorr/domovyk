@@ -1125,3 +1125,121 @@ ul.plain li {
   text-align: center;
   text-align-last: center;
 }
+
+/* ---- Знайомство перед реєстрацією (ONB-0, FR-USR-7) ---- */
+
+.intro {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - 88px);
+}
+
+.intro-top {
+  display: flex;
+  justify-content: flex-end;
+  min-height: 28px;
+}
+
+.intro-viewport {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.intro-track {
+  display: flex;
+  flex: 0 0 100%;
+  width: 100%;
+  transition: transform 320ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.intro-slide {
+  display: flex;
+  flex: 0 0 100%;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-width: 0;
+  /* Маскот на тому самому місці на кожному слайді — без стрибків при гортанні. */
+  padding: clamp(8px, 7vh, 64px) 4px 16px;
+  text-align: center;
+}
+
+.intro-slide h1 {
+  margin: 18px 0 10px;
+}
+
+.screen .intro-slide p {
+  text-align: center;
+  text-align-last: center;
+  color: var(--text-2);
+  line-height: 1.55;
+}
+
+.intro-slide .badge {
+  margin: 0 4px 0 0;
+  vertical-align: 1px;
+}
+
+.intro-art {
+  position: relative;
+  width: 196px;
+  height: 196px;
+  margin: 8px auto 0;
+  border-radius: 50%;
+  background: var(--brand-50);
+}
+
+.intro-art img {
+  width: 100%;
+  height: 100%;
+  padding: 18px;
+}
+
+.intro-badge {
+  position: absolute;
+  right: 6px;
+  bottom: 10px;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border: 4px solid var(--bg);
+  border-radius: 50%;
+  background: var(--amber);
+  color: var(--brand-700);
+}
+
+.intro-bottom {
+  padding-top: 8px;
+}
+
+.intro-dots {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
+.intro-dot {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.intro-dot::before {
+  content: "";
+  display: block;
+  width: 8px;
+  height: 8px;
+  margin: auto;
+  border-radius: 999px;
+  background: var(--line);
+  transition: width 200ms, background 200ms;
+}
+
+.intro-dot.active::before {
+  width: 22px;
+  background: var(--brand);
+}

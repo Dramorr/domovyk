@@ -71,7 +71,16 @@ def can_collect_documents(status: OwnershipStatus) -> bool:
 
 # ---------------------------------------------------------------- адреси (FR-PRP-2)
 
-DEFAULT_CITY = "Львів"
+# Місто — код із довідника `cities` ('lviv'). Яке місто типове — у конфігурації (ADR 0008).
+_CITY_CODE_RE = re.compile(r"^[a-z][a-z0-9_]{1,30}$")
+
+
+def validate_city_code(raw: str) -> str:
+    code = raw.strip().lower()
+    if not _CITY_CODE_RE.fullmatch(code):
+        raise InvalidInput("Некоректне місто", field="city")
+    return code
+
 
 # Типи вулиць, які люди пишуть по-різному або взагалі не пишуть.
 # Типи вулиць, які люди пишуть по-різному (або взагалі не пишуть) → канонічна форма.
@@ -156,9 +165,11 @@ def normalize_apartment(raw: str | None) -> str | None:
     return value
 
 
-def building_key(city: str, street: str, house_number: str) -> str:
-    """Ключ будинку: 'львів|тараса шевченка|12а'. Однаковий для різного написання адреси."""
-    return "|".join((_base(city).lower(), street_key(street), normalize_house_number(house_number)))
+def building_key(city_code: str, street: str, house_number: str) -> str:
+    """Ключ будинку: 'lviv|вул тараса шевченка|12а'. Однаковий для різного написання адреси."""
+    return "|".join(
+        (validate_city_code(city_code), street_key(street), normalize_house_number(house_number))
+    )
 
 
 # ---------------------------------------------------------------- параметри об'єкта

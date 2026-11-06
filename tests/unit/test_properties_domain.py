@@ -64,9 +64,9 @@ def test_apartment() -> None:
 
 
 def test_building_key_same_for_different_spelling() -> None:
-    a = building_key("Львів", "вул. Шевченка", "12 А")
-    b = building_key("львів", "Шевченка", "12а")
-    assert a == b == "львів|вул шевченка|12а"
+    a = building_key("lviv", "вул. Шевченка", "12 А")
+    b = building_key("LVIV", "Шевченка", "12а")
+    assert a == b == "lviv|вул шевченка|12а"
 
 
 def test_area() -> None:
