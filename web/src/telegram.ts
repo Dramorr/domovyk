@@ -1,30 +1,17 @@
 // Тонка типізована обгортка над window.Telegram.WebApp (лише те, що використовуємо).
 
-type ThemeParams = Partial<
-  Record<
-    | "bg_color"
-    | "text_color"
-    | "hint_color"
-    | "link_color"
-    | "button_color"
-    | "button_text_color"
-    | "secondary_bg_color",
-    string
-  >
->;
-
 interface WebApp {
   initData: string;
   initDataUnsafe: { start_param?: string };
-  colorScheme: "light" | "dark";
-  themeParams: ThemeParams;
   version: string;
   ready(): void;
   expand(): void;
   isVersionAtLeast(version: string): boolean;
-  onEvent(event: "themeChanged", cb: () => void): void;
   openLink(url: string): void;
   openTelegramLink?(url: string): void;
+  setHeaderColor?(color: string): void;
+  setBackgroundColor?(color: string): void;
+  setBottomBarColor?(color: string): void;
   requestContact?(cb: (shared: boolean) => void): void;
   showConfirm?(message: string, cb: (ok: boolean) => void): void;
 }
@@ -74,23 +61,14 @@ export function openTelegramLink(app: WebApp | null, url: string): void {
   else openLink(app, url);
 }
 
-const THEME_VARS: Record<keyof ThemeParams, string> = {
-  bg_color: "--tg-bg",
-  text_color: "--tg-text",
-  hint_color: "--tg-hint",
-  link_color: "--tg-link",
-  button_color: "--tg-button",
-  button_text_color: "--tg-button-text",
-  secondary_bg_color: "--tg-surface",
-};
-
-export function applyTheme(app: WebApp): void {
-  const root = document.documentElement;
-  root.dataset.theme = app.colorScheme;
-  for (const [key, cssVar] of Object.entries(THEME_VARS)) {
-    const value = app.themeParams[key as keyof ThemeParams];
-    if (value) root.style.setProperty(cssVar, value);
-  }
+/** Своя світла тема Домовика: фарбуємо панелі Telegram у фон застосунку (не навпаки). */
+export function applyBrandChrome(app: WebApp): void {
+  if (!app.isVersionAtLeast("6.1")) return;
+  app.setHeaderColor?.(BRAND_BG);
+  app.setBackgroundColor?.(BRAND_BG);
+  if (app.isVersionAtLeast("7.10")) app.setBottomBarColor?.("#ffffff");
 }
+
+const BRAND_BG = "#f6f4ee";
 
 export type { WebApp };

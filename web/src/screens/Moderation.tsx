@@ -4,9 +4,21 @@ import { useEffect, useState } from "react";
 
 import { api, type QueueItem, type VerificationCase } from "../api/client";
 import { t, type TextKey } from "../i18n";
-import { errorCode, errorField, errorText, formatAddress, formatDate, roomsText, Screen } from "../ui";
+import {
+  Chip,
+  errorCode,
+  errorField,
+  errorText,
+  formatAddress,
+  formatDate,
+  ListRow,
+  MascotTip,
+  Ring,
+  roomsText,
+  Screen,
+} from "../ui";
 
-export function ModerationQueue({ onBack, onOpen }: { onBack: () => void; onOpen: (vid: string) => void }) {
+export function ModerationQueue({ onBack, onOpen }: { onBack?: () => void; onOpen: (vid: string) => void }) {
   const [items, setItems] = useState<QueueItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,18 +29,30 @@ export function ModerationQueue({ onBack, onOpen }: { onBack: () => void; onOpen
   return (
     <Screen onBack={onBack}>
       <h1>{t("mod_title")}</h1>
-      <h2 className="left">{t("mod_queue_title")}</h2>
+      <p className="section-title">{t("mod_queue_title_plain")}</p>
       {error && <p className="error">{error}</p>}
-      {items && items.length === 0 && <p className="hint">{t("mod_queue_empty")}</p>}
+      {!items && !error && <div className="skeleton" />}
+      {items && items.length === 0 && (
+        <MascotTip>
+          <p>{t("mod_queue_empty")}</p>
+        </MascotTip>
+      )}
       {items?.map((q) => (
-        <button key={q.verification_id} className="row" onClick={() => onOpen(q.verification_id)}>
-          <span className="row-title">{formatAddress(q.property)}</span>
-          <span className="row-sub">
-            {q.owner.display_name} · {t("mod_docs", { n: String(q.documents_count) })} ·{" "}
-            {t("mod_submitted", { date: formatDate(q.submitted_at) })}
-            {q.owner.risk_signals > 0 && ` · ${t("mod_risk", { n: String(q.owner.risk_signals) })}`}
-          </span>
-        </button>
+        <ListRow
+          key={q.verification_id}
+          icon="doc"
+          title={formatAddress(q.property)}
+          sub={
+            <>
+              <span>{q.owner.display_name}</span>
+              <span>· {t("mod_docs", { n: String(q.documents_count) })}</span>
+              <span>· {formatDate(q.submitted_at)}</span>
+              {q.owner.risk_signals > 0 && <Chip tone="bad">{t("mod_risk", { n: String(q.owner.risk_signals) })}</Chip>}
+            </>
+          }
+          right={q.property.completeness && <Ring percent={q.property.completeness.percent} size={44} />}
+          onClick={() => onOpen(q.verification_id)}
+        />
       ))}
     </Screen>
   );
@@ -84,9 +108,7 @@ export function ModerationCase({ vid, onBack }: { vid: string; onBack: () => voi
 
   return (
     <Screen onBack={onBack}>
-      <h1 className="left">
-        {p.kind === "house" ? "🏡" : "🏢"} {formatAddress(p)}
-      </h1>
+      <h1 className="left">{formatAddress(p)}</h1>
       <p className="hint left">
         {roomsText(p.rooms)}
         {p.area && ` · ${t("sqm", { area: p.area })}`}
@@ -135,7 +157,9 @@ export function ModerationCase({ vid, onBack }: { vid: string; onBack: () => voi
 
       {open && !rejecting && (
         <section className="card">
-          <p className="hint small">{t("mod_check_hint")}</p>
+          <MascotTip tone="calm">
+            <p>{t("mod_check_hint")}</p>
+          </MascotTip>
           <label className="field">
             {t("mod_owner_name")}
             <input className="input" value={ownerName} maxLength={300} onChange={(e) => setOwnerName(e.target.value)} />

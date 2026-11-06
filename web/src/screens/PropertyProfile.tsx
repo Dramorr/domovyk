@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { api, type Property, type PropertyDetails } from "../api/client";
 import { t, type TextKey } from "../i18n";
 import { PROFILE_SECTIONS, type FieldSpec } from "../profileSpec";
-import { errorCode, errorField, errorText, formatAddress, Screen } from "../ui";
+import { Chip, errorCode, errorField, errorText, formatAddress, MascotTip, Ring, Screen } from "../ui";
 
 type Values = Record<string, unknown>;
 
@@ -21,12 +21,20 @@ export function CompletenessBar({ p }: { p: Property }) {
   if (!c) return null;
   return (
     <div className="completeness">
-      <div className="bar">
-        <span className={`fill ${c.level}`} style={{ width: `${c.percent}%` }} />
+      <Ring percent={c.percent} />
+      <div className="completeness-text">
+        <strong>{label(`pf_level_${c.level}`)}</strong>
+        <span className="hint small">{t("pf_answered", { n: String(c.answered), total: String(c.total) })}</span>
       </div>
-      <p className="small">
-        {t("pf_completeness", { percent: String(c.percent) })} · {label(`pf_level_${c.level}`)}
-      </p>
+    </div>
+  );
+}
+
+export function PublishHint({ p }: { p: Property }) {
+  const c = p.completeness;
+  if (!c || c.publishable) return null;
+  return (
+    <div>
       {!c.publishable && (
         <p className="hint small">{t("pf_publish_min", { min: String(c.publish_min), left: String(c.publish_min - c.percent) })}</p>
       )}
@@ -38,6 +46,26 @@ function Field({ spec, value, onChange }: { spec: FieldSpec; value: unknown; onC
   const name = label(`pf_${spec.key}`);
   switch (spec.kind) {
     case "choice":
+      if (spec.options.length <= 6) {
+        return (
+          <div className="field">
+            {name}
+            <div className="chips">
+              {spec.options.map((o) => (
+                <button
+                  key={o}
+                  type="button"
+                  className={`chip${value === o ? " active" : ""}`}
+                  aria-pressed={value === o}
+                  onClick={() => onChange(value === o ? null : o)}
+                >
+                  {label(`pf_${spec.key}__${o}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      }
       return (
         <label className="field">
           {name}
@@ -53,18 +81,22 @@ function Field({ spec, value, onChange }: { spec: FieldSpec; value: unknown; onC
       );
     case "bool":
       return (
-        <label className="field">
+        <div className="field">
           {name}
-          <select
-            className="input"
-            value={value === true ? "yes" : value === false ? "no" : ""}
-            onChange={(e) => onChange(e.target.value === "" ? null : e.target.value === "yes")}
-          >
-            <option value="">— {t("pf_unset")} —</option>
-            <option value="yes">{t("pf_yes")}</option>
-            <option value="no">{t("pf_no")}</option>
-          </select>
-        </label>
+          <div className="chips">
+            {([true, false] as const).map((b) => (
+              <button
+                key={String(b)}
+                type="button"
+                className={`chip${value === b ? " active" : ""}`}
+                aria-pressed={value === b}
+                onClick={() => onChange(value === b ? null : b)}
+              >
+                {b ? t("pf_yes") : t("pf_no")}
+              </button>
+            ))}
+          </div>
+        </div>
       );
     case "int":
     case "decimal":
@@ -100,25 +132,32 @@ function Field({ spec, value, onChange }: { spec: FieldSpec; value: unknown; onC
       );
     case "multi": {
       const selected = (value as string[] | null | undefined) ?? null;
-      const toggle = (o: string, on: boolean) => {
+      const toggle = (o: string) => {
         const base = selected ?? [];
-        onChange(on ? [...base, o] : base.filter((x) => x !== o));
+        onChange(base.includes(o) ? base.filter((x) => x !== o) : [...base, o]);
       };
       return (
-        <fieldset className="field multi">
-          <legend>{name}</legend>
-          {spec.options.map((o) => (
-            <label key={o} className="check">
-              <input type="checkbox" checked={!!selected?.includes(o)} onChange={(e) => toggle(o, e.target.checked)} />
-              {label(`pf_${spec.key}__${o}`)}
-            </label>
-          ))}
-          {selected === null && (
-            <button className="link small" onClick={() => onChange([])}>
+        <div className="field">
+          {name}
+          <div className="chips">
+            {spec.options.map((o) => {
+              const on = !!selected?.includes(o);
+              return (
+                <button key={o} type="button" className={`chip${on ? " active" : ""}`} aria-pressed={on} onClick={() => toggle(o)}>
+                  {on && "✓ "}
+                  {label(`pf_${spec.key}__${o}`)}
+                </button>
+              );
+            })}
+          </div>
+          {selected === null ? (
+            <button type="button" className="link small" onClick={() => onChange([])}>
               {t("pf_none_of_these")}
             </button>
+          ) : (
+            selected.length === 0 && <span className="hint small">{t("pf_none_selected")}</span>
           )}
-        </fieldset>
+        </div>
       );
     }
   }
@@ -171,16 +210,24 @@ export function PropertyProfile({ id, onBack }: { id: string; onBack: () => void
   const missing = prop.completeness?.missing_important ?? [];
 
   return (
-    <Screen onBack={onBack}>
-      <h1>{t("pf_title")}</h1>
+    <Screen onBack={onBack} title={t("pf_title")}>
       <p className="hint">{formatAddress(prop)}</p>
+      <MascotTip>
+        <p>{t("pf_intro")}</p>
+      </MascotTip>
       <section className="card">
         <CompletenessBar p={prop} />
-        <p className="hint small">{t("pf_intro")}</p>
+        <PublishHint p={prop} />
         {missing.length > 0 && (
           <>
             <p className="small">{t("pf_missing")}</p>
-            <p className="small">{missing.map((k) => label(`pf_${k}`)).join(" · ")}</p>
+            <div className="chips">
+              {missing.map((k) => (
+                <Chip key={k} tone="warn">
+                  {label(`pf_${k}`)}
+                </Chip>
+              ))}
+            </div>
           </>
         )}
       </section>
@@ -194,11 +241,13 @@ export function PropertyProfile({ id, onBack }: { id: string; onBack: () => void
         </section>
       ))}
 
-      {error && <p className="error">{error}</p>}
-      {message && <p className="ok">{message}</p>}
-      <button className="button" onClick={save} disabled={busy}>
-        {busy ? t("saving") : t("pf_save")}
-      </button>
+      <div className="sticky-actions">
+        {error && <p className="error">{error}</p>}
+        {message && <p className="ok">{message}</p>}
+        <button className="button" onClick={save} disabled={busy}>
+          {busy ? t("saving") : t("pf_save")}
+        </button>
+      </div>
     </Screen>
   );
 }

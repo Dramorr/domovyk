@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { api, type TenantProfile, type User } from "../api/client";
 import { t } from "../i18n";
 import { confirm, type WebApp } from "../telegram";
-import { errorText, Screen } from "../ui";
+import { Chip, errorText, Screen } from "../ui";
 import { isValidName } from "./Onboarding";
 
 type Tri = boolean | null | undefined;
@@ -28,7 +28,7 @@ export function Profile({
 }: {
   user: User;
   webApp: WebApp;
-  onBack: () => void;
+  onBack?: () => void;
   onUserChange: (user: User) => void;
   onDeleted: () => void;
 }) {
@@ -90,7 +90,10 @@ export function Profile({
   return (
     <Screen onBack={onBack}>
       <h1>{t("prof_title")}</h1>
-      {user.has_phone && <p className="hint">📱 {t("prof_phone_ok")}</p>}
+      <div className="chips">
+        {user.has_phone && <Chip tone="ok">✓ {t("prof_phone_ok")}</Chip>}
+        {user.role !== "user" && <Chip tone="warn">{t(`role_${user.role}`)}</Chip>}
+      </div>
 
       <section className="card">
         <label className="field">

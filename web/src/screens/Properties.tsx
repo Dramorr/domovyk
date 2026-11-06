@@ -13,11 +13,27 @@ import {
 import { botLink, CITY, DIIA_URL } from "../config";
 import { t, type TextKey } from "../i18n";
 import { confirm, openLink, openTelegramLink, type WebApp } from "../telegram";
-import { errorCode, errorField, errorText, formatAddress, formatDate, roomsText, Screen } from "../ui";
-import { CompletenessBar } from "./PropertyProfile";
+import { Icon } from "../icons";
+import {
+  Chip,
+  errorCode,
+  errorField,
+  errorText,
+  formatAddress,
+  formatDate,
+  ListRow,
+  Mascot,
+  MascotTip,
+  Ring,
+  roomsText,
+  Screen,
+} from "../ui";
+import { CompletenessBar, PublishHint } from "./PropertyProfile";
 
-function ownershipLabel(status: Property["ownership_status"]): string {
-  return t(`own_status_${status}` as TextKey);
+const OWN_TONE = { unverified: "warn", pending: "info", verified: "ok", rejected: "bad" } as const;
+
+export function OwnershipChip({ status }: { status: Property["ownership_status"] }) {
+  return <Chip tone={OWN_TONE[status]}>{t(`own_chip_${status}` as TextKey)}</Chip>;
 }
 
 function numberOrNull(raw: string): number | null {
@@ -62,7 +78,7 @@ export function PropertyList({
   onOpen,
   onNew,
 }: {
-  onBack: () => void;
+  onBack?: () => void;
   onOpen: (id: string) => void;
   onNew: () => void;
 }) {
@@ -77,21 +93,41 @@ export function PropertyList({
     <Screen onBack={onBack}>
       <h1>{t("prp_list_title")}</h1>
       {error && <p className="error">{error}</p>}
-      {items && items.length === 0 && <p className="hint">{t("prp_list_empty")}</p>}
+      {!items && !error && (
+        <>
+          <div className="skeleton" />
+          <div className="skeleton" />
+        </>
+      )}
+      {items && items.length === 0 && (
+        <>
+          <Mascot size="md" />
+          <MascotTip>
+            <p>{t("prp_list_empty")}</p>
+          </MascotTip>
+        </>
+      )}
       {items?.map((p) => (
-        <button key={p.id} className="row" onClick={() => onOpen(p.id)}>
-          <span className="row-title">
-            {p.kind === "house" ? "🏡" : "🏢"} {formatAddress(p)}
-          </span>
-          <span className="row-sub">
-            {roomsText(p.rooms)}
-            {p.area ? ` · ${t("sqm", { area: p.area })}` : ""} · {ownershipLabel(p.ownership_status)}
-            {p.completeness && ` · ${t("pf_completeness", { percent: String(p.completeness.percent) })}`}
-          </span>
-        </button>
+        <ListRow
+          key={p.id}
+          icon={p.kind === "house" ? "home" : "building"}
+          title={formatAddress(p)}
+          sub={
+            <>
+              <OwnershipChip status={p.ownership_status} />
+              <span>
+                {roomsText(p.rooms)}
+                {p.area ? ` · ${t("sqm", { area: p.area })}` : ""}
+              </span>
+            </>
+          }
+          right={p.completeness && <Ring percent={p.completeness.percent} size={44} />}
+          onClick={() => onOpen(p.id)}
+        />
       ))}
       <button className="button" onClick={onNew}>
-        {t("prp_add")}
+        <Icon name="plus" size={20} />
+        {t("prp_add_short")}
       </button>
     </Screen>
   );
@@ -200,18 +236,23 @@ export function NewProperty({ onBack, onCreated }: { onBack: () => void; onCreat
 
       {step === "kind" && (
         <>
-          <p>{t("prp_kind_question")}</p>
+          <MascotTip>
+            <p>{t("prp_kind_question")}</p>
+          </MascotTip>
           <div className="choices">
             {(["apartment", "house"] as const).map((k) => (
               <button
                 key={k}
-                className="button secondary"
+                className="choice-big"
                 onClick={() => {
                   set({ kind: k });
                   setStep("address");
                 }}
               >
-                {t(k === "apartment" ? "prp_kind_apartment" : "prp_kind_house")}
+                <span className="row-icon">
+                  <Icon name={k === "apartment" ? "building" : "home"} />
+                </span>
+                {t(k === "apartment" ? "prp_kind_apartment_plain" : "prp_kind_house_plain")}
               </button>
             ))}
           </div>
@@ -417,9 +458,7 @@ export function PropertyCard({
 
   return (
     <Screen onBack={onBack}>
-      <h1 className="left">
-        {prop.kind === "house" ? "🏡" : "🏢"} {formatAddress(prop)}
-      </h1>
+      <h1 className="left">{formatAddress(prop)}</h1>
       <p className="hint left">
         {roomsText(prop.rooms)}
         {prop.area && ` · ${t("sqm", { area: prop.area })}`}
@@ -429,14 +468,18 @@ export function PropertyCard({
       <section className="card">
         <h2>{t("pf_title")}</h2>
         <CompletenessBar p={prop} />
+        <PublishHint p={prop} />
         <button className="button secondary" onClick={onProfile}>
-          {t("pf_open")}
+          <Icon name="edit" size={20} />
+          {t("pf_open_plain")}
         </button>
       </section>
 
       <section className="card">
-        <h2>{t("prp_card_ownership")}</h2>
-        <p>{ownershipLabel(prop.ownership_status)}</p>
+        <div className="stat">
+          <h2 style={{ margin: 0, flex: 1 }}>{t("prp_card_ownership")}</h2>
+          <OwnershipChip status={prop.ownership_status} />
+        </div>
         {prop.ownership_status !== "verified" && <p className="hint small">{t("prp_card_verify_hint")}</p>}
         <button className={prop.ownership_status === "verified" ? "button secondary" : "button"} onClick={onOwnership}>
           {prop.ownership_status === "unverified" ? t("prp_card_verify") : t("prp_card_verify_status")}
@@ -641,8 +684,10 @@ export function OwnershipScreen({ id, webApp, onBack }: { id: string; webApp: We
 
       {collecting && (
         <>
-          <section className="card">
+          <MascotTip>
             <p>{t("own_intro")}</p>
+          </MascotTip>
+          <section className="card">
             <ol className="steps">
               <li>{t("own_step1")}</li>
               <li>{t("own_step2")}</li>
