@@ -83,8 +83,8 @@ export function ConsentAndName({
         setStep("intro");
       }}
     >
-      <h1>{t("onb_name_title")}</h1>
-      <p className="hint">{t("onb_name_text")}</p>
+      <h1 className="center-text">{t("onb_name_title")}</h1>
+      <p className="hint center-text">{t("onb_name_text")}</p>
       <input
         className="input"
         value={name}
@@ -294,8 +294,8 @@ export function PhoneStep({ webApp, onDone }: { webApp: WebApp; onDone: (user: U
   return (
     <Screen>
       <Mascot />
-      <h1>{t("onb_phone_title")}</h1>
-      <p>{t("onb_phone_text")}</p>
+      <h1 className="center-text">{t("onb_phone_title")}</h1>
+      <p className="center-text">{t("onb_phone_text")}</p>
       {state === "waiting" && <p className="hint">{t("onb_phone_waiting")}</p>}
       {state === "declined" && <p className="error">{t("onb_phone_declined")}</p>}
       {state === "timeout" && <p className="error">{t("onb_phone_timeout")}</p>}
@@ -327,8 +327,8 @@ export function ModeChoice({ onDone }: { onDone: (user: User) => void }) {
   return (
     <Screen>
       <Mascot size="md" />
-      <h1>{t("mode_question")}</h1>
-      <p className="hint">{t("mode_question_hint")}</p>
+      <h1 className="center-text">{t("mode_question")}</h1>
+      <p className="hint center-text">{t("mode_question_hint")}</p>
       <div className="mode-cards">
         <button className="choice-big" disabled={busy} onClick={() => choose("tenant")}>
           <span className="row-icon">

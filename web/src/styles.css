@@ -1121,6 +1121,7 @@ ul.plain li {
   color: rgb(255 255 255 / 80%);
 }
 
+.screen h1.center-text,
 .screen p.center-text {
   text-align: center;
   text-align-last: center;
