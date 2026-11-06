@@ -39,9 +39,13 @@ class TelegramNotifier:
     def from_token(cls, token: str) -> TelegramNotifier:
         return cls(Bot(token=token, default=DefaultBotProperties(parse_mode=ParseMode.HTML)))
 
-    async def send_message(self, chat_id: int, text: str, buttons: Sequence[Button] = ()) -> None:
+    async def send_message(
+        self, chat_id: int, text: str, buttons: Sequence[Button] = (), *, silent: bool = False
+    ) -> None:
         try:
-            await self._bot.send_message(chat_id, text, reply_markup=_markup(buttons))
+            await self._bot.send_message(
+                chat_id, text, reply_markup=_markup(buttons), disable_notification=silent
+            )
         except Exception as exc:
             raise _wrap(exc) from exc
 

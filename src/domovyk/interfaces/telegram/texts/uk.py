@@ -104,3 +104,26 @@ NOTIFY_MODERATION_ALERT = (
 ALERT_REASONS = {
     "duplicate_address": "спроба додати об'єкт за адресою, яка вже є в іншого власника",
 }
+
+# Оренда й чат (BOT_FLOWS §7, §9)
+NOTIFY_CHAT_MESSAGE = "💬 <b>{sender}</b> · {address}\n{preview}"
+BTN_OPEN_CHAT = "💬 Відкрити чат"
+BTN_OPEN_LEASE = "🔑 Відкрити оренду"
+LEASE_EVENTS = {
+    "member_joined": "🔑 {name} приєднується до оренди: <b>{address}</b>.",
+    "terms_accepted": "✅ Орендар погодив умови оренди: <b>{address}</b>. Далі — договір.",
+    "terms_change_requested": (
+        "✏️ Орендар просить змінити умови: <b>{address}</b>. Подробиці — у чаті."
+    ),
+    "terms_declined": (
+        "Орендар відмовився від умов: <b>{address}</b>. Можна змінити умови й надіслати "
+        "нове запрошення."
+    ),
+    "terms_updated": "Власник змінив умови оренди: <b>{address}</b>. Переглянь і погодь їх знову.",
+    "member_left": "{name} вийшов з оренди: <b>{address}</b>.",
+    "lease_cancelled": "Оренду скасовано: <b>{address}</b>.",
+}
+
+INV_START = (
+    "🔑 Тебе запросили в оренду через Домовика. Відкрий застосунок — там умови й картка оренди."
+)

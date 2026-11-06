@@ -13,6 +13,16 @@ export type Unit = S["UnitOut"];
 export type Ownership = S["OwnershipOut"];
 export type Verification = S["VerificationOut"];
 export type QueueItem = S["QueueItem"];
+export type Lease = S["LeaseOut"];
+export type LeaseSummary = S["LeaseSummary"];
+export type LeaseCreate = S["LeaseCreate"];
+export type LeaseConditions = S["LeaseConditions"];
+export type LeaseTerms = S["LeaseTerms"];
+export type Invite = S["InviteOut"];
+export type InvitePreview = S["InvitePreview"];
+export type Message = S["MessageOut"];
+export type MessagesPage = S["MessagesPage"];
+export type NotifyPrefs = S["LeaseNotificationPrefs"];
 export type VerificationCase = S["VerificationCase"];
 
 export type ApiErrorKind = "no_api" | "unauthorized" | "network" | "server" | "unavailable" | "domain";
@@ -23,6 +33,8 @@ export class ApiFailure extends Error {
     /** Код доменної помилки з бекенду (`banned`, `invalid_input`, …). */
     public readonly code?: string,
     public readonly field?: string,
+    /** Уточнення доменної помилки (напр. чому запрошення недійсне). */
+    public readonly reason?: string,
   ) {
     super(code ?? kind);
   }
@@ -65,9 +77,9 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   if (response.status === 204) return undefined as T;
   const data: unknown = await response.json().catch(() => null);
   if (!response.ok) {
-    const err = data as { error?: string; field?: string } | null;
+    const err = data as { error?: string; field?: string; reason?: string } | null;
     if (response.status === 503) throw new ApiFailure("unavailable", err?.error);
-    if (err?.error) throw new ApiFailure("domain", err.error, err.field);
+    if (err?.error) throw new ApiFailure("domain", err.error, err.field, err.reason);
     if (response.status === 422) throw new ApiFailure("domain", "invalid_input");
     throw new ApiFailure("server");
   }
@@ -75,6 +87,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 }
 
 const p = (id: string) => `/api/v1/properties/${encodeURIComponent(id)}`;
+const l = (id: string) => `/api/v1/leases/${encodeURIComponent(id)}`;
 const v = (id: string) => `/api/v1/moderation/ownership/${encodeURIComponent(id)}`;
 
 export const api = {
@@ -111,6 +124,24 @@ export const api = {
     request<Ownership>("DELETE", `${p(id)}/ownership/documents/${encodeURIComponent(docId)}`),
   submitOwnership: (id: string) => request<Ownership>("POST", `${p(id)}/ownership/submit`),
   devVerify: (id: string) => request<Ownership>("POST", `${p(id)}/ownership/dev-verify`),
+
+  // Оренди (M3)
+  leases: () => request<LeaseSummary[]>("GET", "/api/v1/leases"),
+  lease: (id: string) => request<Lease>("GET", l(id)),
+  createLease: (body: LeaseCreate) => request<S["LeaseCreatedOut"]>("POST", "/api/v1/leases", body),
+  updateConditions: (id: string, body: LeaseConditions) => request<Lease>("PUT", `${l(id)}/conditions`, body),
+  acceptTerms: (id: string) => request<Lease>("POST", `${l(id)}/accept-terms`),
+  requestChanges: (id: string, text: string) => request<Lease>("POST", `${l(id)}/request-changes`, { text }),
+  leaveLease: (id: string) => request<void>("POST", `${l(id)}/leave`),
+  cancelLease: (id: string) => request<Lease>("POST", `${l(id)}/cancel`),
+  newInvite: (id: string, role: Invite["role"]) => request<Invite>("POST", `${l(id)}/invites`, { role }),
+  previewInvite: (token: string) => request<InvitePreview>("GET", `/api/v1/invites/${encodeURIComponent(token)}`),
+  acceptInvite: (token: string) => request<Lease>("POST", `/api/v1/invites/${encodeURIComponent(token)}/accept`),
+  messages: (id: string, afterId = 0) => request<MessagesPage>("GET", `${l(id)}/messages?after_id=${afterId}`),
+  postMessage: (id: string, body: string) => request<Message>("POST", `${l(id)}/messages`, { body }),
+  markRead: (id: string, messageId: number) => request<void>("POST", `${l(id)}/read`, { message_id: messageId }),
+  notifyPrefs: (id: string) => request<NotifyPrefs>("GET", `${l(id)}/notifications`),
+  setNotifyPrefs: (id: string, body: NotifyPrefs) => request<NotifyPrefs>("PUT", `${l(id)}/notifications`, body),
 
   // Модерація
   moderationSummary: () => request<S["ModerationSummaryOut"]>("GET", "/api/v1/moderation/summary"),

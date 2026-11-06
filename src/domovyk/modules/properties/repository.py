@@ -99,6 +99,7 @@ class PropertiesRepository(Protocol):
         area: Decimal | None,
     ) -> None: ...
     async def delete_property(self, property_id: uuid.UUID) -> None: ...
+    async def property_id_of_unit(self, unit_id: uuid.UUID) -> uuid.UUID | None: ...
     async def set_profile(self, property_id: uuid.UUID, details: dict[str, Any]) -> None: ...
     async def set_ownership(
         self, property_id: uuid.UUID, status: OwnershipStatus, verified_at: datetime | None
@@ -347,6 +348,9 @@ class SqlPropertiesRepository:
 
     async def delete_property(self, property_id: uuid.UUID) -> None:
         await self._s.execute(delete(PropertyRow).where(PropertyRow.id == property_id))
+
+    async def property_id_of_unit(self, unit_id: uuid.UUID) -> uuid.UUID | None:
+        return await self._s.scalar(select(UnitRow.property_id).where(UnitRow.id == unit_id))
 
     async def set_profile(self, property_id: uuid.UUID, details: dict[str, Any]) -> None:
         await self._s.execute(

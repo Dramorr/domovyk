@@ -7,19 +7,25 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
+from cryptography.fernet import Fernet
+
 from domovyk.adapters.geocoder.base import Geocoder
 from domovyk.adapters.geocoder.manual import ManualGeocoder
-from domovyk.container import Services
+from domovyk.container import Services, wire_guards
 from domovyk.core.clock import Clock, FixedClock
+from domovyk.core.crypto import Cipher
 from domovyk.core.tx import NullTxManager, Tx
 from domovyk.domain.users import ConsentDocument, IdentityProvider, UserRole, UserStatus
 from domovyk.modules.analytics.service import AnalyticsService
+from domovyk.modules.chat.service import ChatService
+from domovyk.modules.leases.service import LeasesConfig, LeasesService
 from domovyk.modules.moderation.schemas import BanIdentifiers, BanOut
 from domovyk.modules.moderation.service import ModerationService
 from domovyk.modules.notifications.service import NotificationsService
 from domovyk.modules.properties.service import PropertiesConfig, PropertiesService
 from domovyk.modules.users.schemas import TenantProfile, UserOut
 from domovyk.modules.users.service import UsersConfig, UsersService
+from tests.fakes_leases import FakeChatRepository, FakeLeasesRepository, LeaseDb
 from tests.fakes_properties import (
     FakeNotificationsRepository,
     FakeNotifier,
@@ -66,6 +72,8 @@ class FakeDb:
         self.events: list[tuple[uuid.UUID | None, str, str]] = []
         self.risk_signals: list[tuple[uuid.UUID, str, dict[str, Any]]] = []
         self.prop = PropDb()
+        self.lease = LeaseDb()
+        self.cipher = Cipher(Fernet.generate_key().decode())
         self.storage = MemoryStorage()
         self.notifier = FakeNotifier()
 
@@ -296,11 +304,26 @@ def make_fake_services(
         properties_config or PropertiesConfig(),
         notifier=db.notifier,
     )
+    chat = ChatService(lambda _: FakeChatRepository(db.lease))
+    leases = LeasesService(
+        NullTxManager(),
+        lambda _: FakeLeasesRepository(db.lease),
+        users,
+        properties,
+        chat,
+        notifications,
+        db.cipher,
+        clock,
+        LeasesConfig(hmac_secret=TEST_HMAC),
+    )
+    wire_guards(users, properties, leases)
     services = Services(
         users=users,
         moderation=moderation,
         analytics=analytics,
         notifications=notifications,
         properties=properties,
+        chat=chat,
+        leases=leases,
     )
     return services, db

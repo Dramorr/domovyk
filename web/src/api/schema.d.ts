@@ -21,6 +21,247 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/invites/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preview Invite */
+        get: operations["preview_invite_api_v1_invites__token__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invites/{token}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept Invite */
+        post: operations["accept_invite_api_v1_invites__token__accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/leases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Leases */
+        get: operations["list_leases_api_v1_leases_get"];
+        put?: never;
+        /** Create Lease */
+        post: operations["create_lease_api_v1_leases_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/leases/{lease_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Lease */
+        get: operations["get_lease_api_v1_leases__lease_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/leases/{lease_id}/accept-terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept Lease Terms */
+        post: operations["accept_lease_terms_api_v1_leases__lease_id__accept_terms_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/leases/{lease_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Lease */
+        post: operations["cancel_lease_api_v1_leases__lease_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/leases/{lease_id}/conditions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Lease Conditions */
+        put: operations["update_lease_conditions_api_v1_leases__lease_id__conditions_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/leases/{lease_id}/invites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** New Lease Invite */
+        post: operations["new_lease_invite_api_v1_leases__lease_id__invites_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/leases/{lease_id}/invites/{role}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke Lease Invite */
+        delete: operations["revoke_lease_invite_api_v1_leases__lease_id__invites__role__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/leases/{lease_id}/leave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Leave Lease */
+        post: operations["leave_lease_api_v1_leases__lease_id__leave_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/leases/{lease_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lease Messages */
+        get: operations["lease_messages_api_v1_leases__lease_id__messages_get"];
+        put?: never;
+        /** Post Lease Message */
+        post: operations["post_lease_message_api_v1_leases__lease_id__messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/leases/{lease_id}/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lease Notification Prefs */
+        get: operations["lease_notification_prefs_api_v1_leases__lease_id__notifications_get"];
+        /** Set Lease Notification Prefs */
+        put: operations["set_lease_notification_prefs_api_v1_leases__lease_id__notifications_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/leases/{lease_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark Lease Read */
+        post: operations["mark_lease_read_api_v1_leases__lease_id__read_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/leases/{lease_id}/request-changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request Lease Changes */
+        post: operations["request_lease_changes_api_v1_leases__lease_id__request_changes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me": {
         parameters: {
             query?: never;
@@ -565,11 +806,299 @@ export interface components {
          * @enum {string}
          */
         Internet: "none" | "cable" | "fiber" | "mobile";
+        /** InviteIn */
+        InviteIn: {
+            role: components["schemas"]["MemberRole"];
+        };
+        /**
+         * InviteOut
+         * @description Токен показуємо лише раз — у базі лише його хеш (FR-LSE-1).
+         */
+        InviteOut: {
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            role: components["schemas"]["MemberRole"];
+            /** Token */
+            token: string;
+        };
+        /**
+         * InvitePreview
+         * @description Що бачить людина за посиланням, до того як приєднатися (INV-ACCEPT).
+         */
+        InvitePreview: {
+            /** Apartment */
+            apartment?: string | null;
+            /** End Date */
+            end_date?: string | null;
+            /** House Number */
+            house_number?: string | null;
+            /** Landlord Name */
+            landlord_name?: string | null;
+            /** Lease Id */
+            lease_id?: string | null;
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "ok" | "expired" | "used" | "revoked" | "not_found" | "own_lease" | "already_member";
+            /** Rent Amount */
+            rent_amount?: number | null;
+            role?: components["schemas"]["MemberRole"] | null;
+            /** Start Date */
+            start_date?: string | null;
+            /** Street */
+            street?: string | null;
+            /** Valid */
+            valid: boolean;
+        };
         /**
          * Layout
          * @enum {string}
          */
         Layout: "separate" | "adjacent" | "mixed" | "studio" | "kitchen_studio" | "multilevel";
+        /**
+         * LeaseConditions
+         * @description Умови, які власник задає й може змінювати до активації.
+         */
+        LeaseConditions: {
+            /** Deposit Amount */
+            deposit_amount?: number | null;
+            /** Months */
+            months: number;
+            pay_details?: components["schemas"]["PayDetailsIn"] | null;
+            pay_method: components["schemas"]["PayMethod"];
+            /** Rent Amount */
+            rent_amount: number;
+            /** Rent Due Day */
+            rent_due_day: number;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            terms?: components["schemas"]["LeaseTerms"];
+        };
+        /** LeaseCreate */
+        LeaseCreate: {
+            /** Deposit Amount */
+            deposit_amount?: number | null;
+            /** Months */
+            months: number;
+            pay_details?: components["schemas"]["PayDetailsIn"] | null;
+            pay_method: components["schemas"]["PayMethod"];
+            /**
+             * Property Id
+             * Format: uuid
+             */
+            property_id: string;
+            /** Rent Amount */
+            rent_amount: number;
+            /** Rent Due Day */
+            rent_due_day: number;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            terms?: components["schemas"]["LeaseTerms"];
+            /** Unit Id */
+            unit_id?: string | null;
+        };
+        /** LeaseCreatedOut */
+        LeaseCreatedOut: {
+            invite: components["schemas"]["InviteOut"];
+            lease: components["schemas"]["LeaseOut"];
+        };
+        /**
+         * LeaseNotificationPrefs
+         * @description Налаштування сповіщень однієї людини для однієї оренди.
+         */
+        LeaseNotificationPrefs: {
+            /**
+             * Chat Message
+             * @default true
+             */
+            chat_message: boolean;
+            /**
+             * Lease Update
+             * @default true
+             */
+            lease_update: boolean;
+            /**
+             * Quiet From
+             * @default 22
+             */
+            quiet_from: number;
+            /**
+             * Quiet To
+             * @default 8
+             */
+            quiet_to: number;
+        };
+        /** LeaseOut */
+        LeaseOut: {
+            /** Apartment */
+            apartment: string | null;
+            /** Can Edit */
+            can_edit: boolean;
+            /** Can Invite Co Tenant */
+            can_invite_co_tenant: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            /** Deposit Amount */
+            deposit_amount: number | null;
+            /**
+             * End Date
+             * Format: date
+             */
+            end_date: string;
+            /** House Number */
+            house_number: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Members */
+            members: components["schemas"]["MemberOut"][];
+            /** Months Left */
+            months_left: number;
+            /** Months Total */
+            months_total: number;
+            /**
+             * My Role
+             * @enum {string}
+             */
+            my_role: "landlord" | "responsible" | "co_tenant";
+            pay: components["schemas"]["PayDisplay"];
+            /** Pending Invites */
+            pending_invites: components["schemas"]["PendingInvite"][];
+            /**
+             * Property Id
+             * Format: uuid
+             */
+            property_id: string;
+            /** Rent Amount */
+            rent_amount: number;
+            /** Rent Due Day */
+            rent_due_day: number;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            status: components["schemas"]["LeaseStatus"];
+            /** Street */
+            street: string;
+            terms: components["schemas"]["LeaseTerms"];
+            /** Terms Accepted At */
+            terms_accepted_at: string | null;
+            unit_kind: components["schemas"]["UnitKind"];
+            /** Unit Name */
+            unit_name: string;
+            /** Unread */
+            unread: number;
+        };
+        /**
+         * LeaseStatus
+         * @enum {string}
+         */
+        LeaseStatus: "draft" | "awaiting_tenant" | "awaiting_signatures" | "active" | "ending" | "ended" | "cancelled";
+        /** LeaseSummary */
+        LeaseSummary: {
+            /** Apartment */
+            apartment: string | null;
+            /**
+             * End Date
+             * Format: date
+             */
+            end_date: string;
+            /** House Number */
+            house_number: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * My Role
+             * @enum {string}
+             */
+            my_role: "landlord" | "responsible" | "co_tenant";
+            /** Rent Amount */
+            rent_amount: number;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            status: components["schemas"]["LeaseStatus"];
+            /** Street */
+            street: string;
+            unit_kind: components["schemas"]["UnitKind"];
+            /** Unit Name */
+            unit_name: string;
+            /** Unread */
+            unread: number;
+        };
+        /**
+         * LeaseTerms
+         * @description Пункти договору (FR-LSE-2) з типовими значеннями (BOT_FLOWS LSE-NEW, крок 9).
+         */
+        LeaseTerms: {
+            /**
+             * Dispute Window Days
+             * @default 3
+             * @enum {integer}
+             */
+            dispute_window_days: 1 | 3 | 5 | 7;
+            /**
+             * Early Termination Notice Days
+             * @default 30
+             */
+            early_termination_notice_days: number;
+            /**
+             * Major Repairs
+             * @default landlord
+             * @enum {string}
+             */
+            major_repairs: "landlord" | "tenant";
+            /**
+             * Minor Repairs
+             * @default tenant
+             * @enum {string}
+             */
+            minor_repairs: "tenant" | "landlord";
+            /**
+             * Pets Allowed
+             * @default false
+             */
+            pets_allowed: boolean;
+            /**
+             * Residence Registration
+             * @default false
+             */
+            residence_registration: boolean;
+            /**
+             * Utilities Payer
+             * @default tenant_direct
+             * @enum {string}
+             */
+            utilities_payer: "tenant_direct" | "landlord" | "included";
+            /**
+             * Visits Notice Hours
+             * @default 24
+             */
+            visits_notice_hours: number;
+        };
         /** MeOut */
         MeOut: {
             consent: components["schemas"]["ConsentInfo"];
@@ -577,6 +1106,61 @@ export interface components {
             start_param: string | null;
             telegram: components["schemas"]["TelegramUserOut"];
             user: components["schemas"]["UserOut"] | null;
+        };
+        /** MemberOut */
+        MemberOut: {
+            /** Display Name */
+            display_name: string;
+            /** Joined At */
+            joined_at: string | null;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "landlord" | "responsible" | "co_tenant";
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /**
+         * MemberRole
+         * @enum {string}
+         */
+        MemberRole: "responsible" | "co_tenant";
+        /** MessageIn */
+        MessageIn: {
+            /** Body */
+            body: string;
+        };
+        /** MessageOut */
+        MessageOut: {
+            /** Body */
+            body: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: number;
+            /** Sender Id */
+            sender_id: string | null;
+            system_code: components["schemas"]["SystemCode"] | null;
+            /** System Params */
+            system_params?: {
+                [key: string]: unknown;
+            };
+        };
+        /** MessagesPage */
+        MessagesPage: {
+            /** Has More */
+            has_more: boolean;
+            /** Last Read Message Id */
+            last_read_message_id: number;
+            /** Messages */
+            messages: components["schemas"]["MessageOut"][];
         };
         /**
          * Meter
@@ -646,6 +1230,45 @@ export interface components {
          * @enum {string}
          */
         Parking: "none" | "street" | "yard" | "underground" | "garage";
+        /**
+         * PayDetailsIn
+         * @description Реквізити — шифруються (FR-PAY-8). Для готівки не потрібні.
+         */
+        PayDetailsIn: {
+            /** Card */
+            card?: string | null;
+            /** Iban */
+            iban?: string | null;
+            /** Jar Url */
+            jar_url?: string | null;
+            /** Recipient Name */
+            recipient_name?: string | null;
+        };
+        /**
+         * PayDisplay
+         * @description Як показуємо реквізити до активації: замасковано (FR-PAY-8).
+         */
+        PayDisplay: {
+            /** Masked */
+            masked: string | null;
+            method: components["schemas"]["PayMethod"];
+            /** Recipient */
+            recipient: string | null;
+        };
+        /**
+         * PayMethod
+         * @enum {string}
+         */
+        PayMethod: "card" | "iban" | "jar" | "cash";
+        /** PendingInvite */
+        PendingInvite: {
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            role: components["schemas"]["MemberRole"];
+        };
         /**
          * PetsPolicy
          * @description Детальніше за «так/ні» (як на OLX): власник одразу каже, кого можна.
@@ -874,6 +1497,11 @@ export interface components {
              */
             verification_id: string;
         };
+        /** ReadIn */
+        ReadIn: {
+            /** Message Id */
+            message_id: number;
+        };
         /** RegisterIn */
         RegisterIn: {
             /** Display Name */
@@ -922,6 +1550,12 @@ export interface components {
          * @enum {string}
          */
         Stove: "gas" | "electric" | "induction";
+        /**
+         * SystemCode
+         * @description Системні повідомлення (FR-CHT-2). Текст — у файлі локалізації інтерфейсу.
+         * @enum {string}
+         */
+        SystemCode: "lease_created" | "member_joined" | "member_left" | "terms_accepted" | "terms_change_requested" | "terms_declined" | "terms_updated" | "lease_cancelled";
         /** TelegramUserOut */
         TelegramUserOut: {
             /** First Name */
@@ -950,6 +1584,11 @@ export interface components {
             pets_details?: string | null;
             /** Smoker */
             smoker?: boolean | null;
+        };
+        /** TextIn */
+        TextIn: {
+            /** Text */
+            text: string;
         };
         /**
          * UnitKind
@@ -1102,6 +1741,589 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AddressCandidate"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_invite_api_v1_invites__token__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitePreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    accept_invite_api_v1_invites__token__accept_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_leases_api_v1_leases_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_lease_api_v1_leases_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaseCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseCreatedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_lease_api_v1_leases__lease_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                lease_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    accept_lease_terms_api_v1_leases__lease_id__accept_terms_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                lease_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_lease_api_v1_leases__lease_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                lease_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_lease_conditions_api_v1_leases__lease_id__conditions_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                lease_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaseConditions"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    new_lease_invite_api_v1_leases__lease_id__invites_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                lease_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_lease_invite_api_v1_leases__lease_id__invites__role__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                lease_id: string;
+                role: components["schemas"]["MemberRole"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    leave_lease_api_v1_leases__lease_id__leave_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                lease_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lease_messages_api_v1_leases__lease_id__messages_get: {
+        parameters: {
+            query?: {
+                after_id?: number;
+                before_id?: number | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                lease_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessagesPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_lease_message_api_v1_leases__lease_id__messages_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                lease_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MessageIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lease_notification_prefs_api_v1_leases__lease_id__notifications_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                lease_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseNotificationPrefs"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_lease_notification_prefs_api_v1_leases__lease_id__notifications_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                lease_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaseNotificationPrefs"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseNotificationPrefs"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_lease_read_api_v1_leases__lease_id__read_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                lease_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReadIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_lease_changes_api_v1_leases__lease_id__request_changes_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                lease_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TextIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseOut"];
                 };
             };
             /** @description Validation Error */

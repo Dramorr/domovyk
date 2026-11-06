@@ -26,8 +26,10 @@ class NotifierError(Exception):
 
 class Notifier(Protocol):
     async def send_message(
-        self, chat_id: int, text: str, buttons: Sequence[Button] = ()
-    ) -> None: ...
+        self, chat_id: int, text: str, buttons: Sequence[Button] = (), *, silent: bool = False
+    ) -> None:
+        """silent — без звуку (тихі години отримувача, FR-NTF-1)."""
+        ...
 
     async def send_document(
         self, chat_id: int, filename: str, data: bytes, caption: str | None = None

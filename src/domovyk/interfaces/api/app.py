@@ -38,10 +38,22 @@ from domovyk.core.errors import (
     PermissionDenied,
     ServiceUnavailable,
 )
+from domovyk.domain.leases import MemberRole
 from domovyk.interfaces.api.telegram_auth import (
     InitDataError,
     TelegramAuth,
     validate_init_data,
+)
+from domovyk.modules.leases.service import (
+    InviteOut,
+    InvitePreview,
+    LeaseConditions,
+    LeaseCreate,
+    LeaseNotificationPrefs,
+    LeaseOut,
+    LeaseSummary,
+    MessageOut,
+    MessagesPage,
 )
 from domovyk.modules.properties.service import (
     AddressCandidate,
@@ -114,6 +126,27 @@ class SentOut(BaseModel):
     sent: int
 
 
+class LeaseCreatedOut(BaseModel):
+    lease: LeaseOut
+    invite: InviteOut
+
+
+class InviteIn(BaseModel):
+    role: MemberRole
+
+
+class TextIn(BaseModel):
+    text: str
+
+
+class MessageIn(BaseModel):
+    body: str
+
+
+class ReadIn(BaseModel):
+    message_id: int
+
+
 def create_app(
     settings: Settings | None = None,
     clock: Clock = system_clock,
@@ -158,8 +191,9 @@ def create_app(
             status.HTTP_400_BAD_REQUEST,
         )
         body: dict[str, object] = {"error": exc.code}
-        if "field" in exc.details:
-            body["field"] = exc.details["field"]
+        for key in ("field", "reason"):
+            if key in exc.details:
+                body[key] = exc.details[key]
         return JSONResponse(status_code=code, content=body)
 
     def current_auth(
@@ -297,6 +331,93 @@ def create_app(
     @app.post("/api/v1/properties/{property_id}/ownership/dev-verify")
     async def dev_verify_ownership(auth: Auth, property_id: uuid.UUID) -> OwnershipOut:
         return await svc.properties.dev_verify(auth.user.id, property_id)
+
+    # ---------------------------------------------- оренди (M3, FR-LSE-1..5)
+
+    @app.get("/api/v1/leases")
+    async def list_leases(auth: Auth) -> list[LeaseSummary]:
+        return await svc.leases.list_mine(auth.user.id)
+
+    @app.post("/api/v1/leases", status_code=status.HTTP_201_CREATED)
+    async def create_lease(auth: Auth, body: LeaseCreate) -> LeaseCreatedOut:
+        lease, invite = await svc.leases.create_lease(auth.user.id, body)
+        return LeaseCreatedOut(lease=lease, invite=invite)
+
+    @app.get("/api/v1/leases/{lease_id}")
+    async def get_lease(auth: Auth, lease_id: uuid.UUID) -> LeaseOut:
+        return await svc.leases.get(auth.user.id, lease_id)
+
+    @app.put("/api/v1/leases/{lease_id}/conditions")
+    async def update_lease_conditions(
+        auth: Auth, lease_id: uuid.UUID, body: LeaseConditions
+    ) -> LeaseOut:
+        return await svc.leases.update_conditions(auth.user.id, lease_id, body)
+
+    @app.post("/api/v1/leases/{lease_id}/accept-terms")
+    async def accept_lease_terms(auth: Auth, lease_id: uuid.UUID) -> LeaseOut:
+        return await svc.leases.accept_terms(auth.user.id, lease_id)
+
+    @app.post("/api/v1/leases/{lease_id}/request-changes")
+    async def request_lease_changes(auth: Auth, lease_id: uuid.UUID, body: TextIn) -> LeaseOut:
+        return await svc.leases.request_changes(auth.user.id, lease_id, body.text)
+
+    @app.post("/api/v1/leases/{lease_id}/leave", status_code=status.HTTP_204_NO_CONTENT)
+    async def leave_lease(auth: Auth, lease_id: uuid.UUID) -> Response:
+        await svc.leases.decline(auth.user.id, lease_id)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    @app.post("/api/v1/leases/{lease_id}/cancel")
+    async def cancel_lease(auth: Auth, lease_id: uuid.UUID) -> LeaseOut:
+        return await svc.leases.cancel(auth.user.id, lease_id)
+
+    @app.post("/api/v1/leases/{lease_id}/invites", status_code=status.HTTP_201_CREATED)
+    async def new_lease_invite(auth: Auth, lease_id: uuid.UUID, body: InviteIn) -> InviteOut:
+        return await svc.leases.new_invite(auth.user.id, lease_id, body.role)
+
+    @app.delete("/api/v1/leases/{lease_id}/invites/{role}", status_code=status.HTTP_204_NO_CONTENT)
+    async def revoke_lease_invite(auth: Auth, lease_id: uuid.UUID, role: MemberRole) -> Response:
+        await svc.leases.revoke_invite(auth.user.id, lease_id, role)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    @app.get("/api/v1/invites/{token}")
+    async def preview_invite(auth: Auth, token: str) -> InvitePreview:
+        return await svc.leases.preview_invite(auth.user.id, token)
+
+    @app.post("/api/v1/invites/{token}/accept")
+    async def accept_invite(auth: Auth, token: str) -> LeaseOut:
+        return await svc.leases.accept_invite(auth.user.id, token)
+
+    # ------------------------------------------------- чат оренди (FR-CHT-1)
+
+    @app.get("/api/v1/leases/{lease_id}/messages")
+    async def lease_messages(
+        auth: Auth,
+        lease_id: uuid.UUID,
+        after_id: Annotated[int, Query(ge=0)] = 0,
+        before_id: Annotated[int | None, Query(ge=1)] = None,
+    ) -> MessagesPage:
+        return await svc.leases.messages(
+            auth.user.id, lease_id, after_id=after_id, before_id=before_id
+        )
+
+    @app.post("/api/v1/leases/{lease_id}/messages", status_code=status.HTTP_201_CREATED)
+    async def post_lease_message(auth: Auth, lease_id: uuid.UUID, body: MessageIn) -> MessageOut:
+        return await svc.leases.post_message(auth.user.id, lease_id, body.body)
+
+    @app.post("/api/v1/leases/{lease_id}/read", status_code=status.HTTP_204_NO_CONTENT)
+    async def mark_lease_read(auth: Auth, lease_id: uuid.UUID, body: ReadIn) -> Response:
+        await svc.leases.mark_read(auth.user.id, lease_id, body.message_id)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    @app.get("/api/v1/leases/{lease_id}/notifications")
+    async def lease_notification_prefs(auth: Auth, lease_id: uuid.UUID) -> LeaseNotificationPrefs:
+        return await svc.leases.notification_prefs(auth.user.id, lease_id)
+
+    @app.put("/api/v1/leases/{lease_id}/notifications")
+    async def set_lease_notification_prefs(
+        auth: Auth, lease_id: uuid.UUID, body: LeaseNotificationPrefs
+    ) -> LeaseNotificationPrefs:
+        return await svc.leases.set_notification_prefs(auth.user.id, lease_id, body)
 
     # ------------------------------------------------- модерація (MOD-OWN)
 

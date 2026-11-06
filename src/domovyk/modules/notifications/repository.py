@@ -10,7 +10,7 @@ from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
 
 from domovyk.core.tx import Tx, session_of
-from domovyk.modules.notifications.models import NotificationRow
+from domovyk.modules.notifications.models import NotificationPreferenceRow, NotificationRow
 from domovyk.modules.notifications.schemas import PendingNotification
 
 # Позначка «більше не пробувати»: більше за будь-який ліміт спроб (smallint).
@@ -29,6 +29,17 @@ class NotificationsRepository(Protocol):
 
     async def claim_next(self, now: datetime, max_attempts: int) -> PendingNotification | None: ...
     async def mark_sent(self, notification_id: int, at: datetime) -> None: ...
+    async def prefs(
+        self, user_id: uuid.UUID, lease_id: uuid.UUID
+    ) -> dict[str, tuple[bool, dict[str, Any]]]: ...
+    async def set_pref(
+        self,
+        user_id: uuid.UUID,
+        lease_id: uuid.UUID,
+        type_: str,
+        enabled: bool,
+        params: dict[str, Any],
+    ) -> None: ...
     async def mark_failed(
         self, notification_id: int, error: str, *, retry_at: datetime | None
     ) -> None:
@@ -98,4 +109,39 @@ class SqlNotificationsRepository:
             values["send_after"] = retry_at
         await self._s.execute(
             update(NotificationRow).where(NotificationRow.id == notification_id).values(**values)
+        )
+
+    async def prefs(
+        self, user_id: uuid.UUID, lease_id: uuid.UUID
+    ) -> dict[str, tuple[bool, dict[str, Any]]]:
+        rows = await self._s.scalars(
+            select(NotificationPreferenceRow).where(
+                NotificationPreferenceRow.user_id == user_id,
+                NotificationPreferenceRow.lease_id == lease_id,
+                NotificationPreferenceRow.channel == "telegram",
+            )
+        )
+        return {r.type: (r.enabled, dict(r.params)) for r in rows}
+
+    async def set_pref(
+        self,
+        user_id: uuid.UUID,
+        lease_id: uuid.UUID,
+        type_: str,
+        enabled: bool,
+        params: dict[str, Any],
+    ) -> None:
+        stmt = insert(NotificationPreferenceRow).values(
+            user_id=user_id, lease_id=lease_id, type=type_, enabled=enabled, params=params
+        )
+        await self._s.execute(
+            stmt.on_conflict_do_update(
+                index_elements=[
+                    NotificationPreferenceRow.user_id,
+                    NotificationPreferenceRow.lease_id,
+                    NotificationPreferenceRow.type,
+                    NotificationPreferenceRow.channel,
+                ],
+                set_={"enabled": enabled, "params": params},
+            )
         )

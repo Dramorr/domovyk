@@ -62,6 +62,8 @@ function propertyError(e: unknown): string {
       return t("prp_duplicate");
     case "property_already_yours":
       return t("prp_already_yours");
+    case "has_open_lease":
+      return t("prp_delete_has_lease");
     case "phone_required":
       return t("prp_phone_required");
     case "invalid_input":
@@ -395,6 +397,7 @@ export function PropertyCard({
   onBack,
   onOwnership,
   onProfile,
+  onNewLease,
   onDeleted,
 }: {
   id: string;
@@ -402,6 +405,7 @@ export function PropertyCard({
   onBack: () => void;
   onOwnership: () => void;
   onProfile: () => void;
+  onNewLease: (prop: Property) => void;
   onDeleted: () => void;
 }) {
   const [prop, setProp] = useState<Property | null>(null);
@@ -484,7 +488,12 @@ export function PropertyCard({
         <button className={prop.ownership_status === "verified" ? "button secondary" : "button"} onClick={onOwnership}>
           {prop.ownership_status === "unverified" ? t("prp_card_verify") : t("prp_card_verify_status")}
         </button>
-        {prop.ownership_status === "verified" && <p className="hint small">{t("prp_card_next_hint")}</p>}
+        {prop.ownership_status === "verified" && (
+          <button className="button" onClick={() => onNewLease(prop)}>
+            <Icon name="key" size={20} />
+            {t("ls_new_from_property")}
+          </button>
+        )}
       </section>
 
       <section className="card">

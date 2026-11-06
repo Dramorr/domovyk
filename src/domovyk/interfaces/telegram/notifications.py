@@ -31,6 +31,10 @@ def make_renderer(base_url: str) -> Renderer:
         pid = str(payload.get("property_id") or "")
         return [Button(uk.BTN_OPEN_PROPERTY, web_app_url=mini_app_url(base_url, f"prop_{pid}"))]
 
+    def lease_button(payload: Mapping[str, Any], text: str, prefix: str) -> list[Button]:
+        lid = str(payload.get("lease_id") or "")
+        return [Button(text, web_app_url=mini_app_url(base_url, f"{prefix}_{lid}"))]
+
     def render(item: PendingNotification) -> RenderedMessage | None:
         p = item.payload
         match item.type:
@@ -48,6 +52,27 @@ def make_renderer(base_url: str) -> Renderer:
                         tg_id=escape(str(p.get("telegram_uid") or "—")),
                     ),
                     [Button(uk.BTN_OPEN_MODERATION, web_app_url=mini_app_url(base_url, "mod"))],
+                )
+            case NotificationType.CHAT_MESSAGE:
+                return RenderedMessage(
+                    uk.NOTIFY_CHAT_MESSAGE.format(
+                        sender=escape(str(p.get("sender") or "")),
+                        address=format_address(p),
+                        preview=escape(str(p.get("preview") or "")),
+                    ),
+                    lease_button(p, uk.BTN_OPEN_CHAT, "chat"),
+                )
+            case NotificationType.LEASE_UPDATE:
+                event = str(p.get("event") or "")
+                template = uk.LEASE_EVENTS.get(event)
+                if template is None:
+                    return None
+                return RenderedMessage(
+                    template.format(
+                        address=format_address(p),
+                        name=escape(str(p.get("name") or "")),
+                    ),
+                    lease_button(p, uk.BTN_OPEN_LEASE, "lease"),
                 )
             case NotificationType.OWNERSHIP_VERIFIED:
                 return RenderedMessage(

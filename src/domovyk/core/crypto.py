@@ -30,6 +30,13 @@ def identifier_hash(value: str, secret: str) -> str:
     return hmac.new(secret.encode(), normalized.encode(), hashlib.sha256).hexdigest()
 
 
+def token_hash(token: str, secret: str) -> str:
+    """HMAC-SHA256 від токена як є (без нормалізації): запрошення, одноразові посилання."""
+    if not secret:
+        raise ValueError("HMAC_SECRET не задано")
+    return hmac.new(secret.encode(), token.encode(), hashlib.sha256).hexdigest()
+
+
 def phone_hash(phone: str, secret: str) -> str:
     return identifier_hash(normalize_phone(phone), secret)
 

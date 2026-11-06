@@ -100,6 +100,9 @@ class PropDb:
     verifications: dict[uuid.UUID, _Verification] = field(default_factory=dict)
     documents: dict[uuid.UUID, StoredDocument] = field(default_factory=dict)
     notifications: list[_Notification] = field(default_factory=list)
+    prefs: dict[tuple[uuid.UUID, uuid.UUID, str], tuple[bool, dict[str, Any]]] = field(
+        default_factory=dict
+    )
 
 
 class FakePropertiesRepository:
@@ -195,6 +198,10 @@ class FakePropertiesRepository:
             del self.db.verifications[v.id]
             for d in [d for d in self.db.documents.values() if d.verification_id == v.id]:
                 del self.db.documents[d.id]
+
+    async def property_id_of_unit(self, unit_id: uuid.UUID) -> uuid.UUID | None:
+        u = self.db.units.get(unit_id)
+        return u.property_id if u else None
 
     async def set_profile(self, property_id: uuid.UUID, details: dict[str, Any]) -> None:
         self.db.properties[property_id].details = dict(details)
@@ -396,6 +403,23 @@ class FakeNotificationsRepository:
         n = self._get(notification_id)
         n.sent_at, n.attempts = at, n.attempts + 1
 
+    async def prefs(
+        self, user_id: uuid.UUID, lease_id: uuid.UUID
+    ) -> dict[str, tuple[bool, dict[str, Any]]]:
+        return {
+            t: v for (u, lid, t), v in self.db.prefs.items() if u == user_id and lid == lease_id
+        }
+
+    async def set_pref(
+        self,
+        user_id: uuid.UUID,
+        lease_id: uuid.UUID,
+        type_: str,
+        enabled: bool,
+        params: dict[str, Any],
+    ) -> None:
+        self.db.prefs[(user_id, lease_id, type_)] = (enabled, dict(params))
+
     async def mark_failed(
         self, notification_id: int, error: str, *, retry_at: datetime | None
     ) -> None:
@@ -406,6 +430,10 @@ class FakeNotificationsRepository:
         else:
             n.attempts += 1
             n.send_after = retry_at
+
+
+class FakePrefs:
+    """Домішка до FakeNotificationsRepository: налаштування сповіщень."""
 
 
 class MemoryStorage:
@@ -429,6 +457,7 @@ class SentMessage:
     chat_id: int
     text: str
     buttons: list[Button]
+    silent: bool = False
 
 
 class FakeNotifier:
@@ -437,10 +466,12 @@ class FakeNotifier:
         self.documents: list[tuple[int, str, bytes]] = []
         self.fail = fail
 
-    async def send_message(self, chat_id: int, text: str, buttons: Sequence[Button] = ()) -> None:
+    async def send_message(
+        self, chat_id: int, text: str, buttons: Sequence[Button] = (), *, silent: bool = False
+    ) -> None:
         if self.fail:
             raise self.fail
-        self.messages.append(SentMessage(chat_id, text, list(buttons)))
+        self.messages.append(SentMessage(chat_id, text, list(buttons), silent))
 
     async def send_document(
         self, chat_id: int, filename: str, data: bytes, caption: str | None = None

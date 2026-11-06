@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
 
+from pydantic import BaseModel, Field
+
 from domovyk.adapters.notifier.base import Button
 
 
@@ -17,6 +19,13 @@ class NotificationType(StrEnum):
     MODERATION_ALERT = "moderation_alert"  # підозріла дія — перевірити одразу
     OWNERSHIP_VERIFIED = "ownership_verified"
     OWNERSHIP_REJECTED = "ownership_rejected"
+    CHAT_MESSAGE = "chat_message"
+    LEASE_UPDATE = "lease_update"  # приєднався орендар, погоджено умови, прохання змін тощо
+
+
+# Типи, які людина може вимкнути для своєї оренди (NTF-LEASE, FR-NTF-1).
+LEASE_OPTIONAL_TYPES = (NotificationType.CHAT_MESSAGE, NotificationType.LEASE_UPDATE)
+QUIET_HOURS_DEFAULT = (22, 8)
 
 
 @dataclass(frozen=True)
@@ -31,3 +40,12 @@ class PendingNotification:
 class RenderedMessage:
     text: str
     buttons: list[Button] = field(default_factory=list)
+
+
+class LeaseNotificationPrefs(BaseModel):
+    """Налаштування сповіщень однієї людини для однієї оренди."""
+
+    chat_message: bool = True
+    lease_update: bool = True
+    quiet_from: int = Field(default=QUIET_HOURS_DEFAULT[0], ge=0, le=23)
+    quiet_to: int = Field(default=QUIET_HOURS_DEFAULT[1], ge=0, le=23)

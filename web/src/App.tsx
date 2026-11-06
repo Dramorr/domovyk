@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { api, setInitData, type Me, type Property, type User } from "./api/client";
+import { api, setInitData, type Invite, type Lease, type Me, type Property, type User } from "./api/client";
 import { BOT_USERNAME } from "./config";
 import { t } from "./i18n";
 import { Icon } from "./icons";
+import { Chat } from "./screens/Chat";
+import { InviteAccept, InviteShare, LeaseCard, LeaseForm, LeaseList, LeaseNotifications } from "./screens/Leases";
 import { ModerationCase, ModerationQueue } from "./screens/Moderation";
 import { ConsentAndName, PhoneStep } from "./screens/Onboarding";
 import { Profile } from "./screens/Profile";
@@ -27,14 +29,28 @@ type Route =
   | { name: "ownership"; id: string }
   | { name: "profile-form"; id: string }
   | { name: "moderation" }
-  | { name: "mod-case"; vid: string };
+  | { name: "mod-case"; vid: string }
+  | { name: "leases" }
+  | { name: "lease"; id: string }
+  | { name: "lease-new"; propertyId: string }
+  | { name: "lease-edit"; id: string }
+  | { name: "invite-share"; leaseId: string; invite: Invite }
+  | { name: "invite"; token: string }
+  | { name: "chat"; id: string }
+  | { name: "lease-notify"; id: string };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Екран із deep link (кнопки в сповіщеннях бота): prop_<id>, mod. */
+/** Екран із deep link (кнопки в сповіщеннях бота): prop_, lease_, chat_, inv_, mod. */
 function routeFromStart(param: string | null, isStaff: boolean): Route[] {
   if (!param) return [];
   if (param === "mod" && isStaff) return [{ name: "moderation" }];
+  if (param.startsWith("inv_")) return [{ name: "leases" }, { name: "invite", token: param.slice(4) }];
+  const leaseId = param.startsWith("lease_") ? param.slice(6) : param.startsWith("chat_") ? param.slice(5) : "";
+  if (UUID_RE.test(leaseId)) {
+    const base: Route[] = [{ name: "leases" }, { name: "lease", id: leaseId }];
+    return param.startsWith("chat_") ? [...base, { name: "chat", id: leaseId }] : base;
+  }
   const id = param.startsWith("prop_") ? param.slice(5) : "";
   if (UUID_RE.test(id)) return [{ name: "properties" }, { name: "property", id }];
   return [];
@@ -87,7 +103,8 @@ export function App() {
 
   const activeTab: Tab | null = (() => {
     const root = stack[0]?.name;
-    if (root === "home" || root === "properties" || root === "moderation" || root === "profile") return root;
+    if (root === "home" || root === "properties" || root === "leases" || root === "moderation" || root === "profile")
+      return root;
     return null;
   })();
 
@@ -199,6 +216,7 @@ export function App() {
           onBack={back}
           onOwnership={() => push({ name: "ownership", id: route.id })}
           onProfile={() => push({ name: "profile-form", id: route.id })}
+          onNewLease={(prop) => push({ name: "lease-new", propertyId: prop.id })}
           onDeleted={back}
         />
       );
@@ -216,6 +234,55 @@ export function App() {
       break;
     case "mod-case":
       screen = <ModerationCase key={route.vid} vid={route.vid} onBack={back} />;
+      break;
+    case "leases":
+      screen = <LeaseList onBack={stack.length > 1 ? back : undefined} onOpen={(id) => push({ name: "lease", id })} />;
+      break;
+    case "lease":
+      screen = (
+        <LeaseCard
+          key={route.id}
+          id={route.id}
+          webApp={webApp}
+          onBack={back}
+          onChat={() => push({ name: "chat", id: route.id })}
+          onEdit={() => push({ name: "lease-edit", id: route.id })}
+          onNotify={() => push({ name: "lease-notify", id: route.id })}
+          onInvite={(invite) => push({ name: "invite-share", leaseId: route.id, invite })}
+        />
+      );
+      break;
+    case "lease-new":
+      screen = (
+        <LeaseFormLoader
+          propertyId={route.propertyId}
+          onBack={back}
+          onCreated={(lease, invite) =>
+            setStack([{ name: "leases" }, { name: "lease", id: lease.id }, { name: "invite-share", leaseId: lease.id, invite }])
+          }
+        />
+      );
+      break;
+    case "lease-edit":
+      screen = <LeaseFormLoader leaseId={route.id} onBack={back} onSaved={back} />;
+      break;
+    case "invite-share":
+      screen = <InviteShare invite={route.invite} webApp={webApp} onDone={back} />;
+      break;
+    case "invite":
+      screen = (
+        <InviteAccept
+          token={route.token}
+          onBack={back}
+          onJoined={(lease) => setStack([{ name: "leases" }, { name: "lease", id: lease.id }])}
+        />
+      );
+      break;
+    case "chat":
+      screen = <Chat key={route.id} leaseId={route.id} onBack={back} />;
+      break;
+    case "lease-notify":
+      screen = <LeaseNotifications id={route.id} onBack={back} />;
       break;
     case "home":
       screen = (
@@ -287,18 +354,47 @@ function Home({
             <span className="quick-sub">{t("home_q_mod_sub", { n: String(modCount) })}</span>
           </button>
         )}
-        <div className="quick-item soon" aria-disabled="true">
+        <button className="quick-item" onClick={() => onTab("leases")}>
           <span className="row-icon">
             <Icon name="key" />
           </span>
           <span className="quick-title">{t("home_q_lease")}</span>
-          <span className="quick-sub">{t("home_q_soon")}</span>
-        </div>
+          <span className="quick-sub">{t("home_q_lease_sub")}</span>
+        </button>
       </div>
 
       <MascotTip tone="calm">
         <p>{t("home_soon")}</p>
       </MascotTip>
     </Screen>
+  );
+}
+
+/** Форма оренди потребує об'єкт (нова) або саму оренду (зміна умов) — довантажуємо їх. */
+function LeaseFormLoader({
+  propertyId,
+  leaseId,
+  onBack,
+  onCreated,
+  onSaved,
+}: {
+  propertyId?: string;
+  leaseId?: string;
+  onBack: () => void;
+  onCreated?: (lease: Lease, invite: Invite) => void;
+  onSaved?: (lease: Lease) => void;
+}) {
+  const [property, setProperty] = useState<Property | null>(null);
+  const [lease, setLease] = useState<Lease | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (propertyId) api.property(propertyId).then(setProperty).catch((e: unknown) => setError(errorText(e)));
+    if (leaseId) api.lease(leaseId).then(setLease).catch((e: unknown) => setError(errorText(e)));
+  }, [propertyId, leaseId]);
+  if ((propertyId && !property) || (leaseId && !lease)) {
+    return <Screen onBack={onBack}>{error ? <p className="error">{error}</p> : <div className="skeleton" />}</Screen>;
+  }
+  return (
+    <LeaseForm property={property ?? undefined} lease={lease ?? undefined} onBack={onBack} onCreated={onCreated} onSaved={onSaved} />
   );
 }

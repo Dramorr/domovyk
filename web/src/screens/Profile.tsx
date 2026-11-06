@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { api, type TenantProfile, type User } from "../api/client";
 import { t } from "../i18n";
 import { confirm, type WebApp } from "../telegram";
-import { Chip, errorText, Screen } from "../ui";
+import { Chip, errorCode, errorText, Screen } from "../ui";
 import { isValidName } from "./Onboarding";
 
 type Tri = boolean | null | undefined;
@@ -82,7 +82,7 @@ export function Profile({
       await api.deleteAccount();
       onDeleted();
     } catch (e) {
-      setError(errorText(e));
+      setError(errorCode(e) === "has_open_lease" ? t("prof_delete_has_lease") : errorText(e));
       setBusy(false);
     }
   }

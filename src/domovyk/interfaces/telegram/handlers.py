@@ -50,7 +50,10 @@ def make_router(mini_app_url: str) -> Router:
         if user is not None and user.status is UserStatus.BANNED:
             await message.answer(uk.ACCOUNT_BANNED)
             return
-        if user is not None and user.status is not UserStatus.DELETED:
+        if command.args and command.args.startswith("inv_"):
+            # INV-ACCEPT: запрошення в оренду відкривається в застосунку (після онбордингу).
+            text = uk.INV_START
+        elif user is not None and user.status is not UserStatus.DELETED:
             text = uk.ONB_WELCOME_BACK.format(name=escape(user.display_name))
         else:
             text = uk.ONB_WELCOME.format(name=escape(message.from_user.first_name))

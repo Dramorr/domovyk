@@ -8,7 +8,7 @@ export const BRAND = `${import.meta.env.BASE_URL}../brand/`;
 
 // ------------------------------------------------------------- навігація
 
-export type Tab = "home" | "properties" | "moderation" | "profile";
+export type Tab = "home" | "properties" | "leases" | "moderation" | "profile";
 
 type Nav = { active: Tab | null; isStaff: boolean; modCount: number | null; go: (tab: Tab) => void };
 
@@ -18,6 +18,7 @@ export const NavContext = createContext<Nav | null>(null);
 const TABS: { tab: Tab; icon: IconName; label: TextKey; staff?: boolean }[] = [
   { tab: "home", icon: "home", label: "nav_home" },
   { tab: "properties", icon: "building", label: "nav_properties" },
+  { tab: "leases", icon: "key", label: "nav_leases" },
   { tab: "moderation", icon: "shield", label: "nav_moderation", staff: true },
   { tab: "profile", icon: "user", label: "nav_profile" },
 ];

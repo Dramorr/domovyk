@@ -19,6 +19,10 @@ from domovyk.core.db import make_engine, make_sessionmaker
 from domovyk.core.tx import SqlTxManager
 from domovyk.modules.analytics.repository import SqlEventsRepository
 from domovyk.modules.analytics.service import AnalyticsService
+from domovyk.modules.chat.repository import SqlChatRepository
+from domovyk.modules.chat.service import ChatService
+from domovyk.modules.leases.repository import SqlLeasesRepository
+from domovyk.modules.leases.service import LeasesConfig, LeasesService
 from domovyk.modules.moderation.repository import SqlModerationRepository
 from domovyk.modules.moderation.service import ModerationService
 from domovyk.modules.notifications.repository import SqlNotificationsRepository
@@ -36,6 +40,8 @@ class Services:
     analytics: AnalyticsService
     notifications: NotificationsService
     properties: PropertiesService
+    chat: ChatService
+    leases: LeasesService
 
 
 def users_config(settings: Settings) -> UsersConfig:
@@ -61,6 +67,12 @@ def properties_config(settings: Settings) -> PropertiesConfig:
     )
 
 
+def wire_guards(users: UsersService, properties: PropertiesService, leases: LeasesService) -> None:
+    """Заборони видаляти акаунт і об'єкт з живою орендою — без циклічних імпортів модулів."""
+    users.set_delete_guard(leases.has_open_leases)
+    properties.set_delete_guard(leases.has_open_lease_on_property)
+
+
 def make_geocoder(settings: Settings) -> Geocoder:
     if settings.geocoder == "manual":
         return ManualGeocoder()
@@ -76,10 +88,8 @@ class Container:
         self.engine: AsyncEngine = make_engine(settings.database_url)
         tx = SqlTxManager(make_sessionmaker(self.engine))
         self.geocoder = make_geocoder(settings)
-        storage = EncryptedFileStorage(
-            LocalFileStorage(settings.storage_dir),
-            Cipher(settings.fernet_key.get_secret_value()),
-        )
+        cipher = Cipher(settings.fernet_key.get_secret_value())
+        storage = EncryptedFileStorage(LocalFileStorage(settings.storage_dir), cipher)
         token = settings.telegram_bot_token.get_secret_value()
         self.notifier = TelegramNotifier.from_token(token) if token else None
 
@@ -102,12 +112,27 @@ class Container:
             properties_config(settings),
             notifier=self.notifier,
         )
+        chat = ChatService(SqlChatRepository)
+        leases = LeasesService(
+            tx,
+            SqlLeasesRepository,
+            users,
+            properties,
+            chat,
+            notifications,
+            cipher,
+            clock,
+            LeasesConfig(hmac_secret=settings.hmac_secret.get_secret_value()),
+        )
+        wire_guards(users, properties, leases)
         self.services = Services(
             users=users,
             moderation=moderation,
             analytics=analytics,
             notifications=notifications,
             properties=properties,
+            chat=chat,
+            leases=leases,
         )
 
     async def close(self) -> None:

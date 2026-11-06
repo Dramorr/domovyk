@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import re
 import uuid
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import PurePath
@@ -22,6 +22,7 @@ from domovyk.core.errors import (
     Conflict,
     ContactsInText,
     DuplicateAddress,
+    HasOpenLease,
     InvalidInput,
     NotFound,
     OwnershipNotVerified,
@@ -141,6 +142,7 @@ class PropertiesService:
         self._clock = clock
         self._config = config
         self._notifier = notifier
+        self._delete_guard: Callable[[PropertyOut], Awaitable[bool]] | None = None
 
     # ----------------------------------------------------------------- адреси
 
@@ -329,8 +331,11 @@ class PropertiesService:
         """
         user = await self._users.require_active(telegram_uid)
         async with self._tx.begin() as tx:
+            prop = await self._owned(self._repo(tx), property_id, user.id)
+        if self._delete_guard is not None and await self._delete_guard(prop):
+            raise HasOpenLease("На об'єкті є оренда")
+        async with self._tx.begin() as tx:
             repo = self._repo(tx)
-            prop = await self._owned(repo, property_id, user.id)
             docs = await repo.all_documents_of_property(property_id)
             await repo.delete_property(property_id)
             await self._moderation.audit(
@@ -372,6 +377,17 @@ class PropertiesService:
             return await self._must_get(repo, property_id)
 
     # ---------------------------------------------- для інших модулів (правило 5)
+
+    async def property_of_unit(self, unit_id: uuid.UUID) -> PropertyOut | None:
+        """Для оренд: адреса й юніти об'єкта, до якого належить юніт."""
+        async with self._tx.begin() as tx:
+            repo = self._repo(tx)
+            property_id = await repo.property_id_of_unit(unit_id)
+            return await repo.get_property(property_id) if property_id else None
+
+    def set_delete_guard(self, guard: Callable[[PropertyOut], Awaitable[bool]]) -> None:
+        """Модуль оренд каже, чи є на об'єкті жива оренда (без циклічних імпортів)."""
+        self._delete_guard = guard
 
     async def require_verified_owner(
         self, user_id: uuid.UUID, property_id: uuid.UUID

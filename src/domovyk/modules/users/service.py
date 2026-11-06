@@ -6,7 +6,7 @@ FR-USR-1..5. Інші модулі й інтерфейси працюють з �
 from __future__ import annotations
 
 import uuid
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
 from domovyk.core.clock import Clock
@@ -17,6 +17,7 @@ from domovyk.core.errors import (
     Banned,
     Conflict,
     ConsentOutdated,
+    HasOpenLease,
     InvalidInput,
     NotFound,
     NotRegistered,
@@ -74,6 +75,11 @@ class UsersService:
         self._analytics = analytics
         self._clock = clock
         self._config = config
+        self._delete_guard: Callable[[uuid.UUID], Awaitable[bool]] | None = None
+
+    def set_delete_guard(self, guard: Callable[[uuid.UUID], Awaitable[bool]]) -> None:
+        """Модуль оренд каже, чи є в людини жива оренда (FR-USR-5), без циклічних імпортів."""
+        self._delete_guard = guard
 
     # ------------------------------------------------------------------ читання
 
@@ -252,9 +258,11 @@ class UsersService:
     async def delete_account(self, telegram_uid: int) -> None:
         """FR-USR-5: м'яке видалення й анонімізація. Бани лишаються — вони на хешах.
 
-        TODO(M3): заборонити, поки є активна оренда (через leases/service.py).
+        Поки є жива оренда (до її завершення чи скасування) — видалити не можна.
         """
         user = await self.require_active(telegram_uid)
+        if self._delete_guard is not None and await self._delete_guard(user.id):
+            raise HasOpenLease("Спершу заверши оренду")
         async with self._tx.begin() as tx:
             repo = self._repo(tx)
             await repo.set_display_name(user.id, DELETED_NAME)

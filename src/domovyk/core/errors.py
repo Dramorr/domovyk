@@ -59,6 +59,18 @@ class NotOwner(PermissionDenied):
     code = "not_owner"
 
 
+class InviteInvalid(Conflict):
+    """Запрошення прострочене, використане, скасоване або не твоє (details.reason)."""
+
+    code = "invite_invalid"
+
+
+class HasOpenLease(Conflict):
+    """Дія неможлива, поки є жива оренда (видалення акаунта чи об'єкта)."""
+
+    code = "has_open_lease"
+
+
 class ContactsInText(InvalidInput):
     """Телефон, посилання чи нік у тексті: контакти відкриваються лише після схвалення заявки."""
 

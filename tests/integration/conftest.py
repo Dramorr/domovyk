@@ -9,16 +9,22 @@ from datetime import UTC, datetime
 import pytest
 from alembic import command
 from alembic.config import Config
+from cryptography.fernet import Fernet
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domovyk.adapters.geocoder.manual import ManualGeocoder
-from domovyk.container import Services
+from domovyk.container import Services, wire_guards
 from domovyk.core.clock import FixedClock
+from domovyk.core.crypto import Cipher
 from domovyk.core.db import make_engine, make_sessionmaker
 from domovyk.core.tx import SqlTxManager
 from domovyk.modules.analytics.repository import SqlEventsRepository
 from domovyk.modules.analytics.service import AnalyticsService
+from domovyk.modules.chat.repository import SqlChatRepository
+from domovyk.modules.chat.service import ChatService
+from domovyk.modules.leases.repository import SqlLeasesRepository
+from domovyk.modules.leases.service import LeasesConfig, LeasesService
 from domovyk.modules.moderation.repository import SqlModerationRepository
 from domovyk.modules.moderation.service import ModerationService
 from domovyk.modules.notifications.repository import SqlNotificationsRepository
@@ -61,7 +67,9 @@ async def engine(migrated_url: str) -> AsyncIterator[AsyncEngine]:
     async with eng.begin() as conn:
         await conn.execute(
             text(
-                "TRUNCATE notifications, risk_signals, verification_documents, "
+                "TRUNCATE notification_preferences, conversation_reads, messages, "
+                "conversations, lease_invites, lease_members, leases, "
+                "notifications, risk_signals, verification_documents, "
                 "user_verifications, units, properties, buildings, districts, "
                 "events, audit_log, bans, user_consents, tenant_profiles, "
                 "auth_identities, users RESTART IDENTITY CASCADE"
@@ -105,10 +113,25 @@ def services(engine: AsyncEngine, it_clock: FixedClock) -> Services:
         PropertiesConfig(),
         notifier=FakeNotifier(),
     )
+    chat = ChatService(SqlChatRepository)
+    leases = LeasesService(
+        tx,
+        SqlLeasesRepository,
+        users,
+        properties,
+        chat,
+        notifications,
+        Cipher(Fernet.generate_key().decode()),
+        it_clock,
+        LeasesConfig(hmac_secret="test-hmac-secret"),
+    )
+    wire_guards(users, properties, leases)
     return Services(
         users=users,
         moderation=moderation,
         analytics=analytics,
         notifications=notifications,
         properties=properties,
+        chat=chat,
+        leases=leases,
     )

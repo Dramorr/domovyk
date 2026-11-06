@@ -1,5 +1,5 @@
 -- =====================================================================
---  Домовик — цільова схема бази даних, v0.5
+--  Домовик — цільова схема бази даних, v0.6
 --  PostgreSQL 16 + PostGIS
 --
 --  Це ЦІЛЬОВА модель. Реальні зміни в базі робляться тільки
@@ -418,11 +418,14 @@ CREATE TABLE leases (
     rent_due_day        smallint NOT NULL CHECK (rent_due_day BETWEEN 1 AND 28),
     deposit_amount      integer,
     pay_method          pay_method NOT NULL,
-    pay_details         jsonb NOT NULL DEFAULT '{}',  -- {card_last4, card_masked, iban, recipient_name, jar_url}
+    pay_details         jsonb NOT NULL DEFAULT '{}',  -- лише для показу: {masked, recipient (скорочено)}
+    pay_details_enc     text,                         -- повні реквізити, Fernet (FR-PAY-8)
     terms               jsonb NOT NULL DEFAULT '{}',  -- пункти договору: доступ, ремонти, тварини, КП, реєстрація…
     settings            jsonb NOT NULL DEFAULT '{}',  -- вікно оскарження оплати, нагадування тощо
+    terms_accepted_at   timestamptz,                  -- відповідальний орендар погодив умови
     activated_at        timestamptz,
     ended_at            timestamptz,
+    cancelled_at        timestamptz,
     created_at          timestamptz NOT NULL DEFAULT now(),
     updated_at          timestamptz NOT NULL DEFAULT now(),
     CHECK (end_date > start_date),
@@ -448,6 +451,9 @@ CREATE TABLE lease_members (
     left_at         timestamptz,
     UNIQUE (lease_id, user_id)
 );
+-- Рівно один відповідальний орендар на оренду.
+CREATE UNIQUE INDEX uq_one_responsible
+    ON lease_members(lease_id) WHERE member_role = 'responsible' AND left_at IS NULL;
 CREATE UNIQUE INDEX uq_one_responsible_per_lease
     ON lease_members(lease_id) WHERE member_role = 'responsible' AND left_at IS NULL;
 CREATE INDEX idx_lease_members_user ON lease_members(user_id) WHERE left_at IS NULL;
@@ -614,22 +620,21 @@ CREATE TABLE messages (
     body                text,
     attachment_key      text,
     attachment_type     text,
+    system_code         text,                        -- системне повідомлення (FR-CHT-2), текст — у локалізації
     created_at          timestamptz NOT NULL DEFAULT now(),
     edited_at           timestamptz,
     deleted_at          timestamptz,
-    CHECK (body IS NOT NULL OR attachment_key IS NOT NULL)
+    CHECK (body IS NOT NULL OR attachment_key IS NOT NULL OR system_code IS NOT NULL)
 );
 CREATE INDEX idx_messages_conv ON messages(conversation_id, id);
 
--- Доставка повідомлень по каналах (Telegram message_id тощо) — окремо від самого повідомлення.
-CREATE TABLE message_deliveries (
-    message_id      bigint NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
-    user_id         uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    channel         text NOT NULL DEFAULT 'telegram',
-    external_id     text,
-    delivered_at    timestamptz,
-    read_at         timestamptz,
-    PRIMARY KEY (message_id, user_id, channel)
+-- Чат живе в застосунку (ADR 0004): достатньо «до якого повідомлення прочитано».
+CREATE TABLE conversation_reads (
+    conversation_id      uuid NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+    user_id              uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    last_read_message_id bigint NOT NULL DEFAULT 0,
+    updated_at           timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (conversation_id, user_id)
 );
 
 -- Заявки на ремонт / поломки.

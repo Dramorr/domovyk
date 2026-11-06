@@ -150,3 +150,51 @@ async def test_profile_endpoint(client: httpx.AsyncClient, now: datetime) -> Non
     assert "heating" not in body["completeness"]["missing_important"]
     r = await client.put(f"/api/v1/properties/{pid}/details", json={"heating": "дрова"}, headers=h)
     assert r.status_code == 422
+
+
+async def test_lease_endpoints(client: httpx.AsyncClient, now: datetime, db: FakeDb) -> None:
+    from domovyk.domain.properties import OwnershipStatus
+
+    h = _auth(now)
+    pid = (await client.post("/api/v1/properties", json=FLAT, headers=h)).json()["id"]
+    lease_body = {
+        "property_id": pid,
+        "start_date": "2026-12-01",
+        "months": 11,
+        "rent_amount": 18000,
+        "rent_due_day": 5,
+        "pay_method": "cash",
+    }
+    r = await client.post("/api/v1/leases", json=lease_body, headers=h)
+    assert (r.status_code, r.json()["error"]) == (403, "ownership_not_verified")
+
+    import uuid as _uuid
+
+    db.prop.properties[_uuid.UUID(pid)].ownership = OwnershipStatus.VERIFIED
+    r = await client.post("/api/v1/leases", json=lease_body, headers=h)
+    assert r.status_code == 201, r.text
+    lease_id, token = r.json()["lease"]["id"], r.json()["invite"]["token"]
+
+    tenant = _auth(now, ADMIN_TG)
+    r = await client.get(f"/api/v1/invites/{token}", headers=tenant)
+    assert r.json()["valid"] is True
+    r = await client.post(f"/api/v1/invites/{token}/accept", headers=tenant)
+    assert r.json()["my_role"] == "responsible"
+    r = await client.post(f"/api/v1/invites/{token}/accept", headers=tenant)
+    assert (r.status_code, r.json()["error"], r.json()["reason"]) == (409, "invite_invalid", "used")
+
+    r = await client.post(
+        f"/api/v1/leases/{lease_id}/messages", json={"body": "Привіт!"}, headers=tenant
+    )
+    assert r.status_code == 201
+    page = (await client.get(f"/api/v1/leases/{lease_id}/messages", headers=h)).json()
+    assert page["messages"][-1]["body"] == "Привіт!"
+    r = await client.post(f"/api/v1/leases/{lease_id}/accept-terms", headers=tenant)
+    assert r.json()["status"] == "awaiting_signatures"
+    r = await client.put(
+        f"/api/v1/leases/{lease_id}/notifications",
+        json={"chat_message": False, "lease_update": True, "quiet_from": 23, "quiet_to": 7},
+        headers=tenant,
+    )
+    assert r.json()["quiet_from"] == 23
+    assert len((await client.get("/api/v1/leases", headers=tenant)).json()) == 1

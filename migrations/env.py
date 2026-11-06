@@ -10,6 +10,8 @@ from sqlalchemy.engine import Connection
 
 # Імпорти ORM-моделей модулів — щоб autogenerate їх бачив. Нові модулі додавай сюди.
 import domovyk.modules.analytics.models
+import domovyk.modules.chat.models
+import domovyk.modules.leases.models
 import domovyk.modules.moderation.models
 import domovyk.modules.notifications.models
 import domovyk.modules.properties.models
