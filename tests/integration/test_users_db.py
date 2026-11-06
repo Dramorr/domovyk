@@ -104,3 +104,14 @@ async def test_db_constraints(users: UsersService, engine: AsyncEngine, sql: str
         with pytest.raises(Exception) as exc:
             await conn.execute(text(sql), {"uid": user.id})
         assert isinstance(exc.value, IntegrityError) or "invalid input value" in str(exc.value)
+
+
+async def test_app_mode_db(users: UsersService, engine: AsyncEngine) -> None:
+    from domovyk.domain.users import AppMode
+
+    await _register(users, 42)
+    await users.set_mode(42, AppMode.LANDLORD)
+    assert (await users.find_by_telegram(42)).mode is AppMode.LANDLORD  # type: ignore[union-attr]
+    async with engine.connect() as conn:
+        with pytest.raises(IntegrityError):
+            await conn.execute(text("UPDATE users SET app_mode = 'agent'"))

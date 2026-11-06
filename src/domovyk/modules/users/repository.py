@@ -10,7 +10,7 @@ from sqlalchemy import delete, exists, select, update
 from sqlalchemy.dialects.postgresql import insert
 
 from domovyk.core.tx import Tx, session_of
-from domovyk.domain.users import ConsentDocument, IdentityProvider, UserRole, UserStatus
+from domovyk.domain.users import AppMode, ConsentDocument, IdentityProvider, UserRole, UserStatus
 from domovyk.modules.users.models import (
     AuthIdentityRow,
     TenantProfileRow,
@@ -42,6 +42,7 @@ class UsersRepository(Protocol):
         self, user_id: uuid.UUID, status: UserStatus, *, deleted_at: datetime | None = None
     ) -> None: ...
     async def set_display_name(self, user_id: uuid.UUID, name: str) -> None: ...
+    async def set_mode(self, user_id: uuid.UUID, mode: AppMode) -> None: ...
     async def add_consent(
         self, user_id: uuid.UUID, document: ConsentDocument, version: str, at: datetime
     ) -> None: ...
@@ -75,6 +76,7 @@ class SqlUsersRepository:
             telegram_uid=int(tg) if tg else None,
             has_phone=has_phone,
             created_at=row.created_at,
+            mode=AppMode(row.app_mode) if row.app_mode else None,
         )
 
     async def get(self, user_id: uuid.UUID) -> UserOut | None:
@@ -142,6 +144,11 @@ class SqlUsersRepository:
         if deleted_at is not None:
             values["deleted_at"] = deleted_at
         await self._s.execute(update(UserRow).where(UserRow.id == user_id).values(**values))
+
+    async def set_mode(self, user_id: uuid.UUID, mode: AppMode) -> None:
+        await self._s.execute(
+            update(UserRow).where(UserRow.id == user_id).values(app_mode=mode.value)
+        )
 
     async def set_display_name(self, user_id: uuid.UUID, name: str) -> None:
         await self._s.execute(

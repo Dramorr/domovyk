@@ -30,6 +30,13 @@ class IdentityProvider(StrEnum):
     DIIA = "diia"
 
 
+class AppMode(StrEnum):
+    """Що людина бачить за замовчуванням (ADR 0006). Не роль: ролі — в конкретній оренді."""
+
+    TENANT = "tenant"  # шукаю житло
+    LANDLORD = "landlord"  # здаю житло
+
+
 class ConsentDocument(StrEnum):
     TERMS = "terms"
     PRIVACY = "privacy"

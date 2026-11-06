@@ -15,7 +15,13 @@ from domovyk.container import Services, wire_guards
 from domovyk.core.clock import Clock, FixedClock
 from domovyk.core.crypto import Cipher
 from domovyk.core.tx import NullTxManager, Tx
-from domovyk.domain.users import ConsentDocument, IdentityProvider, UserRole, UserStatus
+from domovyk.domain.users import (
+    AppMode,
+    ConsentDocument,
+    IdentityProvider,
+    UserRole,
+    UserStatus,
+)
 from domovyk.modules.analytics.service import AnalyticsService
 from domovyk.modules.chat.service import ChatService
 from domovyk.modules.leases.service import LeasesConfig, LeasesService
@@ -48,6 +54,7 @@ class _User:
     status: UserStatus = UserStatus.ACTIVE
     created_at: datetime = field(default_factory=lambda: datetime(2026, 11, 4, tzinfo=UTC))
     deleted_at: datetime | None = None
+    mode: AppMode | None = None
 
 
 @dataclass
@@ -92,6 +99,7 @@ class FakeUsersRepository:
             telegram_uid=int(tg) if tg else None,
             has_phone=self._uid(u.id, IdentityProvider.PHONE) is not None,
             created_at=u.created_at,
+            mode=u.mode,
         )
 
     def _uid(self, user_id: uuid.UUID, provider: IdentityProvider) -> str | None:
@@ -148,6 +156,9 @@ class FakeUsersRepository:
 
     async def set_display_name(self, user_id: uuid.UUID, name: str) -> None:
         self.db.users[user_id].display_name = name
+
+    async def set_mode(self, user_id: uuid.UUID, mode: AppMode) -> None:
+        self.db.users[user_id].mode = mode
 
     async def add_consent(
         self, user_id: uuid.UUID, document: ConsentDocument, version: str, at: datetime

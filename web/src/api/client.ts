@@ -3,6 +3,7 @@ import type { components } from "./schema";
 type S = components["schemas"];
 export type Me = S["MeOut"];
 export type User = S["UserOut"];
+export type Mode = S["AppMode"];
 export type TenantProfile = S["TenantProfile"];
 export type AddressCandidate = S["AddressCandidate"];
 export type PropertyCreate = S["PropertyCreate"];
@@ -94,6 +95,7 @@ export const api = {
   me: () => request<Me>("GET", "/api/v1/me"),
   register: (body: S["RegisterIn"]) => request<User>("POST", "/api/v1/register", body),
   rename: (display_name: string) => request<User>("PATCH", "/api/v1/me", { display_name }),
+  setMode: (mode: Mode) => request<User>("PUT", "/api/v1/me/mode", { mode }),
   deleteAccount: () => request<void>("DELETE", "/api/v1/me"),
   tenantProfile: () => request<TenantProfile>("GET", "/api/v1/me/tenant-profile"),
   saveTenantProfile: (body: TenantProfile) =>

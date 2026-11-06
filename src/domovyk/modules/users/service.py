@@ -26,6 +26,7 @@ from domovyk.core.errors import (
 )
 from domovyk.core.tx import Tx, TxManager
 from domovyk.domain.users import (
+    AppMode,
     ConsentDocument,
     IdentityProvider,
     UserRole,
@@ -41,7 +42,7 @@ from domovyk.modules.moderation.service import AuditAction, BanIdentifiers, Mode
 from domovyk.modules.users.repository import UsersRepository
 from domovyk.modules.users.schemas import ConsentInfo, TenantProfile, UserOut
 
-__all__ = ["ConsentInfo", "TenantProfile", "UserOut", "UsersConfig", "UsersService"]
+__all__ = ["AppMode", "ConsentInfo", "TenantProfile", "UserOut", "UsersConfig", "UsersService"]
 
 # Ім'я, яке лишається замість справжнього після видалення акаунта (FR-USR-5).
 DELETED_NAME = "deleted"
@@ -231,6 +232,14 @@ class UsersService:
         return result
 
     # ------------------------------------------------------------------ профіль
+
+    async def set_mode(self, telegram_uid: int, mode: AppMode) -> UserOut:
+        """ONB-4 і перемикач режиму (ADR 0006): що людина бачить за замовчуванням."""
+        user = await self.require_active(telegram_uid)
+        async with self._tx.begin() as tx:
+            repo = self._repo(tx)
+            await repo.set_mode(user.id, mode)
+            return await self._must_get(repo, user.id)
 
     async def update_display_name(self, telegram_uid: int, display_name: str) -> UserOut:
         user = await self.require_active(telegram_uid)

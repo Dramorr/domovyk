@@ -1,5 +1,5 @@
 -- =====================================================================
---  Домовик — цільова схема бази даних, v0.6
+--  Домовик — цільова схема бази даних, v0.7
 --  PostgreSQL 16 + PostGIS
 --
 --  Це ЦІЛЬОВА модель. Реальні зміни в базі робляться тільки
@@ -96,6 +96,7 @@ CREATE TABLE users (
     role            user_role   NOT NULL DEFAULT 'user',   -- moderator призначає admin
     status          user_status NOT NULL DEFAULT 'active',
     locale          text        NOT NULL DEFAULT 'uk',
+    app_mode        text CHECK (app_mode IN ('tenant', 'landlord')),  -- режим застосунку (ADR 0006); NULL — ще не обрав
     created_at      timestamptz NOT NULL DEFAULT now(),
     updated_at      timestamptz NOT NULL DEFAULT now(),
     last_active_at  timestamptz,

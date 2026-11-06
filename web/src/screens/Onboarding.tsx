@@ -5,6 +5,7 @@ import { useState } from "react";
 import { api, ApiFailure, type Me, type User } from "../api/client";
 import { t } from "../i18n";
 import { openLink, requestContact, type WebApp } from "../telegram";
+import { Icon } from "../icons";
 import { errorText, Mascot, Screen } from "../ui";
 
 const NAME_RE = /^\p{L}[\p{L} '’ʼ-]*$/u;
@@ -151,6 +152,48 @@ export function PhoneStep({ webApp, onDone }: { webApp: WebApp; onDone: (user: U
         {t("onb_phone_button")}
       </button>
       <p className="hint small">{t("onb_phone_fallback")}</p>
+    </Screen>
+  );
+}
+
+// ONB-4 · «Що тебе привело?» (ADR 0006): режим, а не тип акаунта — змінюється будь-коли.
+export function ModeChoice({ onDone }: { onDone: (user: User) => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function choose(mode: "tenant" | "landlord") {
+    setBusy(true);
+    setError(null);
+    try {
+      onDone(await api.setMode(mode));
+    } catch (e) {
+      setError(errorText(e));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Screen>
+      <Mascot size="md" />
+      <h1>{t("mode_question")}</h1>
+      <p className="hint">{t("mode_question_hint")}</p>
+      <div className="mode-cards">
+        <button className="choice-big" disabled={busy} onClick={() => choose("tenant")}>
+          <span className="row-icon">
+            <Icon name="search" />
+          </span>
+          {t("mode_tenant_title")}
+          <span className="quick-sub">{t("mode_tenant_sub")}</span>
+        </button>
+        <button className="choice-big" disabled={busy} onClick={() => choose("landlord")}>
+          <span className="row-icon">
+            <Icon name="building" />
+          </span>
+          {t("mode_landlord_title")}
+          <span className="quick-sub">{t("mode_landlord_sub")}</span>
+        </button>
+      </div>
+      {error && <p className="error">{error}</p>}
     </Screen>
   );
 }

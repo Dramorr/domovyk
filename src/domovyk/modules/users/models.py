@@ -52,6 +52,7 @@ class UserRow(Base):
         _pg_enum(UserStatus, "user_status"), server_default=UserStatus.ACTIVE.value
     )
     locale: Mapped[str] = mapped_column(Text, server_default="uk")
+    app_mode: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     last_active_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

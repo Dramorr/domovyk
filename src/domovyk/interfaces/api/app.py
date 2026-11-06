@@ -66,7 +66,7 @@ from domovyk.modules.properties.service import (
     RoomIn,
     VerificationCase,
 )
-from domovyk.modules.users.service import ConsentInfo, TenantProfile, UserOut
+from domovyk.modules.users.service import AppMode, ConsentInfo, TenantProfile, UserOut
 
 _AUTH_SCHEME = "tma "
 
@@ -108,6 +108,10 @@ class RegisterIn(BaseModel):
 
 class NameIn(BaseModel):
     display_name: str
+
+
+class ModeIn(BaseModel):
+    mode: AppMode
 
 
 class ApproveIn(BaseModel):
@@ -240,6 +244,10 @@ def create_app(
     @app.patch("/api/v1/me")
     async def update_me(auth: Auth, body: NameIn) -> UserOut:
         return await svc.users.update_display_name(auth.user.id, body.display_name)
+
+    @app.put("/api/v1/me/mode")
+    async def set_mode(auth: Auth, body: ModeIn) -> UserOut:
+        return await svc.users.set_mode(auth.user.id, body.mode)
 
     @app.delete("/api/v1/me", status_code=status.HTTP_204_NO_CONTENT)
     async def delete_me(auth: Auth) -> Response:

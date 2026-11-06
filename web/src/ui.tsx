@@ -8,25 +8,43 @@ export const BRAND = `${import.meta.env.BASE_URL}../brand/`;
 
 // ------------------------------------------------------------- навігація
 
-export type Tab = "home" | "properties" | "leases" | "moderation" | "profile";
+export type Tab = "home" | "search" | "properties" | "leases" | "moderation" | "profile";
+export type Mode = "tenant" | "landlord";
 
-type Nav = { active: Tab | null; isStaff: boolean; modCount: number | null; go: (tab: Tab) => void };
+type Nav = {
+  active: Tab | null;
+  mode: Mode;
+  isStaff: boolean;
+  modCount: number | null;
+  go: (tab: Tab) => void;
+  switchMode: () => void;
+};
 
 /** Нижня навігація є лише в зареєстрованого користувача (App дає контекст). */
 export const NavContext = createContext<Nav | null>(null);
 
-const TABS: { tab: Tab; icon: IconName; label: TextKey; staff?: boolean }[] = [
-  { tab: "home", icon: "home", label: "nav_home" },
-  { tab: "properties", icon: "building", label: "nav_properties" },
-  { tab: "leases", icon: "key", label: "nav_leases" },
-  { tab: "moderation", icon: "shield", label: "nav_moderation", staff: true },
-  { tab: "profile", icon: "user", label: "nav_profile" },
-];
+// Своя навігація для кожного режиму (ADR 0006); «Модерація» — лише модераторам.
+const TABS: Record<Mode, { tab: Tab; icon: IconName; label: TextKey; staff?: boolean }[]> = {
+  tenant: [
+    { tab: "home", icon: "home", label: "nav_home" },
+    { tab: "search", icon: "search", label: "nav_search" },
+    { tab: "leases", icon: "key", label: "nav_my_lease" },
+    { tab: "moderation", icon: "shield", label: "nav_moderation", staff: true },
+    { tab: "profile", icon: "user", label: "nav_profile" },
+  ],
+  landlord: [
+    { tab: "home", icon: "home", label: "nav_home" },
+    { tab: "properties", icon: "building", label: "nav_properties" },
+    { tab: "leases", icon: "key", label: "nav_leases" },
+    { tab: "moderation", icon: "shield", label: "nav_moderation", staff: true },
+    { tab: "profile", icon: "user", label: "nav_profile" },
+  ],
+};
 
 function BottomNav({ nav }: { nav: Nav }) {
   return (
     <nav className="tabbar" aria-label={t("nav_label")}>
-      {TABS.filter((x) => !x.staff || nav.isStaff).map((x) => (
+      {TABS[nav.mode].filter((x) => !x.staff || nav.isStaff).map((x) => (
         <button
           key={x.tab}
           className={`tab${nav.active === x.tab ? " active" : ""}`}
@@ -46,7 +64,24 @@ function BottomNav({ nav }: { nav: Nav }) {
 
 // ------------------------------------------------------------- оболонка
 
+/** Чип режиму в шапці: показує, де ти зараз, і перемикає (ADR 0006). */
+function ModeChip({ nav }: { nav: Nav }) {
+  const tenant = nav.mode === "tenant";
+  return (
+    <button
+      className={`mode-chip ${nav.mode}`}
+      onClick={nav.switchMode}
+      aria-label={tenant ? t("mode_switch_to_landlord") : t("mode_switch_to_tenant")}
+    >
+      <Icon name={tenant ? "search" : "building"} size={16} />
+      {tenant ? t("mode_tenant_short") : t("mode_landlord_short")}
+      <Icon name="swap" size={14} />
+    </button>
+  );
+}
+
 export function Header({ onBack, title }: { onBack?: () => void; title?: string }) {
+  const nav = useContext(NavContext);
   return (
     <header className="appbar">
       {onBack ? (
@@ -57,7 +92,7 @@ export function Header({ onBack, title }: { onBack?: () => void; title?: string 
         <img className="appbar-logo" src={`${BRAND}app-icon.svg`} alt="" width={34} height={34} />
       )}
       {title ? <span className="appbar-title">{title}</span> : <span className="brand">Домовик</span>}
-      <span className="badge">{t("beta")}</span>
+      {nav ? <ModeChip nav={nav} /> : <span className="badge">{t("beta")}</span>}
     </header>
   );
 }

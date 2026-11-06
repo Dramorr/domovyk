@@ -7,12 +7,12 @@ import { Icon } from "./icons";
 import { Chat } from "./screens/Chat";
 import { InviteAccept, InviteShare, LeaseCard, LeaseForm, LeaseList, LeaseNotifications } from "./screens/Leases";
 import { ModerationCase, ModerationQueue } from "./screens/Moderation";
-import { ConsentAndName, PhoneStep } from "./screens/Onboarding";
+import { ConsentAndName, ModeChoice, PhoneStep } from "./screens/Onboarding";
 import { Profile } from "./screens/Profile";
 import { PropertyProfile } from "./screens/PropertyProfile";
 import { NewProperty, OwnershipScreen, PropertyCard, PropertyList } from "./screens/Properties";
 import { getWebApp, startParam } from "./telegram";
-import { errorText, Mascot, MascotTip, NavContext, Screen, type Tab } from "./ui";
+import { errorText, Mascot, MascotTip, type Mode, NavContext, Screen, type Tab } from "./ui";
 
 type State =
   | { kind: "loading" }
@@ -22,6 +22,7 @@ type State =
 
 type Route =
   | { name: "home" }
+  | { name: "search" }
   | { name: "profile" }
   | { name: "properties" }
   | { name: "new-property" }
@@ -56,6 +57,13 @@ function routeFromStart(param: string | null, isStaff: boolean): Route[] {
   return [];
 }
 
+function modeForRoute(routes: Route[]): Mode | null {
+  const root = routes[0]?.name;
+  if (routes.some((r) => r.name === "invite") || root === "search") return "tenant";
+  if (root === "properties" || root === "moderation") return "landlord";
+  return null;
+}
+
 export function App() {
   const webApp = getWebApp();
   const [state, setState] = useState<State>({ kind: "loading" });
@@ -75,10 +83,15 @@ export function App() {
     setState({ kind: "loading" });
     api
       .me()
-      .then((me) => {
-        setState({ kind: "ready", me });
+      .then(async (me) => {
         const staff = me.user?.role === "moderator" || me.user?.role === "admin";
         const deep = routeFromStart(startParam(webApp), staff);
+        // Посилання зі сповіщення саме перемикає режим (ADR 0006).
+        const needed = modeForRoute(deep);
+        if (needed && me.user?.mode && me.user.mode !== needed) {
+          me = { ...me, user: await api.setMode(needed).catch(() => me.user) };
+        }
+        setState({ kind: "ready", me });
         if (deep.length) setStack(deep);
       })
       .catch((e: unknown) => setState({ kind: "error", message: errorText(e), retry: true }));
@@ -103,19 +116,40 @@ export function App() {
 
   const activeTab: Tab | null = (() => {
     const root = stack[0]?.name;
-    if (root === "home" || root === "properties" || root === "leases" || root === "moderation" || root === "profile")
+    if (
+      root === "home" ||
+      root === "search" ||
+      root === "properties" ||
+      root === "leases" ||
+      root === "moderation" ||
+      root === "profile"
+    )
       return root;
     return null;
   })();
 
+  const mode: Mode = user?.mode ?? "landlord";
+  const switchMode = useCallback(() => {
+    const next: Mode = mode === "tenant" ? "landlord" : "tenant";
+    api
+      .setMode(next)
+      .then((u) => {
+        setState((s) => (s.kind === "ready" ? { kind: "ready", me: { ...s.me, user: u } } : s));
+        setStack([{ name: "home" }]);
+      })
+      .catch(() => undefined);
+  }, [mode]);
+
   const nav = useMemo(
     () => ({
       active: activeTab,
+      mode,
       isStaff,
       modCount,
       go: (tab: Tab) => setStack([{ name: tab }]),
+      switchMode,
     }),
-    [activeTab, isStaff, modCount],
+    [activeTab, mode, isStaff, modCount, switchMode],
   );
 
   if (!webApp) {
@@ -181,6 +215,9 @@ export function App() {
   if (!user.has_phone) {
     return <PhoneStep webApp={webApp} onDone={setUser} />;
   }
+  if (!user.mode) {
+    return <ModeChoice onDone={setUser} />;
+  }
 
   let screen: JSX.Element;
   switch (route.name) {
@@ -192,7 +229,19 @@ export function App() {
           onBack={stack.length > 1 ? back : undefined}
           onUserChange={setUser}
           onDeleted={() => setState({ kind: "deleted" })}
+          onSwitchMode={switchMode}
         />
+      );
+      break;
+    case "search":
+      screen = (
+        <Screen>
+          <h1>{t("search_title")}</h1>
+          <Mascot size="md" />
+          <MascotTip>
+            <p>{t("search_soon")}</p>
+          </MascotTip>
+        </Screen>
       );
       break;
     case "properties":
@@ -287,6 +336,7 @@ export function App() {
     case "home":
       screen = (
         <Home
+          mode={mode}
           user={user}
           props={props}
           modCount={isStaff ? modCount : null}
@@ -301,12 +351,14 @@ export function App() {
 }
 
 function Home({
+  mode,
   user,
   props,
   modCount,
   onTab,
   onNewProperty,
 }: {
+  mode: Mode;
   user: User;
   props: Property[] | null;
   modCount: number | null;
@@ -324,27 +376,42 @@ function Home({
         <img className="hero-mascot" src={`${import.meta.env.BASE_URL}../brand/mascot.svg`} alt="" />
       </section>
 
-      {props && count === 0 && (
+      {mode === "landlord" && props && count === 0 && (
         <MascotTip>
           <p>{t("home_tip_first")}</p>
         </MascotTip>
       )}
+      {mode === "tenant" && (
+        <MascotTip>
+          <p>{t("home_tenant_tip")}</p>
+        </MascotTip>
+      )}
 
       <div className="quick">
-        <button className="quick-item" onClick={() => (count ? onTab("properties") : onNewProperty())}>
+        {mode === "landlord" ? (
+          <button className="quick-item" onClick={() => (count ? onTab("properties") : onNewProperty())}>
+            <span className="row-icon">
+              <Icon name={count ? "building" : "plus"} />
+            </span>
+            <span className="quick-title">{count ? t("home_q_properties") : t("home_q_add")}</span>
+            <span className="quick-sub">{count ? t("home_q_properties_sub", { n: String(count) }) : t("home_q_add_sub")}</span>
+          </button>
+        ) : (
+          <button className="quick-item" onClick={() => onTab("search")}>
+            <span className="row-icon">
+              <Icon name="search" />
+            </span>
+            <span className="quick-title">{t("home_q_search")}</span>
+            <span className="quick-sub">{t("home_q_soon")}</span>
+          </button>
+        )}
+        <button className="quick-item" onClick={() => onTab("leases")}>
           <span className="row-icon">
-            <Icon name={count ? "building" : "plus"} />
+            <Icon name="key" />
           </span>
-          <span className="quick-title">{count ? t("home_q_properties") : t("home_q_add")}</span>
-          <span className="quick-sub">{count ? t("home_q_properties_sub", { n: String(count) }) : t("home_q_add_sub")}</span>
+          <span className="quick-title">{mode === "tenant" ? t("nav_my_lease") : t("nav_leases")}</span>
+          <span className="quick-sub">{t("home_q_my_lease_sub")}</span>
         </button>
-        <div className="quick-item soon" aria-disabled="true">
-          <span className="row-icon">
-            <Icon name="search" />
-          </span>
-          <span className="quick-title">{t("home_q_search")}</span>
-          <span className="quick-sub">{t("home_q_soon")}</span>
-        </div>
         {modCount !== null && (
           <button className="quick-item" onClick={() => onTab("moderation")}>
             <span className="row-icon">
@@ -354,13 +421,6 @@ function Home({
             <span className="quick-sub">{t("home_q_mod_sub", { n: String(modCount) })}</span>
           </button>
         )}
-        <button className="quick-item" onClick={() => onTab("leases")}>
-          <span className="row-icon">
-            <Icon name="key" />
-          </span>
-          <span className="quick-title">{t("home_q_lease")}</span>
-          <span className="quick-sub">{t("home_q_lease_sub")}</span>
-        </button>
       </div>
 
       <MascotTip tone="calm">

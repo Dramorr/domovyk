@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { api, type TenantProfile, type User } from "../api/client";
 import { t } from "../i18n";
 import { confirm, type WebApp } from "../telegram";
+import { Icon } from "../icons";
 import { Chip, errorCode, errorText, Screen } from "../ui";
 import { isValidName } from "./Onboarding";
 
@@ -25,12 +26,14 @@ export function Profile({
   onBack,
   onUserChange,
   onDeleted,
+  onSwitchMode,
 }: {
   user: User;
   webApp: WebApp;
   onBack?: () => void;
   onUserChange: (user: User) => void;
   onDeleted: () => void;
+  onSwitchMode: () => void;
 }) {
   const [name, setName] = useState(user.display_name);
   const [profile, setProfile] = useState<TenantProfile | null>(null);
@@ -95,6 +98,16 @@ export function Profile({
         {user.role !== "user" && <Chip tone="warn">{t(`role_${user.role}`)}</Chip>}
       </div>
 
+      <button className="mode-card" onClick={onSwitchMode}>
+        <span className="row-icon">
+          <Icon name="swap" />
+        </span>
+        <span className="row-body">
+          <span className="row-title">{user.mode === "landlord" ? t("mode_card_to_tenant") : t("mode_card_to_landlord")}</span>
+          <span className="row-sub">{user.mode === "landlord" ? t("mode_card_to_tenant_sub") : t("mode_card_to_landlord_sub")}</span>
+        </span>
+      </button>
+
       <section className="card">
         <label className="field">
           {t("prof_name")}
@@ -105,6 +118,7 @@ export function Profile({
         </button>
       </section>
 
+      {user.mode !== "landlord" && (
       <section className="card">
         <h2>{t("prof_tenant_title")}</h2>
         <p className="hint small">{t("prof_tenant_hint")}</p>
@@ -162,9 +176,12 @@ export function Profile({
           </>
         )}
       </section>
+      )}
 
       {message && <p className="ok">{message}</p>}
       {error && <p className="error">{error}</p>}
+
+      <p className="hint small center-text">{t("prof_beta_note")}</p>
 
       <button className="link danger" onClick={deleteAccount} disabled={busy}>
         {t("prof_delete")}

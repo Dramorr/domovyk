@@ -169,6 +169,15 @@
         "title": "ApartmentBackupPower",
         "type": "string"
       },
+      "AppMode": {
+        "description": "Що людина бачить за замовчуванням (ADR 0006). Не роль: ролі — в конкретній оренді.",
+        "enum": [
+          "tenant",
+          "landlord"
+        ],
+        "title": "AppMode",
+        "type": "string"
+      },
       "Appliance": {
         "enum": [
           "fridge",
@@ -1386,6 +1395,18 @@
         ],
         "title": "Meter",
         "type": "string"
+      },
+      "ModeIn": {
+        "properties": {
+          "mode": {
+            "$ref": "#/components/schemas/AppMode"
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "title": "ModeIn",
+        "type": "object"
       },
       "ModerationSummaryOut": {
         "properties": {
@@ -3177,6 +3198,16 @@
             "title": "Id",
             "type": "string"
           },
+          "mode": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AppMode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "role": {
             "$ref": "#/components/schemas/UserRole"
           },
@@ -4635,6 +4666,62 @@
           }
         },
         "summary": "Update Me"
+      }
+    },
+    "/api/v1/me/mode": {
+      "put": {
+        "operationId": "set_mode_api_v1_me_mode_put",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Mode"
       }
     },
     "/api/v1/me/tenant-profile": {

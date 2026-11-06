@@ -7,7 +7,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from domovyk.domain.users import UserRole, UserStatus
+from domovyk.domain.users import AppMode, UserRole, UserStatus
 
 
 class UserOut(BaseModel):
@@ -18,6 +18,7 @@ class UserOut(BaseModel):
     telegram_uid: int | None
     has_phone: bool
     created_at: datetime
+    mode: AppMode | None = None  # None — ще не обрав (ONB-4)
 
 
 class TenantProfile(BaseModel):

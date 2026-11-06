@@ -281,6 +281,23 @@ export interface paths {
         patch: operations["update_me_api_v1_me_patch"];
         trace?: never;
     };
+    "/api/v1/me/mode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Mode */
+        put: operations["set_mode_api_v1_me_mode_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/tenant-profile": {
         parameters: {
             query?: never;
@@ -667,6 +684,12 @@ export interface components {
          * @enum {string}
          */
         ApartmentBackupPower: "none" | "power_station" | "inverter" | "generator";
+        /**
+         * AppMode
+         * @description Що людина бачить за замовчуванням (ADR 0006). Не роль: ролі — в конкретній оренді.
+         * @enum {string}
+         */
+        AppMode: "tenant" | "landlord";
         /**
          * Appliance
          * @enum {string}
@@ -1168,6 +1191,10 @@ export interface components {
          * @enum {string}
          */
         Meter: "electricity" | "water" | "gas" | "heat";
+        /** ModeIn */
+        ModeIn: {
+            mode: components["schemas"]["AppMode"];
+        };
         /** ModerationSummaryOut */
         ModerationSummaryOut: {
             /** Ownership Pending */
@@ -1626,6 +1653,7 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            mode?: components["schemas"]["AppMode"] | null;
             role: components["schemas"]["UserRole"];
             status: components["schemas"]["UserStatus"];
             /** Telegram Uid */
@@ -2409,6 +2437,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["NameIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_mode_api_v1_me_mode_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModeIn"];
             };
         };
         responses: {

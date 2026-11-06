@@ -200,3 +200,15 @@ async def test_delete_account_anonymizes_and_allows_reregistration() -> None:
     assert not db.identities and not db.profiles
     assert await users.find_by_telegram(TG) is None
     await _register(users)  # нова людина з тим самим Telegram — новий акаунт
+
+
+async def test_app_mode_choice_and_switch() -> None:
+    """ONB-4 і перемикач (ADR 0006): режим — не роль, просто вибір за замовчуванням."""
+    from domovyk.domain.users import AppMode
+
+    users, _ = make_services()
+    await _register(users)
+    assert (await users.require_active(TG)).mode is None
+    assert (await users.set_mode(TG, AppMode.LANDLORD)).mode is AppMode.LANDLORD
+    assert (await users.set_mode(TG, AppMode.TENANT)).mode is AppMode.TENANT
+    assert (await users.require_active(TG)).role is UserRole.USER

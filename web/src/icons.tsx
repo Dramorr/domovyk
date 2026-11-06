@@ -15,7 +15,8 @@ type IconName =
   | "alert"
   | "trash"
   | "edit"
-  | "send";
+  | "send"
+  | "swap";
 
 const PATHS: Record<IconName, string> = {
   home: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z",
@@ -33,6 +34,7 @@ const PATHS: Record<IconName, string> = {
   trash: "M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13",
   edit: "M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4",
   send: "M4 12 20 4l-6 16-2.5-6.5z",
+  swap: "M7 7h12l-3-3M17 17H5l3 3",
 };
 
 export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {

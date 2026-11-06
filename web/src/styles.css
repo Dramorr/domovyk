@@ -1059,3 +1059,69 @@ ul.plain li {
 .send:disabled {
   opacity: 0.45;
 }
+
+/* ---- Режим орендар / власник (ADR 0006) ---- */
+
+.mode-chip {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 34px;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mode-chip.tenant {
+  background: var(--info-50);
+  color: var(--info-700);
+}
+
+.mode-chip.landlord {
+  background: var(--brand-100);
+  color: var(--brand-700);
+}
+
+.mode-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.mode-cards .choice-big {
+  width: 100%;
+}
+
+.mode-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin: 14px 0;
+  padding: 16px;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--brand);
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mode-card .row-icon {
+  background: rgb(255 255 255 / 16%);
+  color: #fff;
+}
+
+.mode-card .row-sub {
+  color: rgb(255 255 255 / 80%);
+}
+
+.screen p.center-text {
+  text-align: center;
+  text-align-last: center;
+}
