@@ -509,7 +509,14 @@ export function InviteAccept({
       onJoined(await api.acceptInvite(token));
     } catch (e) {
       const reason = e instanceof ApiFailure ? e.reason : undefined;
-      setError(errorCode(e) === "invite_invalid" ? k(`ls_invite_${reason ?? "not_found"}`) : errorText(e));
+      const code = errorCode(e);
+      setError(
+        code === "lease_limit"
+          ? t("ls_invite_lease_limit")
+          : code === "invite_invalid"
+            ? k(`ls_invite_${reason ?? "not_found"}`)
+            : errorText(e),
+      );
       setBusy(false);
     }
   }

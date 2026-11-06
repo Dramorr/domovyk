@@ -65,6 +65,12 @@ class InviteInvalid(Conflict):
     code = "invite_invalid"
 
 
+class LeaseLimitReached(Conflict):
+    """Забагато одночасних оренд як відповідальний орендар (FR-LSE-8; details.limit)."""
+
+    code = "lease_limit"
+
+
 class HasOpenLease(Conflict):
     """Дія неможлива, поки є жива оренда (видалення акаунта чи об'єкта)."""
 

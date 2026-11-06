@@ -324,3 +324,50 @@ async def test_cancel_and_delete_guards(env: tuple[Services, FakeDb]) -> None:
         await s.leases.post_message(TENANT, lease_id, "Ой")
     await s.users.delete_account(TENANT)  # тепер можна
     await s.properties.delete_property(OWNER, pid)
+
+
+async def test_tenant_lease_limit(env: tuple[Services, FakeDb]) -> None:
+    """FR-LSE-8: відповідальним — до двох живих оренд; співмешканцем — без обмежень."""
+    from domovyk.core.errors import LeaseLimitReached
+
+    s, db = env
+    pid = await _verified_flat(s, db)
+    prop = await s.properties.add_room(OWNER, pid, RoomIn(name="Перша"))
+    prop = await s.properties.add_room(OWNER, pid, RoomIn(name="Друга"))
+    rooms = [u.id for u in prop.units if u.kind == "room"]
+    # Три окремі юніти — три оренди, де TENANT міг би бути відповідальним.
+    first, i1 = await s.leases.create_lease(OWNER, _lease(pid, unit_id=rooms[0]))
+    _second, i2 = await s.leases.create_lease(OWNER, _lease(pid, unit_id=rooms[1]))
+    third_pid = await _verified_flat_other(s, db)
+    third, i3 = await s.leases.create_lease(OWNER, _lease(third_pid))
+    await s.leases.accept_invite(TENANT, i1.token)
+    await s.leases.accept_invite(TENANT, i2.token)
+
+    assert (await s.leases.preview_invite(TENANT, i3.token)).reason == "lease_limit"
+    with pytest.raises(LeaseLimitReached) as exc:
+        await s.leases.accept_invite(TENANT, i3.token)
+    assert exc.value.details["limit"] == 2
+
+    # Співмешканцем — можна.
+    await s.leases.accept_invite(ROOMMATE, i3.token)
+    co = await s.leases.new_invite(ROOMMATE, third.id, MemberRole.CO_TENANT)
+    await s.leases.accept_invite(TENANT, co.token)
+
+    # Скасована оренда звільняє місце.
+    await s.leases.cancel(OWNER, first.id)
+    _lease4, i4 = await s.leases.create_lease(OWNER, _lease(pid, unit_id=rooms[0]))
+    await s.leases.accept_invite(TENANT, i4.token)
+
+
+async def _verified_flat_other(s: Services, db: FakeDb) -> uuid.UUID:
+    prop = await s.properties.create_property(
+        OWNER,
+        PropertyCreate(
+            kind=PropertyKind.APARTMENT,
+            address=AddressIn(street="вул. Зелена", house_number="40"),
+            apartment="7",
+            rooms=1,
+        ),
+    )
+    db.prop.properties[prop.id].ownership = OwnershipStatus.VERIFIED
+    return prop.id

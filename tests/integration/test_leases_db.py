@@ -107,3 +107,38 @@ async def test_lease_cycle(services: Services, engine: AsyncEngine) -> None:
                 text("UPDATE leases SET end_date = start_date + interval '36 months'")
             )
         await conn.rollback()
+
+
+async def test_tenant_lease_limit_db(services: Services, engine: AsyncEngine) -> None:
+    """FR-LSE-8: запит лічильника на справжній БД — третя оренда відповідальним блокується."""
+    from domovyk.core.errors import LeaseLimitReached
+
+    s = services
+    base = await _setup(s, engine)
+    invites = []
+    for i, house in enumerate(("41", "42"), start=1):
+        prop = await s.properties.create_property(
+            OWNER,
+            PropertyCreate(
+                kind=PropertyKind.APARTMENT,
+                address=AddressIn(street="вул. Зелена", house_number=house),
+                apartment=str(i),
+                rooms=1,
+            ),
+        )
+        async with engine.begin() as conn:
+            await conn.execute(
+                text("UPDATE properties SET ownership_status = 'verified' WHERE id = :id"),
+                {"id": prop.id},
+            )
+        invites.append(
+            (await s.leases.create_lease(OWNER, base.model_copy(update={"property_id": prop.id})))[
+                1
+            ]
+        )
+    _, first = await s.leases.create_lease(OWNER, base)
+    await s.leases.accept_invite(TENANT, first.token)
+    await s.leases.accept_invite(TENANT, invites[0].token)
+    with pytest.raises(LeaseLimitReached):
+        await s.leases.accept_invite(TENANT, invites[1].token)
+    await s.leases.accept_invite(ROOMMATE, invites[1].token)

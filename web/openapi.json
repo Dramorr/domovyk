@@ -604,7 +604,8 @@
               "revoked",
               "not_found",
               "own_lease",
-              "already_member"
+              "already_member",
+              "lease_limit"
             ],
             "title": "Reason",
             "type": "string"

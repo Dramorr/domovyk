@@ -20,6 +20,7 @@ from domovyk.core.errors import (
     Conflict,
     InvalidInput,
     InviteInvalid,
+    LeaseLimitReached,
     NotFound,
     PermissionDenied,
 )
@@ -100,6 +101,8 @@ CHAT_NOTIFY_BUCKET_MIN = 10  # одне сповіщення про чат на 
 class LeasesConfig:
     hmac_secret: str
     invite_ttl_days: int = INVITE_TTL_DAYS
+    # FR-LSE-8: живих оренд одночасно як відповідальний орендар. Більше — заблоковано.
+    tenant_max_open_leases: int = 2
 
 
 @dataclass(frozen=True)
@@ -315,6 +318,11 @@ class LeasesService:
         await repo.add_invite(lease_id, self._hash(token), role, created_by, expires)
         return InviteOut(token=token, role=role, expires_at=expires)
 
+    async def _over_limit(self, repo: LeasesRepository, user_id: uuid.UUID) -> bool:
+        """FR-LSE-8: співмешканцем — без обмежень; відповідальним — до N живих оренд."""
+        current = await repo.count_open_as_responsible(user_id)
+        return current >= self._config.tenant_max_open_leases
+
     def _hash(self, token: str) -> str:
         return token_hash(token, self._config.hmac_secret)
 
@@ -333,6 +341,8 @@ class LeasesService:
                 reason = "own_lease"
             elif any(m.user_id == user.id and m.left_at is None for m in members):
                 reason = "already_member"
+            elif invite.role is MemberRole.RESPONSIBLE and await self._over_limit(repo, user.id):
+                reason = "lease_limit"
             prop = await self._property_of(lease)
             landlord = await self._users.get_by_id(lease.landlord_user_id)
             return InvitePreview(
@@ -385,6 +395,10 @@ class LeasesService:
                 raise InviteInvalid("Ти вже в цій оренді", reason="already_member")
             if invite.role is MemberRole.RESPONSIBLE and _responsible(members) is not None:
                 raise InviteInvalid("Відповідальний уже є", reason="used")
+            if invite.role is MemberRole.RESPONSIBLE and await self._over_limit(repo, user.id):
+                raise LeaseLimitReached(
+                    "Забагато одночасних оренд", limit=self._config.tenant_max_open_leases
+                )
             await repo.add_member(lease.id, user.id, invite.role, now)
             await repo.use_invite(invite.id, user.id, now)
             conversation = await self._chat.ensure_for_lease(tx, lease.id)

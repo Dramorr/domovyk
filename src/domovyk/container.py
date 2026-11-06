@@ -122,7 +122,10 @@ class Container:
             notifications,
             cipher,
             clock,
-            LeasesConfig(hmac_secret=settings.hmac_secret.get_secret_value()),
+            LeasesConfig(
+                hmac_secret=settings.hmac_secret.get_secret_value(),
+                tenant_max_open_leases=settings.tenant_max_open_leases,
+            ),
         )
         wire_guards(users, properties, leases)
         self.services = Services(

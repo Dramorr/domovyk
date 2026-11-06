@@ -866,7 +866,7 @@ export interface components {
              * Reason
              * @enum {string}
              */
-            reason: "ok" | "expired" | "used" | "revoked" | "not_found" | "own_lease" | "already_member";
+            reason: "ok" | "expired" | "used" | "revoked" | "not_found" | "own_lease" | "already_member" | "lease_limit";
             /** Rent Amount */
             rent_amount?: number | null;
             role?: components["schemas"]["MemberRole"] | null;

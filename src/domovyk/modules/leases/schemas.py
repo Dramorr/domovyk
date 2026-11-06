@@ -118,7 +118,16 @@ class InvitePreview(BaseModel):
     """Що бачить людина за посиланням, до того як приєднатися (INV-ACCEPT)."""
 
     valid: bool
-    reason: Literal["ok", "expired", "used", "revoked", "not_found", "own_lease", "already_member"]
+    reason: Literal[
+        "ok",
+        "expired",
+        "used",
+        "revoked",
+        "not_found",
+        "own_lease",
+        "already_member",
+        "lease_limit",
+    ]
     role: MemberRole | None = None
     landlord_name: str | None = None
     street: str | None = None

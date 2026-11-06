@@ -94,6 +94,17 @@ class FakeLeasesRepository:
     async def count_open_for_user(self, user_id: uuid.UUID) -> int:
         return sum(1 for lease in await self.for_user(user_id) if lease.status in OPEN_STATUSES)
 
+    async def count_open_as_responsible(self, user_id: uuid.UUID) -> int:
+        return sum(
+            1
+            for lease in self.db.leases.values()
+            if lease.status in OPEN_STATUSES
+            and any(
+                m.user_id == user_id and m.role is MemberRole.RESPONSIBLE and m.left_at is None
+                for m in self.db.members[lease.id]
+            )
+        )
+
     async def members(self, lease_id: uuid.UUID) -> list[MemberRecord]:
         return list(self.db.members[lease_id])
 

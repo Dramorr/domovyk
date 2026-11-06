@@ -77,6 +77,7 @@ class LeasesRepository(Protocol):
     async def for_user(self, user_id: uuid.UUID) -> list[LeaseRecord]: ...
     async def open_unit_ids(self, unit_ids: list[uuid.UUID]) -> set[uuid.UUID]: ...
     async def count_open_for_user(self, user_id: uuid.UUID) -> int: ...
+    async def count_open_as_responsible(self, user_id: uuid.UUID) -> int: ...
     async def members(self, lease_id: uuid.UUID) -> list[MemberRecord]: ...
     async def add_member(
         self, lease_id: uuid.UUID, user_id: uuid.UUID, role: MemberRole, at: datetime
@@ -187,6 +188,20 @@ class SqlLeasesRepository:
             .where(
                 LeaseRow.status.in_(list(OPEN_STATUSES)),
                 or_(LeaseRow.landlord_user_id == user_id, LeaseRow.id.in_(member)),
+            )
+        )
+        return int(count or 0)
+
+    async def count_open_as_responsible(self, user_id: uuid.UUID) -> int:
+        count = await self._s.scalar(
+            select(func.count())
+            .select_from(LeaseRow)
+            .join(LeaseMemberRow, LeaseMemberRow.lease_id == LeaseRow.id)
+            .where(
+                LeaseMemberRow.user_id == user_id,
+                LeaseMemberRow.member_role == MemberRole.RESPONSIBLE,
+                LeaseMemberRow.left_at.is_(None),
+                LeaseRow.status.in_(list(OPEN_STATUSES)),
             )
         )
         return int(count or 0)

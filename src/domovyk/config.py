@@ -72,6 +72,9 @@ class Settings(BaseSettings):
     # Рівні заповненості анкети об'єкта (FR-PRP-8), відсотки.
     profile_medium_from: int = Field(default=40, ge=0, le=100)
     profile_high_from: int = Field(default=75, ge=0, le=100)
+    # Скільки живих оренд одночасно може мати відповідальний орендар (FR-LSE-8).
+    # Більше — поки заблоковано; пізніше — платна можливість.
+    tenant_max_open_leases: int = Field(default=2, ge=1, le=20)
     # Мінімальна заповненість анкети для публікації оголошення, %.
     listing_min_completeness: int = Field(default=40, ge=0, le=100)
 
