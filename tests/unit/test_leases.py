@@ -201,8 +201,8 @@ async def test_invite_flow_and_terms(env: tuple[Services, FakeDb]) -> None:
     assert changed.status is LeaseStatus.AWAITING_TENANT and changed.terms_accepted_at is None
     assert changed.rent_amount == 19000
 
-    with pytest.raises(PermissionDenied):
-        await s.leases.accept_terms(OWNER, lease.id)
+    # FR-LSE-10: власник, змінивши умови, уже їх погодив; повторно — без змін стану.
+    assert changed.agreement.landlord == "agreed" and changed.agreement.tenant == "none"
     with pytest.raises(NotFound):  # чужа оренда виглядає як неіснуюча
         await s.leases.get(STRANGER, lease.id)
 
@@ -395,3 +395,47 @@ async def test_hide_and_purge_cancelled(env: tuple[Services, FakeDb], clock: Fix
     clock.advance(timedelta(days=31))
     assert await s.leases.purge_cancelled() == 1
     assert lease2.id not in db.lease.leases
+
+
+async def test_proposal_accept_and_decline(env: tuple[Services, FakeDb]) -> None:
+    """FR-LSE-10: орендар пропонує зміни → обидві згоди знімаються; власник погоджує чи ні."""
+    from domovyk.modules.leases.schemas import ProposalIn
+
+    s, db = env
+    pid = await _verified_flat(s, db)
+    lease, invite = await s.leases.create_lease(OWNER, _lease(pid))
+    await s.leases.accept_invite(TENANT, invite.token)
+    view = await s.leases.get(TENANT, lease.id)
+    assert (view.agreement.tenant, view.agreement.landlord) == ("none", "agreed")
+    await s.leases.accept_terms(TENANT, lease.id)
+    assert (await s.leases.get(OWNER, lease.id)).status is LeaseStatus.AWAITING_SIGNATURES
+
+    proposal = ProposalIn(
+        start_date=date(2027, 1, 1), months=12, rent_amount=16000, rent_due_day=10
+    )
+    with pytest.raises(PermissionDenied):
+        await s.leases.propose_changes(OWNER, lease.id, proposal)
+    view = await s.leases.propose_changes(TENANT, lease.id, proposal)
+    assert view.status is LeaseStatus.AWAITING_TENANT
+    assert (view.agreement.tenant, view.agreement.landlord) == ("proposed", "none")
+    assert view.proposal is not None and view.proposal.rent_amount == 16000
+    assert view.rent_amount == 18000  # умови ще старі
+    with pytest.raises(Conflict):  # спершу відповідь на пропозицію
+        await s.leases.accept_terms(OWNER, lease.id)
+
+    # Власник відхиляє → його половина «відхилив», обидва погоджують старі умови знову.
+    view = await s.leases.respond_proposal(OWNER, lease.id, False)
+    assert view.proposal is None and view.rent_amount == 18000
+    assert (view.agreement.tenant, view.agreement.landlord) == ("none", "declined")
+    await s.leases.accept_terms(OWNER, lease.id)
+    view = await s.leases.accept_terms(TENANT, lease.id)
+    assert view.status is LeaseStatus.AWAITING_SIGNATURES
+
+    # Нова пропозиція — власник погоджує: умови оновлено, обидві сторони погодили.
+    await s.leases.propose_changes(TENANT, lease.id, proposal)
+    view = await s.leases.respond_proposal(OWNER, lease.id, True)
+    assert view.status is LeaseStatus.AWAITING_SIGNATURES
+    assert (view.rent_amount, view.rent_due_day, view.start_date) == (16000, 10, date(2027, 1, 1))
+    assert (view.agreement.tenant, view.agreement.landlord) == ("agreed", "agreed")
+    with pytest.raises(Conflict):
+        await s.leases.respond_proposal(OWNER, lease.id, True)

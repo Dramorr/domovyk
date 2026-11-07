@@ -1321,3 +1321,137 @@ label.file-button {
 .menu-pop button:active {
   background: var(--danger-50);
 }
+
+/* ---- Смужка погодження договору (FR-LSE-10) ---- */
+.agreement-spacer {
+  height: 96px;
+}
+
+.agreement-bar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(66px + env(safe-area-inset-bottom));
+  z-index: 19;
+  width: min(560px, 100%);
+  padding: 10px 16px 8px;
+  background: rgb(255 255 255 / 94%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid var(--line);
+  transform: translateX(-50%);
+}
+
+.ab-track {
+  display: flex;
+  align-items: center;
+}
+
+.ab-half {
+  display: flex;
+  flex: 1;
+  gap: 3px;
+}
+
+.ab-seg {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--line);
+  transition: background 250ms;
+}
+
+.ab-seg.ok {
+  background: #2f9e5b;
+}
+
+.ab-seg.pending {
+  background: #9fd3b2;
+}
+
+.ab-seg.warn {
+  background: var(--amber);
+}
+
+.ab-hub {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin: 0 6px;
+  border: 8px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--brand);
+  box-sizing: content-box;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  transition: border-color 250ms;
+}
+
+.ab-hub.ok {
+  border-color: #2f9e5b;
+}
+
+.ab-hub.warn {
+  border-color: var(--amber);
+}
+
+.ab-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--text-2);
+}
+
+.ab-labels b {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.ab-labels .right {
+  text-align: right;
+}
+
+/* нижня шторка «Актуальна версія» */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgb(23 33 28 / 40%);
+}
+
+.sheet {
+  width: min(560px, 100%);
+  max-height: 86dvh;
+  overflow-y: auto;
+  padding: 8px 16px calc(16px + env(safe-area-inset-bottom));
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--bg);
+}
+
+.sheet-handle {
+  width: 40px;
+  height: 4px;
+  margin: 4px auto 10px;
+  border-radius: 999px;
+  background: var(--line);
+}
+
+.sheet h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+
+.sheet p,
+.sheet .card p {
+  text-align: left;
+  text-align-last: auto;
+}

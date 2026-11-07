@@ -1,5 +1,5 @@
 -- =====================================================================
---  Домовик — цільова схема бази даних, v0.10
+--  Домовик — цільова схема бази даних, v0.11
 --  PostgreSQL 16 + PostGIS
 --
 --  Це ЦІЛЬОВА модель. Реальні зміни в базі робляться тільки
@@ -437,7 +437,13 @@ CREATE TABLE leases (
     pay_details_enc     text,                         -- повні реквізити, Fernet (FR-PAY-8)
     terms               jsonb NOT NULL DEFAULT '{}',  -- пункти договору: доступ, ремонти, тварини, КП, реєстрація…
     settings            jsonb NOT NULL DEFAULT '{}',  -- вікно оскарження оплати, нагадування тощо
-    terms_accepted_at   timestamptz,                  -- відповідальний орендар погодив умови
+    terms_accepted_at   timestamptz,           -- відповідальний орендар погодив умови
+    landlord_accepted_at timestamptz,          -- власник погодив (FR-LSE-10)
+    proposal            jsonb,                 -- зміни, запропоновані орендарем (без реквізитів)
+    proposal_by         uuid REFERENCES users(id),
+    proposal_at         timestamptz,
+    declined_by         uuid REFERENCES users(id),   -- хто відхилив останню пропозицію
+    declined_at         timestamptz,                  -- відповідальний орендар погодив умови
     activated_at        timestamptz,
     ended_at            timestamptz,
     cancelled_at        timestamptz,

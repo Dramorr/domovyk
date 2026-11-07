@@ -399,6 +399,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/leases/{lease_id}/proposal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Propose Changes */
+        post: operations["propose_changes_api_v1_leases__lease_id__proposal_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/leases/{lease_id}/proposal/respond": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Respond Proposal */
+        post: operations["respond_proposal_api_v1_leases__lease_id__proposal_respond_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/leases/{lease_id}/read": {
         parameters: {
             query?: never;
@@ -917,6 +951,22 @@ export interface components {
             street: string;
         };
         /**
+         * Agreement
+         * @description Хто погодив поточні умови (FR-LSE-10) — для смужки прогресу в картці оренди.
+         */
+        Agreement: {
+            /**
+             * Landlord
+             * @enum {string}
+             */
+            landlord: "none" | "agreed" | "proposed" | "declined";
+            /**
+             * Tenant
+             * @enum {string}
+             */
+            tenant: "none" | "agreed" | "proposed" | "declined";
+        };
+        /**
          * ApartmentBackupPower
          * @description Резервне живлення самої квартири (ЛУН: «резервне живлення квартири»).
          * @enum {string}
@@ -1307,6 +1357,7 @@ export interface components {
         };
         /** LeaseOut */
         LeaseOut: {
+            agreement: components["schemas"]["Agreement"];
             /** Apartment */
             apartment: string | null;
             /** Can Edit */
@@ -1353,6 +1404,7 @@ export interface components {
              * Format: uuid
              */
             property_id: string;
+            proposal: components["schemas"]["ProposalOut"] | null;
             /** Rent Amount */
             rent_amount: number;
             /** Rent Due Day */
@@ -1891,6 +1943,58 @@ export interface components {
             /** Rooms */
             rooms: number;
         };
+        /**
+         * ProposalIn
+         * @description Орендар пропонує зміни умов. Реквізити оплати задає лише власник.
+         */
+        ProposalIn: {
+            /** Deposit Amount */
+            deposit_amount?: number | null;
+            /** Months */
+            months: number;
+            /** Rent Amount */
+            rent_amount: number;
+            /** Rent Due Day */
+            rent_due_day: number;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            terms?: components["schemas"]["LeaseTerms"];
+        };
+        /** ProposalOut */
+        ProposalOut: {
+            /**
+             * By
+             * @enum {string}
+             */
+            by: "landlord" | "responsible" | "co_tenant";
+            /** Deposit Amount */
+            deposit_amount: number | null;
+            /**
+             * End Date
+             * Format: date
+             */
+            end_date: string;
+            /** Months */
+            months: number;
+            /**
+             * Proposed At
+             * Format: date-time
+             */
+            proposed_at: string;
+            /** Rent Amount */
+            rent_amount: number;
+            /** Rent Due Day */
+            rent_due_day: number;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            terms: components["schemas"]["LeaseTerms"];
+        };
         /** QueueItem */
         QueueItem: {
             /** Documents Count */
@@ -1930,6 +2034,11 @@ export interface components {
          * @enum {string}
          */
         Repair: "designer" | "euro" | "cosmetic" | "livable" | "needs_repair";
+        /** RespondIn */
+        RespondIn: {
+            /** Accept */
+            accept: boolean;
+        };
         /** ReviewIn */
         ReviewIn: {
             /** Approve */
@@ -2072,7 +2181,7 @@ export interface components {
          * @description Системні повідомлення (FR-CHT-2). Текст — у файлі локалізації інтерфейсу.
          * @enum {string}
          */
-        SystemCode: "lease_created" | "member_joined" | "member_left" | "terms_accepted" | "terms_change_requested" | "terms_declined" | "terms_updated" | "lease_cancelled" | "contract_ready" | "contract_signed_by" | "contract_external" | "contract_external_rejected" | "lease_activated";
+        SystemCode: "lease_created" | "member_joined" | "member_left" | "terms_accepted" | "terms_change_requested" | "terms_declined" | "terms_updated" | "lease_cancelled" | "terms_proposed" | "proposal_accepted" | "proposal_declined" | "contract_ready" | "contract_signed_by" | "contract_external" | "contract_external_rejected" | "lease_activated";
         /** TelegramUserOut */
         TelegramUserOut: {
             /** First Name */
@@ -3150,6 +3259,80 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LeaseNotificationPrefs"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    propose_changes_api_v1_leases__lease_id__proposal_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                lease_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProposalIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    respond_proposal_api_v1_leases__lease_id__proposal_respond_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                lease_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RespondIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseOut"];
                 };
             };
             /** @description Validation Error */

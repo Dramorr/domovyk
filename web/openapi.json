@@ -169,6 +169,37 @@
         "title": "AddressIn",
         "type": "object"
       },
+      "Agreement": {
+        "description": "Хто погодив поточні умови (FR-LSE-10) — для смужки прогресу в картці оренди.",
+        "properties": {
+          "landlord": {
+            "enum": [
+              "none",
+              "agreed",
+              "proposed",
+              "declined"
+            ],
+            "title": "Landlord",
+            "type": "string"
+          },
+          "tenant": {
+            "enum": [
+              "none",
+              "agreed",
+              "proposed",
+              "declined"
+            ],
+            "title": "Tenant",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant",
+          "landlord"
+        ],
+        "title": "Agreement",
+        "type": "object"
+      },
       "ApartmentBackupPower": {
         "description": "Резервне живлення самої квартири (ЛУН: «резервне живлення квартири»).",
         "enum": [
@@ -1137,6 +1168,9 @@
       },
       "LeaseOut": {
         "properties": {
+          "agreement": {
+            "$ref": "#/components/schemas/Agreement"
+          },
           "apartment": {
             "anyOf": [
               {
@@ -1229,6 +1263,16 @@
             "title": "Property Id",
             "type": "string"
           },
+          "proposal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProposalOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "rent_amount": {
             "title": "Rent Amount",
             "type": "integer"
@@ -1298,6 +1342,8 @@
           "pay",
           "terms",
           "terms_accepted_at",
+          "agreement",
+          "proposal",
           "members",
           "pending_invites",
           "can_edit",
@@ -3168,6 +3214,119 @@
         "title": "PropertyUpdate",
         "type": "object"
       },
+      "ProposalIn": {
+        "description": "Орендар пропонує зміни умов. Реквізити оплати задає лише власник.",
+        "properties": {
+          "deposit_amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deposit Amount"
+          },
+          "months": {
+            "maximum": 35.0,
+            "minimum": 1.0,
+            "title": "Months",
+            "type": "integer"
+          },
+          "rent_amount": {
+            "title": "Rent Amount",
+            "type": "integer"
+          },
+          "rent_due_day": {
+            "title": "Rent Due Day",
+            "type": "integer"
+          },
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          },
+          "terms": {
+            "$ref": "#/components/schemas/LeaseTerms"
+          }
+        },
+        "required": [
+          "start_date",
+          "months",
+          "rent_amount",
+          "rent_due_day"
+        ],
+        "title": "ProposalIn",
+        "type": "object"
+      },
+      "ProposalOut": {
+        "properties": {
+          "by": {
+            "enum": [
+              "landlord",
+              "responsible",
+              "co_tenant"
+            ],
+            "title": "By",
+            "type": "string"
+          },
+          "deposit_amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deposit Amount"
+          },
+          "end_date": {
+            "format": "date",
+            "title": "End Date",
+            "type": "string"
+          },
+          "months": {
+            "title": "Months",
+            "type": "integer"
+          },
+          "proposed_at": {
+            "format": "date-time",
+            "title": "Proposed At",
+            "type": "string"
+          },
+          "rent_amount": {
+            "title": "Rent Amount",
+            "type": "integer"
+          },
+          "rent_due_day": {
+            "title": "Rent Due Day",
+            "type": "integer"
+          },
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          },
+          "terms": {
+            "$ref": "#/components/schemas/LeaseTerms"
+          }
+        },
+        "required": [
+          "by",
+          "start_date",
+          "end_date",
+          "months",
+          "rent_amount",
+          "rent_due_day",
+          "deposit_amount",
+          "terms",
+          "proposed_at"
+        ],
+        "title": "ProposalOut",
+        "type": "object"
+      },
       "QueueItem": {
         "properties": {
           "documents_count": {
@@ -3268,6 +3427,19 @@
         ],
         "title": "Repair",
         "type": "string"
+      },
+      "RespondIn": {
+        "properties": {
+          "accept": {
+            "title": "Accept",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "accept"
+        ],
+        "title": "RespondIn",
+        "type": "object"
       },
       "ReviewIn": {
         "properties": {
@@ -3648,6 +3820,9 @@
           "terms_declined",
           "terms_updated",
           "lease_cancelled",
+          "terms_proposed",
+          "proposal_accepted",
+          "proposal_declined",
           "contract_ready",
           "contract_signed_by",
           "contract_external",
@@ -5728,6 +5903,138 @@
           }
         },
         "summary": "Set Lease Notification Prefs"
+      }
+    },
+    "/api/v1/leases/{lease_id}/proposal": {
+      "post": {
+        "operationId": "propose_changes_api_v1_leases__lease_id__proposal_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lease_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Lease Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProposalIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaseOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Propose Changes"
+      }
+    },
+    "/api/v1/leases/{lease_id}/proposal/respond": {
+      "post": {
+        "operationId": "respond_proposal_api_v1_leases__lease_id__proposal_respond_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lease_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Lease Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RespondIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaseOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Respond Proposal"
       }
     },
     "/api/v1/leases/{lease_id}/read": {

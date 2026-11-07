@@ -39,6 +39,12 @@ class LeaseRecord:
     terms: dict[str, Any]
     terms_accepted_at: datetime | None
     created_at: datetime
+    # FR-LSE-10: погодження обома сторонами й пропозиції змін.
+    landlord_accepted_at: datetime | None = None
+    proposal: dict[str, Any] | None = None
+    proposal_by: uuid.UUID | None = None
+    proposal_at: datetime | None = None
+    declined_by: uuid.UUID | None = None
 
 
 @dataclass(frozen=True)
@@ -127,6 +133,11 @@ def _lease(r: LeaseRow) -> LeaseRecord:
         terms=dict(r.terms),
         terms_accepted_at=r.terms_accepted_at,
         created_at=r.created_at,
+        landlord_accepted_at=r.landlord_accepted_at,
+        proposal=dict(r.proposal) if r.proposal is not None else None,
+        proposal_by=r.proposal_by,
+        proposal_at=r.proposal_at,
+        declined_by=r.declined_by,
     )
 
 

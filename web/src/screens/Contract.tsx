@@ -83,12 +83,21 @@ export function ContractBlock({
   leaseId,
   webApp,
   onActivated,
+  onState,
 }: {
   leaseId: string;
   webApp: WebApp;
   onActivated: () => void;
+  onState?: (state: ContractState) => void;
 }) {
-  const [s, setS] = useState<ContractState | null>(null);
+  const [s, setRaw] = useState<ContractState | null>(null);
+  const setS = useCallback(
+    (state: ContractState) => {
+      setRaw(state);
+      onState?.(state);
+    },
+    [onState],
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -96,7 +105,7 @@ export function ContractBlock({
 
   useEffect(() => {
     api.contract(leaseId).then(setS).catch((e: unknown) => setError(contractError(e)));
-  }, [leaseId]);
+  }, [leaseId, setS]);
 
   const run = useCallback(
     async (action: () => Promise<ContractState | void>, done?: string) => {
@@ -116,7 +125,7 @@ export function ContractBlock({
         setBusy(false);
       }
     },
-    [onActivated],
+    [onActivated, setS],
   );
 
   if (!s) {

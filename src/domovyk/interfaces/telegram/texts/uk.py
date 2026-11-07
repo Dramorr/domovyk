@@ -124,6 +124,14 @@ LEASE_EVENTS = {
     ),
     "terms_updated": "Власник змінив умови оренди: <b>{address}</b>. Переглянь і погодь їх знову.",
     "member_left": "{name} вийшов з оренди: <b>{address}</b>.",
+    "landlord_agreed": "✅ Власник погодив умови оренди: <b>{address}</b>.",
+    "terms_proposed": (
+        "✏️ Орендар запропонував зміни умов: <b>{address}</b>. Переглянь і погодь або відхили."
+    ),
+    "proposal_accepted": "✅ Власник погодив твої зміни умов: <b>{address}</b>.",
+    "proposal_declined": (
+        "Власник відхилив запропоновані зміни: <b>{address}</b>. Подробиці — у чаті."
+    ),
     "lease_cancelled": "Оренду скасовано: <b>{address}</b>.",
     # M4: договір і підписи (BOT_FLOWS §8)
     "contract_ready": (

@@ -21,6 +21,9 @@ class SystemCode(StrEnum):
     TERMS_DECLINED = "terms_declined"
     TERMS_UPDATED = "terms_updated"
     LEASE_CANCELLED = "lease_cancelled"
+    TERMS_PROPOSED = "terms_proposed"  # {name} — орендар запропонував зміни умов
+    PROPOSAL_ACCEPTED = "proposal_accepted"  # власник погодив зміни
+    PROPOSAL_DECLINED = "proposal_declined"  # власник відхилив зміни
     CONTRACT_READY = "contract_ready"  # M4: договір сформовано
     CONTRACT_SIGNED_BY = "contract_signed_by"  # {name, role}
     CONTRACT_EXTERNAL = "contract_external"  # власник завантажив чинний договір

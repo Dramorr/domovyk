@@ -57,6 +57,8 @@ from domovyk.modules.leases.repository import (
     NewLease,
 )
 from domovyk.modules.leases.schemas import (
+    Agreement,
+    AgreementState,
     InviteOut,
     InvitePreview,
     LeaseConditions,
@@ -70,6 +72,9 @@ from domovyk.modules.leases.schemas import (
     PayDetailsIn,
     PayDisplay,
     PendingInvite,
+    ProposalIn,
+    ProposalOut,
+    RespondIn,
 )
 from domovyk.modules.notifications.service import (
     LeaseNotificationPrefs,
@@ -94,6 +99,8 @@ __all__ = [
     "MessageOut",
     "MessagesPage",
     "PayDetailsIn",
+    "ProposalIn",
+    "RespondIn",
 ]
 
 INVITE_PREFIX = "inv_"
@@ -256,6 +263,8 @@ class LeasesService:
                     **asdict(conditions),
                 )
             )
+            # Власник, задавши умови, тим самим їх погоджує (FR-LSE-10).
+            await repo.update(lease_id, landlord_accepted_at=now)
             conversation = await self._chat.ensure_for_lease(tx, lease_id)
             await self._chat.system(tx, conversation, SystemCode.LEASE_CREATED)
             invite = await self._new_invite(repo, lease_id, MemberRole.RESPONSIBLE, user.id, now)
@@ -510,6 +519,15 @@ class LeasesService:
             if ctx.lease.status is LeaseStatus.AWAITING_SIGNATURES:
                 values["status"] = LEASE.transition(ctx.lease.status, LeaseStatus.AWAITING_TENANT)
             values["terms_accepted_at"] = None
+            # Нові умови від власника = його згода; пропозиція орендаря стає неактуальною.
+            values.update(
+                landlord_accepted_at=self._clock.now(),
+                proposal=None,
+                proposal_by=None,
+                proposal_at=None,
+                declined_by=None,
+                declined_at=None,
+            )
             await repo.update(lease_id, **values)
             conversation = await self._chat.ensure_for_lease(tx, lease_id)
             await self._chat.system(tx, conversation, SystemCode.TERMS_UPDATED)
@@ -519,23 +537,155 @@ class LeasesService:
             return await self._out(tx, await self._ctx(tx, lease_id, user))
 
     async def accept_terms(self, telegram_uid: int, lease_id: uuid.UUID) -> LeaseOut:
-        """LSE-TERMS ✅: відповідальний погоджує умови → чекаємо договір (M4)."""
+        """LSE-TERMS ✅: сторона погоджує поточні умови (FR-LSE-10).
+
+        Погодили обидві й немає відкритої пропозиції змін → чекаємо договір (M4).
+        """
         user = await self._users.require_active(telegram_uid)
+        now = self._clock.now()
         async with self._tx.begin() as tx:
             repo = self._repo(tx)
             ctx = await self._ctx(tx, lease_id, user)
-            if ctx.my_role != "responsible":
-                raise PermissionDenied("Умови погоджує відповідальний орендар")
-            status = LEASE.transition(ctx.lease.status, LeaseStatus.AWAITING_SIGNATURES)
-            await repo.update(lease_id, status=status, terms_accepted_at=self._clock.now())
+            if ctx.my_role == "co_tenant":
+                raise PermissionDenied("Умови погоджують власник і відповідальний орендар")
+            if ctx.lease.status is not LeaseStatus.AWAITING_TENANT:
+                raise Conflict("Умови вже погоджено", field="status")
+            if ctx.lease.proposal is not None:
+                raise Conflict("Спершу дайте відповідь на запропоновані зміни", field="proposal")
+            values: dict[str, object] = (
+                {"landlord_accepted_at": now}
+                if ctx.my_role == "landlord"
+                else {"terms_accepted_at": now}
+            )
+            if ctx.lease.declined_by == user.id:
+                values.update(declined_by=None, declined_at=None)
+            await repo.update(lease_id, **values)
             conversation = await self._chat.ensure_for_lease(tx, lease_id)
             await self._chat.system(
                 tx, conversation, SystemCode.TERMS_ACCEPTED, {"name": user.display_name}
             )
+            other = _other_side(ctx)
+            event = "landlord_agreed" if ctx.my_role == "landlord" else "terms_accepted"
+            if other is not None:
+                await self._notify_lease(tx, ctx.lease, [other], event, {})
+            await self._maybe_ready(repo, lease_id)
+            return await self._out(tx, await self._ctx(tx, lease_id, user))
+
+    async def propose_changes(
+        self, telegram_uid: int, lease_id: uuid.UUID, data: ProposalIn
+    ) -> LeaseOut:
+        """Орендар пропонує зміни умов: обидві згоди знімаються, власник погоджує чи ні."""
+        user = await self._users.require_active(telegram_uid)
+        end = end_for_term(data.start_date, data.months)
+        validate_term(data.start_date, end)
+        validate_money(data.rent_amount, data.rent_due_day, data.deposit_amount)
+        now = self._clock.now()
+        async with self._tx.begin() as tx:
+            repo = self._repo(tx)
+            ctx = await self._ctx(tx, lease_id, user)
+            if ctx.my_role != "responsible":
+                raise PermissionDenied("Зміни пропонує відповідальний орендар")
+            if ctx.lease.status not in EDITABLE_STATUSES:
+                raise Conflict("Оренда вже активна", field="status")
+            values: dict[str, object] = {
+                "proposal": {
+                    "start_date": data.start_date.isoformat(),
+                    "end_date": end.isoformat(),
+                    "months": data.months,
+                    "rent_amount": data.rent_amount,
+                    "rent_due_day": data.rent_due_day,
+                    "deposit_amount": data.deposit_amount,
+                    "terms": data.terms.model_dump(),
+                },
+                "proposal_by": user.id,
+                "proposal_at": now,
+                "terms_accepted_at": None,
+                "landlord_accepted_at": None,
+                "declined_by": None,
+                "declined_at": None,
+            }
+            if ctx.lease.status is LeaseStatus.AWAITING_SIGNATURES:
+                values["status"] = LEASE.transition(ctx.lease.status, LeaseStatus.AWAITING_TENANT)
+            await repo.update(lease_id, **values)
+            conversation = await self._chat.ensure_for_lease(tx, lease_id)
+            await self._chat.system(
+                tx, conversation, SystemCode.TERMS_PROPOSED, {"name": user.display_name}
+            )
             await self._notify_lease(
-                tx, ctx.lease, [ctx.lease.landlord_user_id], "terms_accepted", {}
+                tx, ctx.lease, [ctx.lease.landlord_user_id], "terms_proposed", {}
             )
             return await self._out(tx, await self._ctx(tx, lease_id, user))
+
+    async def respond_proposal(
+        self, telegram_uid: int, lease_id: uuid.UUID, accept: bool
+    ) -> LeaseOut:
+        """Власник погоджує запропоновані зміни (вони стають умовами) або відхиляє їх."""
+        user = await self._users.require_active(telegram_uid)
+        now = self._clock.now()
+        async with self._tx.begin() as tx:
+            repo = self._repo(tx)
+            ctx = await self._ctx(tx, lease_id, user)
+            if ctx.my_role != "landlord":
+                raise PermissionDenied("На пропозицію відповідає власник")
+            p = ctx.lease.proposal
+            if p is None:
+                raise Conflict("Пропозиції змін немає", field="proposal")
+            cleared: dict[str, object] = {
+                "proposal": None,
+                "proposal_by": None,
+                "proposal_at": None,
+            }
+            if accept:
+                await repo.update(
+                    lease_id,
+                    start_date=date.fromisoformat(p["start_date"]),
+                    end_date=date.fromisoformat(p["end_date"]),
+                    rent_amount=p["rent_amount"],
+                    rent_due_day=p["rent_due_day"],
+                    deposit_amount=p["deposit_amount"],
+                    terms=p["terms"],
+                    # Автор пропозиції її погодив; власник — щойно.
+                    terms_accepted_at=now,
+                    landlord_accepted_at=now,
+                    declined_by=None,
+                    declined_at=None,
+                    **cleared,
+                )
+                code, event = SystemCode.PROPOSAL_ACCEPTED, "proposal_accepted"
+            else:
+                await repo.update(
+                    lease_id,
+                    terms_accepted_at=None,
+                    landlord_accepted_at=None,
+                    declined_by=user.id,
+                    declined_at=now,
+                    **cleared,
+                )
+                code, event = SystemCode.PROPOSAL_DECLINED, "proposal_declined"
+            conversation = await self._chat.ensure_for_lease(tx, lease_id)
+            await self._chat.system(tx, conversation, code, {"name": user.display_name})
+            responsible = _responsible(ctx.members)
+            if responsible is not None:
+                await self._notify_lease(tx, ctx.lease, [responsible.user_id], event, {})
+            await self._maybe_ready(repo, lease_id)
+            return await self._out(tx, await self._ctx(tx, lease_id, user))
+
+    async def _maybe_ready(self, repo: LeasesRepository, lease_id: uuid.UUID) -> None:
+        """Обидві сторони погодили, пропозицій немає → «чекаємо договір»."""
+        lease = await repo.get(lease_id)
+        if lease is None or lease.status is not LeaseStatus.AWAITING_TENANT:
+            return
+        if (
+            lease.proposal is not None
+            or not lease.terms_accepted_at
+            or not lease.landlord_accepted_at
+        ):
+            return
+        if _responsible(await repo.members(lease_id)) is None:
+            return
+        await repo.update(
+            lease_id, status=LEASE.transition(lease.status, LeaseStatus.AWAITING_SIGNATURES)
+        )
 
     async def request_changes(self, telegram_uid: int, lease_id: uuid.UUID, text: str) -> LeaseOut:
         """LSE-TERMS ✏️: прохання змін іде власнику повідомленням у чат."""
@@ -789,6 +939,8 @@ class LeasesService:
             ),
             terms=LeaseTerms.model_validate(lease.terms),
             terms_accepted_at=lease.terms_accepted_at,
+            agreement=_agreement(lease, ctx.members),
+            proposal=_proposal_out(lease),
             members=members,
             pending_invites=(
                 [PendingInvite(role=i.role, expires_at=i.expires_at) for i in invites]
@@ -825,6 +977,49 @@ class LeasesService:
                 },
                 dedupe_key=f"lease:{lease.id}:{event}:{uid}:{stamp}",
             )
+
+
+def _other_side(ctx: _Ctx) -> uuid.UUID | None:
+    if ctx.my_role == "landlord":
+        r = _responsible(ctx.members)
+        return r.user_id if r else None
+    return ctx.lease.landlord_user_id
+
+
+def _agreement(lease: LeaseRecord, members: list[MemberRecord]) -> Agreement:
+    """Стан кожної половини смужки: погодив / пропонує зміни / відхилив / ще ні."""
+    responsible = _responsible(members)
+    tenant_id = responsible.user_id if responsible else None
+
+    def side(user_id: uuid.UUID | None, accepted: datetime | None) -> AgreementState:
+        if user_id is not None and lease.proposal is not None and lease.proposal_by == user_id:
+            return "proposed"
+        if user_id is not None and lease.declined_by == user_id:
+            return "declined"
+        return "agreed" if accepted else "none"
+
+    after = lease.status not in (LeaseStatus.DRAFT, LeaseStatus.AWAITING_TENANT)
+    return Agreement(
+        tenant="agreed" if after else side(tenant_id, lease.terms_accepted_at),
+        landlord="agreed" if after else side(lease.landlord_user_id, lease.landlord_accepted_at),
+    )
+
+
+def _proposal_out(lease: LeaseRecord) -> ProposalOut | None:
+    p = lease.proposal
+    if p is None:
+        return None
+    return ProposalOut(
+        by="landlord" if lease.proposal_by == lease.landlord_user_id else "responsible",
+        start_date=date.fromisoformat(p["start_date"]),
+        end_date=date.fromisoformat(p["end_date"]),
+        months=p["months"],
+        rent_amount=p["rent_amount"],
+        rent_due_day=p["rent_due_day"],
+        deposit_amount=p["deposit_amount"],
+        terms=LeaseTerms.model_validate(p["terms"]),
+        proposed_at=lease.proposal_at or lease.created_at,
+    )
 
 
 def _agreed(lease: LeaseRecord) -> dict[str, Any]:

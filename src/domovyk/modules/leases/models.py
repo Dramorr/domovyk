@@ -65,6 +65,16 @@ class LeaseRow(Base):
     terms: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default="{}")
     settings: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default="{}")
     terms_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    landlord_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    proposal: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    proposal_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id")
+    )
+    proposal_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    declined_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id")
+    )
+    declined_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

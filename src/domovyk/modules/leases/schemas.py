@@ -30,6 +30,43 @@ class LeaseTerms(BaseModel):
     sublet_allowed: bool = False
 
 
+AgreementState = Literal["none", "agreed", "proposed", "declined"]
+
+
+class Agreement(BaseModel):
+    """Хто погодив поточні умови (FR-LSE-10) — для смужки прогресу в картці оренди."""
+
+    tenant: AgreementState
+    landlord: AgreementState
+
+
+class ProposalIn(BaseModel):
+    """Орендар пропонує зміни умов. Реквізити оплати задає лише власник."""
+
+    start_date: date
+    months: int = Field(ge=1, le=35)
+    rent_amount: int
+    rent_due_day: int
+    deposit_amount: int | None = None
+    terms: LeaseTerms = Field(default_factory=LeaseTerms)
+
+
+class ProposalOut(BaseModel):
+    by: PartyRole
+    start_date: date
+    end_date: date
+    months: int
+    rent_amount: int
+    rent_due_day: int
+    deposit_amount: int | None
+    terms: LeaseTerms
+    proposed_at: datetime
+
+
+class RespondIn(BaseModel):
+    accept: bool
+
+
 class PayDetailsIn(BaseModel):
     """Реквізити — шифруються (FR-PAY-8). Для готівки не потрібні."""
 
@@ -110,6 +147,8 @@ class LeaseOut(LeaseSummary):
     pay: PayDisplay
     terms: LeaseTerms
     terms_accepted_at: datetime | None
+    agreement: Agreement
+    proposal: ProposalOut | None
     members: list[MemberOut]
     pending_invites: list[PendingInvite]
     can_edit: bool

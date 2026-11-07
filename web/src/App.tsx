@@ -36,6 +36,7 @@ type Route =
   | { name: "lease"; id: string }
   | { name: "lease-new"; propertyId: string }
   | { name: "lease-edit"; id: string }
+  | { name: "lease-propose"; id: string }
   | { name: "invite-share"; leaseId: string; invite: Invite }
   | { name: "invite"; token: string }
   | { name: "chat"; id: string }
@@ -306,6 +307,7 @@ export function App() {
           onBack={back}
           onChat={() => push({ name: "chat", id: route.id })}
           onEdit={() => push({ name: "lease-edit", id: route.id })}
+          onPropose={() => push({ name: "lease-propose", id: route.id })}
           onNotify={() => push({ name: "lease-notify", id: route.id })}
           onInvite={(invite) => push({ name: "invite-share", leaseId: route.id, invite })}
         />
@@ -324,6 +326,9 @@ export function App() {
       break;
     case "lease-edit":
       screen = <LeaseFormLoader leaseId={route.id} onBack={back} onSaved={back} />;
+      break;
+    case "lease-propose":
+      screen = <LeaseFormLoader leaseId={route.id} propose onBack={back} onSaved={back} />;
       break;
     case "invite-share":
       screen = <InviteShare invite={route.invite} webApp={webApp} onDone={back} />;
@@ -447,12 +452,14 @@ function LeaseFormLoader({
   onBack,
   onCreated,
   onSaved,
+  propose = false,
 }: {
   propertyId?: string;
   leaseId?: string;
   onBack: () => void;
   onCreated?: (lease: Lease, invite: Invite) => void;
   onSaved?: (lease: Lease) => void;
+  propose?: boolean;
 }) {
   const [property, setProperty] = useState<Property | null>(null);
   const [lease, setLease] = useState<Lease | null>(null);
@@ -465,6 +472,13 @@ function LeaseFormLoader({
     return <Screen onBack={onBack}>{error ? <p className="error">{error}</p> : <div className="skeleton" />}</Screen>;
   }
   return (
-    <LeaseForm property={property ?? undefined} lease={lease ?? undefined} onBack={onBack} onCreated={onCreated} onSaved={onSaved} />
+    <LeaseForm
+      property={property ?? undefined}
+      lease={lease ?? undefined}
+      propose={propose}
+      onBack={onBack}
+      onCreated={onCreated}
+      onSaved={onSaved}
+    />
   );
 }
