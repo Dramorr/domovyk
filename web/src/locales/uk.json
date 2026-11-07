@@ -780,5 +780,8 @@
   "pay_err_closed": "Це нарахування вже оплачено.",
   "ch_sys_payment_reported": "{name} позначає оплату",
   "ch_sys_payment_confirmed": "Оплату підтверджено",
-  "ch_sys_payment_rejected": "Власник не підтвердив оплату"
+  "ch_sys_payment_rejected": "Власник не підтвердив оплату",
+  "pf_section_progress": "Заповнено {n} з {total}",
+  "pf_section_important": "важливого бракує: {n}",
+  "pf_unsaved": "не збережено"
 }
