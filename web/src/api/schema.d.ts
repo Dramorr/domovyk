@@ -1979,6 +1979,11 @@ export interface components {
              * Format: uuid
              */
             contract_id: string;
+            /**
+             * Contract Name Match
+             * @default false
+             */
+            contract_name_match: boolean;
             /** Digest Algorithm */
             digest_algorithm: string | null;
             /** Display Name */
@@ -1998,6 +2003,8 @@ export interface components {
             lease_id: string;
             /** Notes */
             notes: string[];
+            /** Owner Doc Match */
+            owner_doc_match?: boolean | null;
             /** Owner Name In Doc */
             owner_name_in_doc: string | null;
             /**

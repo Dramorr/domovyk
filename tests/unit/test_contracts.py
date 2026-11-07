@@ -329,6 +329,7 @@ async def test_name_mismatch_goes_to_moderator(env: tuple[Services, FakeDb]) -> 
     assert any(r[1] == "signature_mismatch" for r in db.risk_signals)
     case = (await s.contracts.review_queue(ADMIN_TG))[0]
     assert case.expected_name == OWNER_NAME and case.owner_name_in_doc == OWNER_NAME
+    assert (case.contract_name_match, case.owner_doc_match) == (False, False)
     with pytest.raises(InvalidInput):  # відхилення — лише з причиною
         await s.contracts.review_signature(ADMIN_TG, case.signature_id, False, " ")
     await s.contracts.review_signature(ADMIN_TG, case.signature_id, False, "Не той підписувач")
@@ -489,3 +490,16 @@ async def test_purged_lease_removes_contract_files(env: tuple[Services, FakeDb])
     await s.leases.hide(OWNER, lease_id)
     await s.leases.hide(TENANT, lease_id)
     assert not [k for k in db.storage.files if k.startswith(f"contracts/{lease_id}/")]
+
+
+async def test_mismatch_only_with_ownership_doc(env: tuple[Services, FakeDb]) -> None:
+    """ПІБ збігся з договором, але не з довідкою (помилка модератора) — видно, з чим саме."""
+    s, db = env
+    _, contract_id, pdf = await _generated(s, db, owner_doc="Інше Прізвище")
+    await s.contracts.upload_signature(OWNER, contract_id, "o.p7s", cades(pdf, OWNER_NAME))
+    sig = next(iter(db.contract.signatures.values()))
+    assert sig.check_status is SignatureCheck.MISMATCH
+    assert sig.check_details["contract_name_match"] is True
+    assert sig.check_details["owner_doc_match"] is False
+    case = (await s.contracts.review_queue(ADMIN_TG))[0]
+    assert (case.contract_name_match, case.owner_doc_match) == (True, False)

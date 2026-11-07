@@ -331,9 +331,9 @@ class ContractsService:
             if role is PartyRole.LANDLORD
             else None
         )
-        name_ok = names_match(signer.full_name, expected) and (
-            owner_doc is None or names_match(signer.full_name, owner_doc)
-        )
+        contract_ok = names_match(signer.full_name, expected)
+        doc_ok = None if owner_doc is None else names_match(signer.full_name, owner_doc)
+        name_ok = contract_ok and doc_ok is not False
         if not name_ok:
             check = SignatureCheck.MISMATCH
         elif report.document_match == "match":
@@ -349,6 +349,8 @@ class ContractsService:
             "document_match": report.document_match,
             "digest_algorithm": report.digest_algorithm,
             "name_match": name_ok,
+            "contract_name_match": contract_ok,
+            "owner_doc_match": doc_ok,
             "owner_doc_checked": owner_doc is not None,
             "issuer": signer.issuer,
             "cert_valid_to": signer.valid_to.isoformat() if signer.valid_to else None,
@@ -789,6 +791,8 @@ class ContractsService:
             signed_at_claimed=sig.signed_at_claimed,
             uploaded_at=sig.uploaded_at,
             notes=list(d.get("notes") or []),
+            contract_name_match=names_match(sig.signer_name, names.get(sig.user_id)),
+            owner_doc_match=None if owner_doc is None else names_match(sig.signer_name, owner_doc),
         )
 
     def _check_live(self, contract: ContractRecord, info: LeaseForContract) -> None:

@@ -3396,6 +3396,11 @@
             "title": "Contract Id",
             "type": "string"
           },
+          "contract_name_match": {
+            "default": false,
+            "title": "Contract Name Match",
+            "type": "boolean"
+          },
           "digest_algorithm": {
             "anyOf": [
               {
@@ -3452,6 +3457,17 @@
             },
             "title": "Notes",
             "type": "array"
+          },
+          "owner_doc_match": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Doc Match"
           },
           "owner_name_in_doc": {
             "anyOf": [

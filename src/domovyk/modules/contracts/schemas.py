@@ -98,3 +98,6 @@ class SignatureCase(BaseModel):
     signed_at_claimed: datetime | None
     uploaded_at: datetime
     notes: list[str]
+    # Звірка ПІБ із сертифіката: з договором і (для власника) з довідкою. None — нема з чим.
+    contract_name_match: bool = False
+    owner_doc_match: bool | None = None

@@ -320,13 +320,20 @@ export function SignatureReview({ sid, onBack }: { sid: string; onBack: () => vo
         </div>
         <div className="unit">
           <span className="hint small">{t("mod_sig_in_contract")}</span>
-          <span>{item.expected_name ?? "—"}</span>
+          <span>
+            {item.expected_name ?? "—"} {item.contract_name_match ? "✓" : "✗"}
+          </span>
         </div>
         {item.party_role === "landlord" && (
           <div className="unit">
             <span className="hint small">{t("mod_sig_in_doc")}</span>
-            <span>{item.owner_name_in_doc ?? "—"}</span>
+            <span>
+              {item.owner_name_in_doc ?? "—"} {item.owner_doc_match === null ? "" : item.owner_doc_match ? "✓" : "✗"}
+            </span>
           </div>
+        )}
+        {item.contract_name_match && item.owner_doc_match === false && (
+          <p className="hint small">{t("mod_sig_doc_name_hint")}</p>
         )}
         <p className="small">
           {t(`mod_sig_doc_${item.document_match}` as TextKey)}
