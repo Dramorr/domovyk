@@ -121,7 +121,7 @@ export function LeaseList({
         </MascotTip>
       )}
       {items?.map((l) => (
-        <div key={l.id} className={l.status === "cancelled" ? "row-with-menu" : undefined}>
+        <div key={l.id} className={["cancelled", "ended"].includes(l.status) ? "row-with-menu" : undefined}>
           <ListRow
             icon="key"
             title={leaseAddress(l)}
@@ -134,12 +134,13 @@ export function LeaseList({
             right={l.unread > 0 && <span className="count">{l.unread}</span>}
             onClick={() => onOpen(l.id)}
           />
-          {l.status === "cancelled" && (
+          {["cancelled", "ended"].includes(l.status) && (
             <RowMenu
               label={t("ls_delete")}
               danger
               onPick={async () => {
-                if (!(await confirm(webApp, t("ls_delete_confirm")))) return;
+                const text = l.status === "ended" ? t("ls_hide_ended_confirm") : t("ls_delete_confirm");
+                if (!(await confirm(webApp, text))) return;
                 try {
                   await api.hideLease(l.id);
                   setItems((xs) => xs?.filter((x) => x.id !== l.id) ?? null);
@@ -658,6 +659,118 @@ function termsLines(terms: LeaseTerms): string[] {
   ];
 }
 
+const TERMINATION_REASONS = ["ls_term_r_moving", "ls_term_r_landlord", "ls_term_r_breach"] as const;
+
+/** FR-LSE-7: розірвання — форма для активної оренди й стан «завершується». */
+function TerminationBlock({
+  l,
+  webApp,
+  busy,
+  run,
+}: {
+  l: Lease;
+  webApp: WebApp;
+  busy: boolean;
+  run: (action: () => Promise<Lease | void>) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [date, setDate] = useState(l.termination_earliest ?? l.end_date);
+  const [reason, setReason] = useState("");
+  const mine = l.termination && l.termination.by === l.my_role;
+
+  if (l.status === "ending" && l.termination) {
+    return (
+      <section className="card accent">
+        <h2>{t("ls_term_ending_title", { date: formatDate(l.termination.date) })}</h2>
+        <p className="hint left">
+          {k(`ls_term_by_${l.termination.by}`)}: «{l.termination.reason}»
+        </p>
+        <p className="hint small">{t("ls_term_ending_tip")}</p>
+        {mine && (
+          <button
+            className="button secondary"
+            disabled={busy}
+            onClick={async () => {
+              if (!(await confirm(webApp, t("ls_term_withdraw_confirm")))) return;
+              await run(() => api.withdrawTermination(l.id));
+            }}
+          >
+            {t("ls_term_withdraw")}
+          </button>
+        )}
+      </section>
+    );
+  }
+  if (l.status !== "active" || !l.can_terminate) return null;
+  if (!open) {
+    return (
+      <section className="card">
+        <h2>{t("ls_term_title")}</h2>
+        <p className="hint">
+          {t("ls_term_hint", { end: formatDate(l.end_date), n: String(l.terms.early_termination_notice_days) })}
+        </p>
+        <button className="button ghost" onClick={() => setOpen(true)}>
+          {t("ls_term_start")}
+        </button>
+      </section>
+    );
+  }
+  return (
+    <section className="card accent">
+      <h2>{t("ls_term_title")}</h2>
+      <label className="field">
+        {t("ls_term_date")}
+        <input
+          className="input"
+          type="date"
+          value={date}
+          min={l.termination_earliest ?? undefined}
+          max={l.end_date}
+          onChange={(e) => setDate(e.target.value)}
+        />
+      </label>
+      <p className="hint small">
+        {t("ls_term_date_hint", { n: String(l.terms.early_termination_notice_days), date: formatDate(l.termination_earliest ?? l.end_date) })}
+      </p>
+      <div className="field">
+        {t("ls_term_reason")}
+        <div className="chips">
+          {TERMINATION_REASONS.map((key) => (
+            <button key={key} className={`chip${reason === t(key) ? " active" : ""}`} onClick={() => setReason(t(key))}>
+              {t(key)}
+            </button>
+          ))}
+        </div>
+        <textarea
+          className="input"
+          rows={3}
+          maxLength={500}
+          value={reason}
+          placeholder={t("ls_term_reason_placeholder")}
+          onChange={(e) => setReason(e.target.value)}
+        />
+      </div>
+      <button
+        className="button"
+        disabled={busy || reason.trim().length < 3 || !date}
+        onClick={async () => {
+          if (!(await confirm(webApp, t("ls_term_confirm", { date: formatDate(date) })))) return;
+          await run(async () => {
+            const r = await api.requestTermination(l.id, date, reason);
+            setOpen(false);
+            return r;
+          });
+        }}
+      >
+        {t("ls_term_send")}
+      </button>
+      <button className="link" onClick={() => setOpen(false)}>
+        {t("cancel")}
+      </button>
+    </section>
+  );
+}
+
 function hasResponsibleMember(l: Lease): boolean {
   return l.members.some((m) => m.role === "responsible");
 }
@@ -943,6 +1056,14 @@ export function LeaseCard({
           {t("ls_cancel")}
         </button>
       )}
+      {(l.status === "active" || l.status === "ending") && l.my_role !== "co_tenant" && (
+        <TerminationBlock l={l} webApp={webApp} busy={busy} run={run} />
+      )}
+      {l.status === "ended" && (
+        <MascotTip tone="calm">
+          <p>{t("ls_ended_tip")}</p>
+        </MascotTip>
+      )}
       {showBar && (
         <>
           <div className="agreement-spacer" />
@@ -950,7 +1071,7 @@ export function LeaseCard({
         </>
       )}
       {sheet && <AgreementSheet lease={l} contract={contract} termsLines={termsLines} onClose={() => setSheet(false)} />}
-      {l.status === "cancelled" && (
+      {(l.status === "cancelled" || l.status === "ended") && (
         <button
           className="link danger"
           disabled={busy}

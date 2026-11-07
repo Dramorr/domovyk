@@ -35,6 +35,7 @@ from domovyk.domain.leases import (
     MemberRole,
     PayMethod,
     clean_message,
+    clean_reason,
     end_for_term,
     is_open,
     mask_card,
@@ -44,8 +45,10 @@ from domovyk.domain.leases import (
     normalize_iban,
     normalize_jar,
     short_name,
+    termination_window,
     validate_money,
     validate_term,
+    validate_termination,
 )
 from domovyk.domain.properties import UnitKind
 from domovyk.modules.chat.service import ChatService, MessageOut, MessagesPage, SystemCode
@@ -75,6 +78,8 @@ from domovyk.modules.leases.schemas import (
     ProposalIn,
     ProposalOut,
     RespondIn,
+    TerminationIn,
+    TerminationOut,
 )
 from domovyk.modules.notifications.service import (
     LeaseNotificationPrefs,
@@ -101,6 +106,7 @@ __all__ = [
     "PayDetailsIn",
     "ProposalIn",
     "RespondIn",
+    "TerminationIn",
 ]
 
 INVITE_PREFIX = "inv_"
@@ -210,7 +216,11 @@ class LeasesService:
         lease = await repo.get(lease_id)
         if lease is None:
             raise NotFound("Оренду не знайдено")
-        await repo.update(lease_id, status=LEASE.transition(lease.status, LeaseStatus.ACTIVE))
+        await repo.update(
+            lease_id,
+            status=LEASE.transition(lease.status, LeaseStatus.ACTIVE),
+            activated_at=self._clock.now(),
+        )
         conversation = await self._chat.ensure_for_lease(tx, lease_id)
         await self._chat.system(
             tx, conversation, SystemCode.LEASE_ACTIVATED, {"start": lease.start_date.isoformat()}
@@ -737,6 +747,115 @@ class LeasesService:
                 tx, ctx.lease, [ctx.lease.landlord_user_id], code.value, {"name": user.display_name}
             )
 
+    # ------------------------------------------------- розірвання (FR-LSE-7)
+
+    async def request_termination(
+        self, telegram_uid: int, lease_id: uuid.UUID, data: TerminationIn
+    ) -> LeaseOut:
+        """Сторона ініціює розірвання: дата (з попередженням за договором) і причина."""
+        user = await self._users.require_active(telegram_uid)
+        reason = clean_reason(data.reason)
+        now = self._clock.now()
+        today = to_kyiv(now).date()
+        async with self._tx.begin() as tx:
+            repo = self._repo(tx)
+            ctx = await self._ctx(tx, lease_id, user)
+            if ctx.my_role == "co_tenant":
+                raise PermissionDenied("Розриває власник або відповідальний орендар")
+            if ctx.lease.status is not LeaseStatus.ACTIVE:
+                raise Conflict("Розірвати можна лише активну оренду", field="status")
+            validate_termination(data.date, today, ctx.lease.end_date, _notice_days(ctx.lease))
+            await repo.update(
+                lease_id,
+                status=LEASE.transition(ctx.lease.status, LeaseStatus.ENDING),
+                termination_date=data.date,
+                termination_reason=reason,
+                termination_by=user.id,
+                termination_requested_at=now,
+            )
+            conversation = await self._chat.ensure_for_lease(tx, lease_id)
+            await self._chat.system(
+                tx,
+                conversation,
+                SystemCode.TERMINATION_REQUESTED,
+                {"name": user.display_name, "date": data.date.isoformat()},
+            )
+            others = [ctx.lease.landlord_user_id] + [m.user_id for m in _active(ctx.members)]
+            await self._notify_lease(
+                tx,
+                ctx.lease,
+                [u for u in others if u != user.id],
+                "termination_requested",
+                {
+                    "name": user.display_name,
+                    "date": data.date.strftime("%d.%m.%Y"),
+                    "reason": reason,
+                },
+            )
+            return await self._out(tx, await self._ctx(tx, lease_id, user))
+
+    async def withdraw_termination(self, telegram_uid: int, lease_id: uuid.UUID) -> LeaseOut:
+        """Ініціатор передумав до настання дати — оренда знову активна."""
+        user = await self._users.require_active(telegram_uid)
+        async with self._tx.begin() as tx:
+            repo = self._repo(tx)
+            ctx = await self._ctx(tx, lease_id, user)
+            if ctx.lease.status is not LeaseStatus.ENDING:
+                raise Conflict("Оренда не завершується", field="status")
+            if ctx.lease.termination_by != user.id:
+                raise PermissionDenied("Скасувати розірвання може лише той, хто його ініціював")
+            await repo.update(
+                lease_id,
+                status=LEASE.transition(ctx.lease.status, LeaseStatus.ACTIVE),
+                termination_date=None,
+                termination_reason=None,
+                termination_by=None,
+                termination_requested_at=None,
+            )
+            conversation = await self._chat.ensure_for_lease(tx, lease_id)
+            await self._chat.system(
+                tx, conversation, SystemCode.TERMINATION_WITHDRAWN, {"name": user.display_name}
+            )
+            others = [ctx.lease.landlord_user_id] + [m.user_id for m in _active(ctx.members)]
+            await self._notify_lease(
+                tx,
+                ctx.lease,
+                [u for u in others if u != user.id],
+                "termination_withdrawn",
+                {"name": user.display_name},
+            )
+            return await self._out(tx, await self._ctx(tx, lease_id, user))
+
+    async def finish_due(self) -> int:
+        """Фонова задача: настала дата розірвання або минув строк договору → ended."""
+        now = self._clock.now()
+        today = to_kyiv(now).date()
+        async with self._tx.begin() as tx:
+            ids = await self._repo(tx).due_to_finish(today)
+        for lease_id in ids:
+            async with self._tx.begin() as tx:
+                repo = self._repo(tx)
+                lease = await repo.get(lease_id)
+                if lease is None or lease.status not in (LeaseStatus.ACTIVE, LeaseStatus.ENDING):
+                    continue
+                status: LeaseStatus = lease.status
+                if status is LeaseStatus.ACTIVE:  # строк минув без розірвання
+                    status = LEASE.transition(status, LeaseStatus.ENDING)
+                await repo.update(
+                    lease_id, status=LEASE.transition(status, LeaseStatus.ENDED), ended_at=now
+                )
+                conversation = await self._chat.ensure_for_lease(tx, lease_id)
+                await self._chat.system(tx, conversation, SystemCode.LEASE_ENDED)
+                members = await repo.members(lease_id)
+                await self._notify_lease(
+                    tx,
+                    lease,
+                    [lease.landlord_user_id] + [m.user_id for m in _active(members)],
+                    "lease_ended",
+                    {},
+                )
+        return len(ids)
+
     async def hide(self, telegram_uid: int, lease_id: uuid.UUID) -> None:
         """FR-LSE-9: «Видалити» скасовану оренду — лише зі свого списку.
 
@@ -746,8 +865,10 @@ class LeasesService:
         user = await self._users.require_active(telegram_uid)
         async with self._tx.begin() as tx:
             ctx = await self._ctx(tx, lease_id, user)
-            if ctx.lease.status is not LeaseStatus.CANCELLED:
-                raise Conflict("Видалити можна лише скасовану оренду", field="status")
+            if ctx.lease.status not in (LeaseStatus.CANCELLED, LeaseStatus.ENDED):
+                raise Conflict(
+                    "Прибрати зі списку можна скасовану або завершену оренду", field="status"
+                )
             await self._repo(tx).hide(lease_id, user.id, self._clock.now())
         await self.purge_cancelled()
 
@@ -941,6 +1062,12 @@ class LeasesService:
             terms_accepted_at=lease.terms_accepted_at,
             agreement=_agreement(lease, ctx.members),
             proposal=_proposal_out(lease),
+            termination=_termination_out(lease, ctx.members),
+            can_terminate=ctx.my_role in ("landlord", "responsible")
+            and lease.status is LeaseStatus.ACTIVE,
+            termination_earliest=termination_window(today, lease.end_date, _notice_days(lease))[0]
+            if lease.status is LeaseStatus.ACTIVE
+            else None,
             members=members,
             pending_invites=(
                 [PendingInvite(role=i.role, expires_at=i.expires_at) for i in invites]
@@ -1002,6 +1129,27 @@ def _agreement(lease: LeaseRecord, members: list[MemberRecord]) -> Agreement:
     return Agreement(
         tenant="agreed" if after else side(tenant_id, lease.terms_accepted_at),
         landlord="agreed" if after else side(lease.landlord_user_id, lease.landlord_accepted_at),
+    )
+
+
+def _notice_days(lease: LeaseRecord) -> int:
+    return int(lease.terms.get("early_termination_notice_days", 30))
+
+
+def _termination_out(lease: LeaseRecord, members: list[MemberRecord]) -> TerminationOut | None:
+    if lease.termination_date is None or lease.termination_by is None:
+        return None
+    by: PartyRole
+    if lease.termination_by == lease.landlord_user_id:
+        by = "landlord"
+    else:
+        member = next((m for m in members if m.user_id == lease.termination_by), None)
+        by = member.role.value if member else "responsible"
+    return TerminationOut(
+        date=lease.termination_date,
+        reason=lease.termination_reason or "",
+        by=by,
+        requested_at=lease.termination_requested_at or lease.created_at,
     )
 
 

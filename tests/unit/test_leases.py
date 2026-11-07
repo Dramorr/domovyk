@@ -439,3 +439,74 @@ async def test_proposal_accept_and_decline(env: tuple[Services, FakeDb]) -> None
     assert (view.agreement.tenant, view.agreement.landlord) == ("agreed", "agreed")
     with pytest.raises(Conflict):
         await s.leases.respond_proposal(OWNER, lease.id, True)
+
+
+async def _active_lease(s: Services, db: FakeDb) -> uuid.UUID:
+    from domovyk.core.tx import NullTxManager
+
+    pid = await _verified_flat(s, db)
+    lease, invite = await s.leases.create_lease(OWNER, _lease(pid))  # 1.12.2026–31.10.2027
+    await s.leases.accept_invite(TENANT, invite.token)
+    await s.leases.accept_terms(TENANT, lease.id)
+    async with NullTxManager().begin() as tx:
+        await s.leases.activate(tx, lease.id)
+    return lease.id
+
+
+async def test_termination_request_withdraw_and_finish(
+    env: tuple[Services, FakeDb], clock: FixedClock
+) -> None:
+    """FR-LSE-7: дата — не раніше строку попередження (30 днів), причина обовʼязкова."""
+    from domovyk.modules.leases.schemas import TerminationIn
+
+    s, db = env
+    lease_id = await _active_lease(s, db)
+    view = await s.leases.get(TENANT, lease_id)
+    assert view.can_terminate and view.termination_earliest == date(2026, 12, 6)  # 6.11 + 30
+    with pytest.raises(InvalidInput):  # раніше строку попередження
+        await s.leases.request_termination(
+            TENANT, lease_id, TerminationIn(date=date(2026, 11, 20), reason="Переїжджаю")
+        )
+    with pytest.raises(InvalidInput):  # пізніше кінця договору
+        await s.leases.request_termination(
+            TENANT, lease_id, TerminationIn(date=date(2028, 1, 1), reason="Переїжджаю")
+        )
+    with pytest.raises(InvalidInput):  # без причини
+        await s.leases.request_termination(
+            TENANT, lease_id, TerminationIn(date=date(2027, 1, 31), reason=" ")
+        )
+    view = await s.leases.request_termination(
+        TENANT, lease_id, TerminationIn(date=date(2027, 1, 31), reason="Переїжджаю в інше місто")
+    )
+    assert view.status is LeaseStatus.ENDING
+    assert view.termination is not None and view.termination.by == "responsible"
+    assert any(n.payload.get("event") == "termination_requested" for n in db.prop.notifications)
+    with pytest.raises(PermissionDenied):  # скасовує лише ініціатор
+        await s.leases.withdraw_termination(OWNER, lease_id)
+    view = await s.leases.withdraw_termination(TENANT, lease_id)
+    assert view.status is LeaseStatus.ACTIVE and view.termination is None
+
+    # Власник розриває; у дату розірвання оренда стає завершеною.
+    await s.leases.request_termination(
+        OWNER, lease_id, TerminationIn(date=date(2027, 2, 28), reason="Житло потрібне родині")
+    )
+    assert await s.leases.finish_due() == 0
+    clock.advance(timedelta(days=114))  # 28.02.2027
+    assert await s.leases.finish_due() == 1
+    view = await s.leases.get(OWNER, lease_id)
+    assert view.status is LeaseStatus.ENDED and not view.can_terminate
+    # Завершену можна прибрати зі свого списку, але вона не стирається.
+    await s.leases.hide(OWNER, lease_id)
+    await s.leases.hide(TENANT, lease_id)
+    assert lease_id in db.lease.leases
+
+
+async def test_lease_ends_when_term_is_over(
+    env: tuple[Services, FakeDb], clock: FixedClock
+) -> None:
+    s, db = env
+    lease_id = await _active_lease(s, db)
+    clock.advance(timedelta(days=360))  # 1.11.2027 — після кінця договору (31.10.2027)
+    assert await s.leases.finish_due() == 1
+    assert (await s.leases.get(TENANT, lease_id)).status is LeaseStatus.ENDED
+    assert any(n.payload.get("event") == "lease_ended" for n in db.prop.notifications)

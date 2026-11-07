@@ -72,6 +72,7 @@ def make_renderer(base_url: str) -> Renderer:
                         address=format_address(p),
                         name=escape(str(p.get("name") or "")),
                         reason=escape(str(p.get("reason") or "")),
+                        date=escape(str(p.get("date") or "")),
                     ),
                     lease_button(p, uk.BTN_OPEN_LEASE, "lease"),
                 )

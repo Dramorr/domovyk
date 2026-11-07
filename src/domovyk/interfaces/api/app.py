@@ -65,6 +65,7 @@ from domovyk.modules.leases.service import (
     MessagesPage,
     ProposalIn,
     RespondIn,
+    TerminationIn,
 )
 from domovyk.modules.properties.service import (
     AddressCandidate,
@@ -405,6 +406,14 @@ def create_app(
     @app.post("/api/v1/leases/{lease_id}/accept-terms")
     async def accept_lease_terms(auth: Auth, lease_id: uuid.UUID) -> LeaseOut:
         return await svc.leases.accept_terms(auth.user.id, lease_id)
+
+    @app.post("/api/v1/leases/{lease_id}/termination")
+    async def request_termination(auth: Auth, lease_id: uuid.UUID, body: TerminationIn) -> LeaseOut:
+        return await svc.leases.request_termination(auth.user.id, lease_id, body)
+
+    @app.delete("/api/v1/leases/{lease_id}/termination")
+    async def withdraw_termination(auth: Auth, lease_id: uuid.UUID) -> LeaseOut:
+        return await svc.leases.withdraw_termination(auth.user.id, lease_id)
 
     @app.post("/api/v1/leases/{lease_id}/proposal")
     async def propose_changes(auth: Auth, lease_id: uuid.UUID, body: ProposalIn) -> LeaseOut:

@@ -45,6 +45,11 @@ class LeaseRecord:
     proposal_by: uuid.UUID | None = None
     proposal_at: datetime | None = None
     declined_by: uuid.UUID | None = None
+    # FR-LSE-7: розірвання.
+    termination_date: date | None = None
+    termination_reason: str | None = None
+    termination_by: uuid.UUID | None = None
+    termination_requested_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -90,6 +95,7 @@ class LeasesRepository(Protocol):
     async def hide(self, lease_id: uuid.UUID, user_id: uuid.UUID, at: datetime) -> None: ...
     async def purgeable(self, cancelled_before: datetime) -> list[uuid.UUID]: ...
     async def delete(self, lease_id: uuid.UUID) -> None: ...
+    async def due_to_finish(self, today: date) -> list[uuid.UUID]: ...
     async def open_unit_ids(self, unit_ids: list[uuid.UUID]) -> set[uuid.UUID]: ...
     async def count_open_for_user(self, user_id: uuid.UUID) -> int: ...
     async def count_open_as_responsible(self, user_id: uuid.UUID) -> int: ...
@@ -138,6 +144,10 @@ def _lease(r: LeaseRow) -> LeaseRecord:
         proposal_by=r.proposal_by,
         proposal_at=r.proposal_at,
         declined_by=r.declined_by,
+        termination_date=r.termination_date,
+        termination_reason=r.termination_reason,
+        termination_by=r.termination_by,
+        termination_requested_at=r.termination_requested_at,
     )
 
 
@@ -218,6 +228,19 @@ class SqlLeasesRepository:
                 LeaseRow.status == LeaseStatus.CANCELLED,
                 # +1 — власник (він не в lease_members).
                 or_(LeaseRow.cancelled_at < cancelled_before, hidden >= members + 1),
+            )
+        )
+        return list(rows)
+
+    async def due_to_finish(self, today: date) -> list[uuid.UUID]:
+        """Оренди, що мають стати завершеними: настала дата розірвання або минув строк."""
+        rows = await self._s.scalars(
+            select(LeaseRow.id).where(
+                or_(
+                    (LeaseRow.status == LeaseStatus.ENDING) & (LeaseRow.termination_date <= today),
+                    (LeaseRow.status.in_([LeaseStatus.ACTIVE, LeaseStatus.ENDING]))
+                    & (LeaseRow.end_date < today),
+                )
             )
         )
         return list(rows)

@@ -82,6 +82,32 @@ EDITABLE_STATUSES = frozenset(
 )
 
 
+TERMINATION_REASON_MIN, TERMINATION_REASON_MAX = 3, 500
+
+
+def termination_window(today: date, end: date, notice_days: int) -> tuple[date, date]:
+    """FR-LSE-7: найраніша й найпізніша дата розірвання (попередження з договору)."""
+    earliest = date.fromordinal(today.toordinal() + max(0, notice_days))
+    return min(earliest, end), end
+
+
+def validate_termination(when: date, today: date, end: date, notice_days: int) -> None:
+    earliest, latest = termination_window(today, end, notice_days)
+    if when < earliest:
+        raise InvalidInput(
+            "Дата розірвання — не раніше, ніж через строк попередження", field="date"
+        )
+    if when > latest:
+        raise InvalidInput("Дата розірвання — не пізніше кінця договору", field="date")
+
+
+def clean_reason(raw: str) -> str:
+    text = " ".join(raw.split())
+    if not TERMINATION_REASON_MIN <= len(text) <= TERMINATION_REASON_MAX:
+        raise InvalidInput("Вкажи причину розірвання", field="reason")
+    return text
+
+
 def is_open(status: LeaseStatus) -> bool:
     return status in OPEN_STATUSES
 

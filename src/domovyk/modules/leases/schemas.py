@@ -63,6 +63,20 @@ class ProposalOut(BaseModel):
     proposed_at: datetime
 
 
+class TerminationIn(BaseModel):
+    date: date
+    reason: str = Field(max_length=600)
+
+
+class TerminationOut(BaseModel):
+    """FR-LSE-7: розірвання, ініційоване однією зі сторін."""
+
+    date: date
+    reason: str
+    by: PartyRole
+    requested_at: datetime
+
+
 class RespondIn(BaseModel):
     accept: bool
 
@@ -149,6 +163,9 @@ class LeaseOut(LeaseSummary):
     terms_accepted_at: datetime | None
     agreement: Agreement
     proposal: ProposalOut | None
+    termination: TerminationOut | None = None
+    can_terminate: bool = False
+    termination_earliest: date | None = None
     members: list[MemberOut]
     pending_invites: list[PendingInvite]
     can_edit: bool

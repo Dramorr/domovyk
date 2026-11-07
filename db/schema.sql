@@ -1,5 +1,5 @@
 -- =====================================================================
---  Домовик — цільова схема бази даних, v0.11
+--  Домовик — цільова схема бази даних, v0.12
 --  PostgreSQL 16 + PostGIS
 --
 --  Це ЦІЛЬОВА модель. Реальні зміни в базі робляться тільки
@@ -443,7 +443,11 @@ CREATE TABLE leases (
     proposal_by         uuid REFERENCES users(id),
     proposal_at         timestamptz,
     declined_by         uuid REFERENCES users(id),   -- хто відхилив останню пропозицію
-    declined_at         timestamptz,                  -- відповідальний орендар погодив умови
+    declined_at         timestamptz,
+    termination_date    date,                  -- FR-LSE-7: останній день при розірванні
+    termination_reason  text CHECK (termination_reason IS NULL OR char_length(termination_reason) BETWEEN 3 AND 500),
+    termination_by      uuid REFERENCES users(id),
+    termination_requested_at timestamptz,
     activated_at        timestamptz,
     ended_at            timestamptz,
     cancelled_at        timestamptz,
@@ -464,6 +468,10 @@ CREATE TRIGGER trg_leases_updated BEFORE UPDATE ON leases
 -- без жодних обов'язкових дій (бачить картку, чат, нагадування — якщо увімкне).
 -- Учасник прибрав скасовану оренду зі свого списку (FR-LSE-9). Прибрали всі
 -- або минуло LEASE_CANCELLED_RETENTION_DAYS → оренда видаляється каскадом.
+ALTER TABLE leases ADD CONSTRAINT leases_termination_within_term
+    CHECK (termination_date IS NULL OR termination_date <= end_date);
+CREATE INDEX idx_leases_finishing ON leases(status) WHERE status IN ('active', 'ending');
+
 CREATE TABLE lease_hidden (
     lease_id    uuid NOT NULL REFERENCES leases(id) ON DELETE CASCADE,
     user_id     uuid NOT NULL REFERENCES users(id),

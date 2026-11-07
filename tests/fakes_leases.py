@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field, replace
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 
 from domovyk.domain.leases import OPEN_STATUSES, LeaseOrigin, LeaseStatus, MemberRole
@@ -107,6 +107,18 @@ class FakeLeasesRepository:
             if people <= hidden or (cancelled_at is not None and cancelled_at < cancelled_before):
                 out.append(lease.id)
         return out
+
+    async def due_to_finish(self, today: date) -> list[uuid.UUID]:
+        return [
+            lease.id
+            for lease in self.db.leases.values()
+            if (
+                lease.status is LeaseStatus.ENDING
+                and lease.termination_date is not None
+                and lease.termination_date <= today
+            )
+            or (lease.status in (LeaseStatus.ACTIVE, LeaseStatus.ENDING) and lease.end_date < today)
+        ]
 
     async def delete(self, lease_id: uuid.UUID) -> None:
         del self.db.leases[lease_id]

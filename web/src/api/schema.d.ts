@@ -487,6 +487,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/leases/{lease_id}/termination": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request Termination */
+        post: operations["request_termination_api_v1_leases__lease_id__termination_post"];
+        /** Withdraw Termination */
+        delete: operations["withdraw_termination_api_v1_leases__lease_id__termination_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me": {
         parameters: {
             query?: never;
@@ -1385,6 +1403,11 @@ export interface components {
             /** Can Invite Co Tenant */
             can_invite_co_tenant: boolean;
             /**
+             * Can Terminate
+             * @default false
+             */
+            can_terminate: boolean;
+            /**
              * Created At
              * Format: date-time
              */
@@ -1437,6 +1460,9 @@ export interface components {
             status: components["schemas"]["LeaseStatus"];
             /** Street */
             street: string;
+            termination?: components["schemas"]["TerminationOut"] | null;
+            /** Termination Earliest */
+            termination_earliest?: string | null;
             terms: components["schemas"]["LeaseTerms"];
             /** Terms Accepted At */
             terms_accepted_at: string | null;
@@ -2201,7 +2227,7 @@ export interface components {
          * @description Системні повідомлення (FR-CHT-2). Текст — у файлі локалізації інтерфейсу.
          * @enum {string}
          */
-        SystemCode: "lease_created" | "member_joined" | "member_left" | "terms_accepted" | "terms_change_requested" | "terms_declined" | "terms_updated" | "lease_cancelled" | "terms_proposed" | "proposal_accepted" | "proposal_declined" | "contract_ready" | "contract_signed_by" | "contract_external" | "contract_external_rejected" | "lease_activated";
+        SystemCode: "lease_created" | "member_joined" | "member_left" | "terms_accepted" | "terms_change_requested" | "terms_declined" | "terms_updated" | "lease_cancelled" | "terms_proposed" | "proposal_accepted" | "proposal_declined" | "contract_ready" | "contract_signed_by" | "contract_external" | "contract_external_rejected" | "lease_activated" | "termination_requested" | "termination_withdrawn" | "lease_ended";
         /** TelegramUserOut */
         TelegramUserOut: {
             /** First Name */
@@ -2230,6 +2256,39 @@ export interface components {
             pets_details?: string | null;
             /** Smoker */
             smoker?: boolean | null;
+        };
+        /** TerminationIn */
+        TerminationIn: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Reason */
+            reason: string;
+        };
+        /**
+         * TerminationOut
+         * @description FR-LSE-7: розірвання, ініційоване однією зі сторін.
+         */
+        TerminationOut: {
+            /**
+             * By
+             * @enum {string}
+             */
+            by: "landlord" | "responsible" | "co_tenant";
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Reason */
+            reason: string;
+            /**
+             * Requested At
+             * Format: date-time
+             */
+            requested_at: string;
         };
         /** TextIn */
         TextIn: {
@@ -3450,6 +3509,76 @@ export interface operations {
                 "application/json": components["schemas"]["TextIn"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_termination_api_v1_leases__lease_id__termination_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                lease_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TerminationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    withdraw_termination_api_v1_leases__lease_id__termination_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                lease_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

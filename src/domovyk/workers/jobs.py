@@ -35,6 +35,14 @@ async def purge_ownership_documents(services: Services) -> int:
     return purged
 
 
+async def finish_leases(services: Services) -> int:
+    """FR-LSE-7: оренди з датою розірвання, що настала, або з минулим строком → ended."""
+    done = await services.leases.finish_due()
+    if done:
+        log.info("Завершено оренд: %s", done)
+    return done
+
+
 async def remind_unsigned_contracts(services: Services) -> int:
     """CTR-SIGN: нагадування тим, хто ще не підписав договір (24 і 72 год)."""
     queued = await services.contracts.remind_unsigned()
@@ -55,6 +63,7 @@ async def dev_background_loop(services: Services, notifier: Notifier, mini_app_u
                 since_purge = 0
             if since_remind >= REMIND_INTERVAL_SECONDS:
                 await remind_unsigned_contracts(services)
+                await finish_leases(services)
                 since_remind = 0
         except Exception:  # фонова петля не має падати через один збій
             log.exception("Помилка фонової задачі")

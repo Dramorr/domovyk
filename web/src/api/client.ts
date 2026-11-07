@@ -197,6 +197,9 @@ export const api = {
   leaveLease: (id: string) => request<void>("POST", `${l(id)}/leave`),
   cancelLease: (id: string) => request<Lease>("POST", `${l(id)}/cancel`),
   hideLease: (id: string) => request<void>("DELETE", l(id)),
+  requestTermination: (id: string, date: string, reason: string) =>
+    request<Lease>("POST", `${l(id)}/termination`, { date, reason }),
+  withdrawTermination: (id: string) => request<Lease>("DELETE", `${l(id)}/termination`),
   proposeChanges: (id: string, body: S["ProposalIn"]) => request<Lease>("POST", `${l(id)}/proposal`, body),
   respondProposal: (id: string, accept: boolean) =>
     request<Lease>("POST", `${l(id)}/proposal/respond`, { accept }),

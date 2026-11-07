@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domovyk.container import Services
+from domovyk.core.clock import FixedClock
 from domovyk.core.errors import Conflict, HasOpenLease
 from domovyk.domain.leases import LeaseStatus, MemberRole, PayMethod
 from domovyk.domain.properties import PropertyKind
@@ -159,3 +160,34 @@ async def test_hide_and_purge_cancelled_db(services: Services, engine: AsyncEngi
     async with engine.connect() as conn:
         for table in ("leases", "lease_members", "conversations", "messages", "lease_hidden"):
             assert await conn.scalar(text(f"SELECT count(*) FROM {table}")) == 0, table  # noqa: S608
+
+
+async def test_termination_db(
+    services: Services, engine: AsyncEngine, it_clock: FixedClock
+) -> None:
+    """FR-LSE-7 на справжній БД: розірвання, CHECK дати, автозавершення."""
+    from datetime import timedelta
+
+    from domovyk.modules.leases.schemas import TerminationIn
+
+    s = services
+    data = await _setup(s, engine)
+    lease, invite = await s.leases.create_lease(OWNER, data)
+    await s.leases.accept_invite(TENANT, invite.token)
+    await s.leases.accept_terms(TENANT, lease.id)
+    async with engine.begin() as conn:
+        await conn.execute(text("UPDATE leases SET status='active' WHERE id=:i"), {"i": lease.id})
+    view = await s.leases.request_termination(
+        TENANT, lease.id, TerminationIn(date=date(2027, 3, 31), reason="Переїжджаю")
+    )
+    assert view.status is LeaseStatus.ENDING
+    async with engine.connect() as conn:
+        with pytest.raises(IntegrityError):  # дата розірвання після кінця договору
+            await conn.execute(
+                text("UPDATE leases SET termination_date = end_date + 1 WHERE id=:i"),
+                {"i": lease.id},
+            )
+        await conn.rollback()
+    it_clock.advance(timedelta(days=150))  # 2027-04-04
+    assert await s.leases.finish_due() == 1
+    assert (await s.leases.get(OWNER, lease.id)).status is LeaseStatus.ENDED

@@ -29,6 +29,9 @@ class SystemCode(StrEnum):
     CONTRACT_EXTERNAL = "contract_external"  # власник завантажив чинний договір
     CONTRACT_EXTERNAL_REJECTED = "contract_external_rejected"
     LEASE_ACTIVATED = "lease_activated"  # {start}
+    TERMINATION_REQUESTED = "termination_requested"  # {name, date}
+    TERMINATION_WITHDRAWN = "termination_withdrawn"  # {name}
+    LEASE_ENDED = "lease_ended"
 
 
 class MessageOut(BaseModel):

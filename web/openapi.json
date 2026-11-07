@@ -1190,6 +1190,11 @@
             "title": "Can Invite Co Tenant",
             "type": "boolean"
           },
+          "can_terminate": {
+            "default": false,
+            "title": "Can Terminate",
+            "type": "boolean"
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
@@ -1292,6 +1297,28 @@
           "street": {
             "title": "Street",
             "type": "string"
+          },
+          "termination": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TerminationOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "termination_earliest": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Termination Earliest"
           },
           "terms": {
             "$ref": "#/components/schemas/LeaseTerms"
@@ -3827,7 +3854,10 @@
           "contract_signed_by",
           "contract_external",
           "contract_external_rejected",
-          "lease_activated"
+          "lease_activated",
+          "termination_requested",
+          "termination_withdrawn",
+          "lease_ended"
         ],
         "title": "SystemCode",
         "type": "string"
@@ -3949,6 +3979,62 @@
           }
         },
         "title": "TenantProfile",
+        "type": "object"
+      },
+      "TerminationIn": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 600,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "reason"
+        ],
+        "title": "TerminationIn",
+        "type": "object"
+      },
+      "TerminationOut": {
+        "description": "FR-LSE-7: розірвання, ініційоване однією зі сторін.",
+        "properties": {
+          "by": {
+            "enum": [
+              "landlord",
+              "responsible",
+              "co_tenant"
+            ],
+            "title": "By",
+            "type": "string"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "requested_at": {
+            "format": "date-time",
+            "title": "Requested At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "reason",
+          "by",
+          "requested_at"
+        ],
+        "title": "TerminationOut",
         "type": "object"
       },
       "TextIn": {
@@ -6215,6 +6301,126 @@
           }
         },
         "summary": "Request Lease Changes"
+      }
+    },
+    "/api/v1/leases/{lease_id}/termination": {
+      "delete": {
+        "operationId": "withdraw_termination_api_v1_leases__lease_id__termination_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lease_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Lease Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaseOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Withdraw Termination"
+      },
+      "post": {
+        "operationId": "request_termination_api_v1_leases__lease_id__termination_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lease_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Lease Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TerminationIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaseOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Request Termination"
       }
     },
     "/api/v1/me": {
