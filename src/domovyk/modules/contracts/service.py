@@ -608,6 +608,38 @@ class ContractsService:
         await self._leases.for_contract(telegram_uid, contract.lease_id)
         return _pdf_name(contract), await self._storage.get(contract.pdf_storage_key)
 
+    async def preview(self, telegram_uid: int, lease_id: uuid.UUID) -> tuple[str, bytes, bool]:
+        """PDF для перегляду в застосунку: той самий файл, що підписують, або чернетка.
+
+        Є живий/підписаний договір з актуальними умовами → саме він (bool = False).
+        Інакше — чернетка з поточних умов тим самим шаблоном, з позначкою «ЧЕРНЕТКА».
+        """
+        info = await self._leases.for_contract(telegram_uid, lease_id)
+        async with self._tx.begin() as tx:
+            repo = self._repo(tx)
+            current = await repo.current_for_lease(lease_id)
+            names = await repo.party_names(lease_id)
+            version = await repo.latest_version(lease_id) + 1
+        fresh = current is not None and (
+            current.status is ContractStatus.SIGNED
+            or (current.status in LIVE_STATUSES and current.conditions_hash == info.conditions_hash)
+        )
+        if current is not None and fresh:
+            return _pdf_name(current), await self._storage.get(current.pdf_storage_key), False
+        blank = "____________________"
+        landlord = names.get(info.landlord_user_id) or blank
+        tenant = names.get(info.responsible_user_id) if info.responsible_user_id else None
+        snapshot = self._snapshot(
+            info, landlord, tenant or blank, uuid.uuid4(), version, self._clock.now()
+        )
+        snapshot.update(draft=True, number="ЧЕРНЕТКА")
+        try:
+            pdf = await self._pdf.render(render_contract(snapshot))
+        except PdfError as exc:
+            log.error("Чернетку договору не згенеровано: %s", exc)
+            raise ServiceUnavailable("Не вдалося сформувати PDF договору") from exc
+        return "chernetka-dogovoru.pdf", pdf, True
+
     async def package(self, telegram_uid: int, contract_id: uuid.UUID) -> tuple[str, bytes]:
         """FR-CTR-7: PDF + файли підписів одним zip."""
         contract = await self._contract(contract_id)

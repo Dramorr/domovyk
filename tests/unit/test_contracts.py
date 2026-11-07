@@ -503,3 +503,18 @@ async def test_mismatch_only_with_ownership_doc(env: tuple[Services, FakeDb]) ->
     assert sig.check_details["owner_doc_match"] is False
     case = (await s.contracts.review_queue(ADMIN_TG))[0]
     assert (case.contract_name_match, case.owner_doc_match) == (True, False)
+
+
+async def test_preview_draft_then_real_file(env: tuple[Services, FakeDb]) -> None:
+    """Перегляд у застосунку: до формування — чернетка з умов; після — той самий PDF."""
+    s, db = env
+    lease_id = await _agreed_lease(s, db)
+    _, data, draft = await s.contracts.preview(TENANT, lease_id)
+    assert draft and data.startswith(b"%PDF") and "ЧЕРНЕТКА" in (db.pdf.last_html or "")
+    await s.contracts.set_legal_name(OWNER, lease_id, OWNER_NAME)
+    await s.contracts.set_legal_name(TENANT, lease_id, TENANT_NAME)
+    state = await s.contracts.generate(OWNER, lease_id)
+    assert state.contract is not None
+    _, real = await s.contracts.document(OWNER, state.contract.id)
+    _, data, draft = await s.contracts.preview(TENANT, lease_id)
+    assert not draft and data == real

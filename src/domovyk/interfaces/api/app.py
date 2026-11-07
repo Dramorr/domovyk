@@ -220,6 +220,7 @@ def create_app(
         allow_origins=settings.cors_origins,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
         allow_headers=["Authorization", "Content-Type", "ngrok-skip-browser-warning"],
+        expose_headers=["X-Contract-Draft"],
     )
 
     @app.exception_handler(DomainError)
@@ -545,6 +546,17 @@ def create_app(
     @app.put("/api/v1/leases/{lease_id}/contract/name")
     async def contract_name(auth: Auth, lease_id: uuid.UUID, body: LegalNameIn) -> ContractState:
         return await svc.contracts.set_legal_name(auth.user.id, lease_id, body.full_name)
+
+    @app.get("/api/v1/leases/{lease_id}/contract/preview")
+    async def contract_preview(auth: Auth, lease_id: uuid.UUID) -> Response:
+        """PDF для перегляду в застосунку (FR-LSE-10): договір або чернетка з умов."""
+        name, data, draft = await svc.contracts.preview(auth.user.id, lease_id)
+        response = _file(data, name, "application/pdf")
+        response.headers["Content-Disposition"] = response.headers["Content-Disposition"].replace(
+            "attachment", "inline", 1
+        )
+        response.headers["X-Contract-Draft"] = "1" if draft else "0"
+        return response
 
     @app.post("/api/v1/leases/{lease_id}/contract/generate")
     async def contract_generate(auth: Auth, lease_id: uuid.UUID) -> ContractState:

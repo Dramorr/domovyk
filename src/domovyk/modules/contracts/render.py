@@ -116,6 +116,7 @@ def render_contract(snapshot: dict[str, Any]) -> str:
         "template_code": snapshot["template_code"],
         "version": snapshot["version"],
         "generated_label": date_label(date.fromisoformat(snapshot["generated_on"])),
+        "draft": bool(snapshot.get("draft")),
     }
     return _ENV.get_template(f"{snapshot['template_code']}.html").render(**context)
 

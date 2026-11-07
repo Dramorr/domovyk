@@ -1,12 +1,13 @@
 // Смужка прогресу погодження договору (FR-LSE-10): ліворуч орендар, праворуч власник,
 // посередині — договір. Кожна половина має два кроки: умови → підпис.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { api, type ContractState, type Lease } from "../api/client";
 import { t, type TextKey } from "../i18n";
 import { Icon } from "../icons";
-import { formatDate } from "../ui";
+import { errorText, formatDate } from "../ui";
+import { PdfViewer } from "./PdfViewer";
 
 const k = (key: string) => t(key as TextKey);
 
@@ -54,25 +55,18 @@ export function AgreementBar({
   const tenant = sideOf(lease, contract, "tenant");
   const landlord = sideOf(lease, contract, "landlord");
   const tones = [tenant.terms, tenant.sign, landlord.terms, landlord.sign];
-  const hub: Tone = tones.every((x) => x === "ok") ? "ok" : tones.includes("warn") ? "warn" : "empty";
+  const hub: Tone = tones.every((x) => x === "ok")
+    ? "ok"
+    : tones.includes("warn")
+      ? "warn"
+      : tones.some((x) => x !== "empty")
+        ? "pending"
+        : "empty";
   const tenantName = lease.members.find((m) => m.role === "responsible")?.display_name ?? t("ab_tenant");
   const landlordName = lease.members.find((m) => m.role === "landlord")?.display_name ?? t("ab_landlord");
 
   return (
     <div className="agreement-bar" role="group" aria-label={t("ab_title")}>
-      <div className="ab-track">
-        <div className="ab-half left">
-          <span className={`ab-seg ${tenant.terms}`} />
-          <span className={`ab-seg ${tenant.sign}`} />
-        </div>
-        <button className={`ab-hub ${hub}`} onClick={onOpen} aria-label={t("ab_open")}>
-          <Icon name="doc" size={22} />
-        </button>
-        <div className="ab-half right">
-          <span className={`ab-seg ${landlord.sign}`} />
-          <span className={`ab-seg ${landlord.terms}`} />
-        </div>
-      </div>
       <div className="ab-labels">
         <span>
           <b>{tenantName}</b>
@@ -84,6 +78,19 @@ export function AgreementBar({
           <br />
           {landlord.label}
         </span>
+      </div>
+      <div className="ab-track">
+        <div className="ab-half left">
+          <span className={`ab-seg is-${tenant.terms}`} />
+          <span className={`ab-seg is-${tenant.sign}`} />
+        </div>
+        <button className={`ab-hub is-${hub}`} onClick={onOpen} aria-label={t("ab_open")}>
+          <Icon name="doc" size={18} />
+        </button>
+        <div className="ab-half right">
+          <span className={`ab-seg is-${landlord.sign}`} />
+          <span className={`ab-seg is-${landlord.terms}`} />
+        </div>
       </div>
     </div>
   );
@@ -107,6 +114,14 @@ export function AgreementSheet({
 }) {
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [pdf, setPdf] = useState<{ data: ArrayBuffer; draft: boolean } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    api
+      .contractPreview(lease.id)
+      .then(setPdf)
+      .catch((e: unknown) => setError(errorText(e)));
+  }, [lease.id]);
   const p = lease.proposal;
   const c = contract?.contract;
   const live = c && c.status !== "void";
@@ -135,7 +150,17 @@ export function AgreementSheet({
     <div className="sheet-backdrop" onClick={onClose}>
       <div className="sheet" role="dialog" aria-modal="true" aria-label={t("ab_sheet_title")} onClick={(e) => e.stopPropagation()}>
         <div className="sheet-handle" />
-        <h2>{t("ab_sheet_title")}</h2>
+        <div className="sheet-head">
+          <h2>{t("ab_sheet_title")}</h2>
+          {pdf && (
+            <span className={`chip-status ${pdf.draft ? "warn" : "ok"}`}>
+              {pdf.draft ? t("ab_draft") : t("ab_for_signing", { n: String(c?.version ?? 1) })}
+            </span>
+          )}
+          <button className="icon-button" aria-label={t("ab_close")} onClick={onClose}>
+            ✕
+          </button>
+        </div>
         {p && (
           <section className="card accent">
             <h3>{k(`ab_proposal_by_${p.by}`)}</h3>
@@ -148,51 +173,33 @@ export function AgreementSheet({
             ) : (
               <p className="hint">{t("ab_no_diff")}</p>
             )}
+            <p className="hint small">{t("ab_proposal_pdf_hint")}</p>
           </section>
         )}
-        <section className="card">
-          <h3>{p ? t("ab_current") : t("ab_terms")}</h3>
-          <p>
-            {t("ls_period", { from: formatDate(lease.start_date), to: formatDate(lease.end_date) })} ·{" "}
-            {t("ls_rent_line", { rent: money(lease.rent_amount).replace(" ₴", ""), day: String(lease.rent_due_day) })}
-          </p>
-          {lease.deposit_amount ? <p className="hint">{t("ls_deposit_line", { sum: money(lease.deposit_amount).replace(" ₴", "") })}</p> : null}
-          <ul className="plain">
-            {termsLines(lease.terms).map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-        </section>
+        {error && <p className="error">{error}</p>}
+        {!pdf && !error && <div className="skeleton pdf-skeleton" />}
+        {pdf && <PdfViewer data={pdf.data} />}
         {live && c && (
-          <section className="card">
-            <h3>{t("ab_contract")}</h3>
-            <p className="hint small">
-              {t("ab_contract_version", { n: String(c.version), date: formatDate(c.created_at) })}
-            </p>
-            <button
-              className="button secondary"
-              disabled={busy}
-              onClick={async () => {
-                setBusy(true);
-                try {
-                  await api.sendContract(c.id, c.status === "signed" && c.source === "generated" ? "package" : "pdf");
-                  setNote(t("ct_sent_pdf"));
-                } catch {
-                  setNote(t("ct_err_unavailable"));
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              <Icon name="doc" size={20} />
-              {t("ct_send_pdf")}
-            </button>
-            {note && <p className="hint small">{note}</p>}
-          </section>
+          <button
+            className="button secondary"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await api.sendContract(c.id, c.status === "signed" && c.source === "generated" ? "package" : "pdf");
+                setNote(t("ct_sent_pdf"));
+              } catch {
+                setNote(t("ct_err_unavailable"));
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <Icon name="doc" size={20} />
+            {t("ab_save_to_chat")}
+          </button>
         )}
-        <button className="button ghost" onClick={onClose}>
-          {t("ab_close")}
-        </button>
+        {note && <p className="hint small">{note}</p>}
       </div>
     </div>
   );

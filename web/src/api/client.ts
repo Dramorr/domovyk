@@ -91,6 +91,27 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return data as T;
 }
 
+/** PDF для перегляду в застосунку (договір або чернетка). */
+async function requestPdf(path: string): Promise<{ data: ArrayBuffer; draft: boolean }> {
+  if (!apiConfigured()) throw new ApiFailure("no_api");
+  let response: Response;
+  try {
+    response = await fetch(API_URL + path, {
+      headers: { Authorization: `tma ${initData}`, "ngrok-skip-browser-warning": "1" },
+    });
+  } catch {
+    throw new ApiFailure("network");
+  }
+  if (response.status === 401) throw new ApiFailure("unauthorized");
+  if (!response.ok) {
+    const err = (await response.json().catch(() => null)) as { error?: string } | null;
+    if (response.status === 503) throw new ApiFailure("unavailable", err?.error);
+    if (err?.error) throw new ApiFailure("domain", err.error);
+    throw new ApiFailure("server");
+  }
+  return { data: await response.arrayBuffer(), draft: response.headers.get("X-Contract-Draft") === "1" };
+}
+
 const p = (id: string) => `/api/v1/properties/${encodeURIComponent(id)}`;
 const l = (id: string) => `/api/v1/leases/${encodeURIComponent(id)}`;
 const c = (id: string) => `/api/v1/contracts/${encodeURIComponent(id)}`;
@@ -140,6 +161,7 @@ export const api = {
   contract: (leaseId: string) => request<ContractState>("GET", `${l(leaseId)}/contract`),
   setLegalName: (leaseId: string, full_name: string) =>
     request<ContractState>("PUT", `${l(leaseId)}/contract/name`, { full_name }),
+  contractPreview: (leaseId: string) => requestPdf(`${l(leaseId)}/contract/preview`),
   generateContract: (leaseId: string) => request<ContractState>("POST", `${l(leaseId)}/contract/generate`),
   uploadExternal: (leaseId: string, data: Blob, filename: string) => {
     const form = new FormData();

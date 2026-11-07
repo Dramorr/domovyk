@@ -5465,6 +5465,61 @@
         "summary": "Contract Name"
       }
     },
+    "/api/v1/leases/{lease_id}/contract/preview": {
+      "get": {
+        "description": "PDF для перегляду в застосунку (FR-LSE-10): договір або чернетка з умов.",
+        "operationId": "contract_preview_api_v1_leases__lease_id__contract_preview_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lease_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Lease Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Contract Preview"
+      }
+    },
     "/api/v1/leases/{lease_id}/invites": {
       "post": {
         "operationId": "new_lease_invite_api_v1_leases__lease_id__invites_post",
