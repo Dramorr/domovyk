@@ -8,8 +8,9 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from domovyk.domain.leases import LeaseStatus, MemberRole, PayMethod
+from domovyk.domain.leases import LeaseOrigin, LeaseStatus, MemberRole, PayMethod
 from domovyk.domain.properties import UnitKind
+from domovyk.modules.properties.service import PropertyOut
 
 PartyRole = Literal["landlord", "responsible", "co_tenant"]
 
@@ -25,6 +26,8 @@ class LeaseTerms(BaseModel):
     residence_registration: bool = False
     early_termination_notice_days: int = Field(default=30, ge=0, le=90)
     dispute_window_days: Literal[1, 3, 5, 7] = 3
+    # Піднайм (суборенда) — лише з письмової згоди власника (ст. 823 ЦКУ); типово заборонено.
+    sublet_allowed: bool = False
 
 
 class PayDetailsIn(BaseModel):
@@ -112,6 +115,18 @@ class LeaseOut(LeaseSummary):
     can_edit: bool
     can_invite_co_tenant: bool
     created_at: datetime
+
+
+class LeaseForContract(BaseModel):
+    """Що потрібно модулю contracts: оренда, сторони, об'єкт і відбиток погоджених умов."""
+
+    lease: LeaseOut
+    property: PropertyOut
+    origin: LeaseOrigin
+    landlord_user_id: uuid.UUID
+    responsible_user_id: uuid.UUID | None
+    viewer_user_id: uuid.UUID | None
+    conditions_hash: str
 
 
 class InvitePreview(BaseModel):

@@ -1144,6 +1144,11 @@ export interface components {
              */
             residence_registration: boolean;
             /**
+             * Sublet Allowed
+             * @default false
+             */
+            sublet_allowed: boolean;
+            /**
              * Utilities Payer
              * @default tenant_direct
              * @enum {string}
@@ -1617,7 +1622,7 @@ export interface components {
          * @description Системні повідомлення (FR-CHT-2). Текст — у файлі локалізації інтерфейсу.
          * @enum {string}
          */
-        SystemCode: "lease_created" | "member_joined" | "member_left" | "terms_accepted" | "terms_change_requested" | "terms_declined" | "terms_updated" | "lease_cancelled";
+        SystemCode: "lease_created" | "member_joined" | "member_left" | "terms_accepted" | "terms_change_requested" | "terms_declined" | "terms_updated" | "lease_cancelled" | "contract_ready" | "contract_signed_by" | "contract_external" | "contract_external_rejected" | "lease_activated";
         /** TelegramUserOut */
         TelegramUserOut: {
             /** First Name */

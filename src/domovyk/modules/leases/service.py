@@ -25,6 +25,7 @@ from domovyk.core.errors import (
     PermissionDenied,
 )
 from domovyk.core.tx import Tx, TxManager
+from domovyk.domain.contracts import conditions_fingerprint
 from domovyk.domain.leases import (
     EDITABLE_STATUSES,
     INVITE_TTL_DAYS,
@@ -60,6 +61,7 @@ from domovyk.modules.leases.schemas import (
     InvitePreview,
     LeaseConditions,
     LeaseCreate,
+    LeaseForContract,
     LeaseOut,
     LeaseSummary,
     LeaseTerms,
@@ -82,6 +84,7 @@ __all__ = [
     "InvitePreview",
     "LeaseConditions",
     "LeaseCreate",
+    "LeaseForContract",
     "LeaseNotificationPrefs",
     "LeaseOut",
     "LeaseSummary",
@@ -160,6 +163,71 @@ class LeasesService:
         """Об'єкт з живою орендою не видаляється."""
         async with self._tx.begin() as tx:
             return bool(await self._repo(tx).open_unit_ids([u.id for u in prop.units]))
+
+    # ------------------------------------------------------- для договорів (M4)
+
+    async def for_contract(self, telegram_uid: int, lease_id: uuid.UUID) -> LeaseForContract:
+        """Оренда очима учасника: для договору й підписів (FR-CTR). Чужа — NotFound."""
+        user = await self._users.require_active(telegram_uid)
+        async with self._tx.begin() as tx:
+            ctx = await self._ctx(tx, lease_id, user)
+            return await self._for_contract(tx, ctx, user.id)
+
+    async def for_contract_by_id(self, tx: Tx, lease_id: uuid.UUID) -> LeaseForContract:
+        """Без перевірки ролі — для модератора й фонових задач модуля contracts."""
+        lease = await self._repo(tx).get(lease_id)
+        if lease is None:
+            raise NotFound("Оренду не знайдено")
+        members = await self._repo(tx).members(lease_id)
+        ctx = _Ctx(lease, await self._property_of(lease), members, "landlord")
+        return await self._for_contract(tx, ctx, None)
+
+    async def _for_contract(self, tx: Tx, ctx: _Ctx, viewer: uuid.UUID | None) -> LeaseForContract:
+        responsible = _responsible(ctx.members)
+        return LeaseForContract(
+            lease=await self._out(tx, ctx),
+            property=ctx.prop,
+            origin=ctx.lease.origin,
+            landlord_user_id=ctx.lease.landlord_user_id,
+            responsible_user_id=responsible.user_id if responsible else None,
+            viewer_user_id=viewer,
+            conditions_hash=conditions_fingerprint(_agreed(ctx.lease)),
+        )
+
+    async def activate(self, tx: Tx, lease_id: uuid.UUID) -> None:
+        """FR-LSE-6: договір підписано обома сторонами (або підтверджено CTR-EXT) → active."""
+        repo = self._repo(tx)
+        lease = await repo.get(lease_id)
+        if lease is None:
+            raise NotFound("Оренду не знайдено")
+        await repo.update(lease_id, status=LEASE.transition(lease.status, LeaseStatus.ACTIVE))
+        conversation = await self._chat.ensure_for_lease(tx, lease_id)
+        await self._chat.system(
+            tx, conversation, SystemCode.LEASE_ACTIVATED, {"start": lease.start_date.isoformat()}
+        )
+        members = await repo.members(lease_id)
+        await self._notify_lease(
+            tx,
+            lease,
+            [lease.landlord_user_id] + [m.user_id for m in _active(members)],
+            "lease_active",
+            {"start": lease.start_date.isoformat()},
+        )
+
+    async def open_lease_ids(self, lease_ids: list[uuid.UUID]) -> set[uuid.UUID]:
+        """Які з оренд ще живі — для ліміту оренд за РНОКПП (FR-LSE-8)."""
+        async with self._tx.begin() as tx:
+            repo = self._repo(tx)
+            out: set[uuid.UUID] = set()
+            for lease_id in lease_ids:
+                lease = await repo.get(lease_id)
+                if lease is not None and is_open(lease.status):
+                    out.add(lease_id)
+            return out
+
+    @property
+    def tenant_max_open_leases(self) -> int:
+        return self._config.tenant_max_open_leases
 
     # ----------------------------------------------------------- створення
 
@@ -724,6 +792,26 @@ class LeasesService:
                 },
                 dedupe_key=f"lease:{lease.id}:{event}:{uid}:{stamp}",
             )
+
+
+def _agreed(lease: LeaseRecord) -> dict[str, Any]:
+    """Погоджені умови для відбитка договору: будь-яка зміна → договір заново."""
+    return {
+        "unit_id": str(lease.unit_id),
+        "start_date": lease.start_date.isoformat(),
+        "end_date": lease.end_date.isoformat(),
+        "rent_amount": lease.rent_amount,
+        "currency": lease.currency,
+        "rent_due_day": lease.rent_due_day,
+        "deposit_amount": lease.deposit_amount,
+        "pay_method": lease.pay_method.value,
+        "pay_details": lease.pay_details,
+        "pay_details_enc": lease.pay_details_enc,
+        "terms": lease.terms,
+        "terms_accepted_at": lease.terms_accepted_at.isoformat()
+        if lease.terms_accepted_at
+        else None,
+    }
 
 
 def _active(members: list[MemberRecord]) -> list[MemberRecord]:

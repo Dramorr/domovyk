@@ -10,6 +10,8 @@ from domovyk.adapters.geocoder.base import Geocoder
 from domovyk.adapters.geocoder.manual import ManualGeocoder
 from domovyk.adapters.geocoder.nominatim import NominatimGeocoder
 from domovyk.adapters.notifier.telegram import TelegramNotifier
+from domovyk.adapters.pdf.weasy import WeasyPrintRenderer
+from domovyk.adapters.signing.diia_portal import DiiaPortalVerifier
 from domovyk.adapters.storage.encrypted import EncryptedFileStorage
 from domovyk.adapters.storage.local import LocalFileStorage
 from domovyk.config import Settings
@@ -21,6 +23,8 @@ from domovyk.modules.analytics.repository import SqlEventsRepository
 from domovyk.modules.analytics.service import AnalyticsService
 from domovyk.modules.chat.repository import SqlChatRepository
 from domovyk.modules.chat.service import ChatService
+from domovyk.modules.contracts.repository import SqlContractsRepository
+from domovyk.modules.contracts.service import ContractsConfig, ContractsService
 from domovyk.modules.leases.repository import SqlLeasesRepository
 from domovyk.modules.leases.service import LeasesConfig, LeasesService
 from domovyk.modules.moderation.repository import SqlModerationRepository
@@ -42,6 +46,7 @@ class Services:
     properties: PropertiesService
     chat: ChatService
     leases: LeasesService
+    contracts: ContractsService
 
 
 def users_config(settings: Settings) -> UsersConfig:
@@ -65,6 +70,15 @@ def properties_config(settings: Settings) -> PropertiesConfig:
         completeness_high_from=settings.profile_high_from,
         listing_min_completeness=settings.listing_min_completeness,
         default_city=settings.default_city,
+    )
+
+
+def contracts_config(settings: Settings) -> ContractsConfig:
+    return ContractsConfig(
+        hmac_secret=settings.hmac_secret.get_secret_value(),
+        require_moderator=settings.contracts_require_moderator,
+        allow_self_review=settings.is_dev,
+        diia_sign_url=settings.diia_sign_url,
     )
 
 
@@ -128,6 +142,22 @@ class Container:
                 tenant_max_open_leases=settings.tenant_max_open_leases,
             ),
         )
+        contracts = ContractsService(
+            tx,
+            SqlContractsRepository,
+            users,
+            properties,
+            leases,
+            chat,
+            notifications,
+            moderation,
+            storage,
+            WeasyPrintRenderer(settings.weasyprint_dll_directories),
+            DiiaPortalVerifier(),
+            clock,
+            contracts_config(settings),
+            notifier=self.notifier,
+        )
         wire_guards(users, properties, leases)
         self.services = Services(
             users=users,
@@ -137,6 +167,7 @@ class Container:
             properties=properties,
             chat=chat,
             leases=leases,
+            contracts=contracts,
         )
 
     async def close(self) -> None:

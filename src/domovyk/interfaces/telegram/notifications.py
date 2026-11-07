@@ -71,6 +71,7 @@ def make_renderer(base_url: str) -> Renderer:
                     template.format(
                         address=format_address(p),
                         name=escape(str(p.get("name") or "")),
+                        reason=escape(str(p.get("reason") or "")),
                     ),
                     lease_button(p, uk.BTN_OPEN_LEASE, "lease"),
                 )

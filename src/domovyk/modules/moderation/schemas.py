@@ -21,6 +21,8 @@ class AuditAction(StrEnum):
     OWNERSHIP_REJECT = "ownership.reject"
     OWNERSHIP_DEV_BYPASS = "ownership.dev_bypass"
     PROPERTY_DELETE = "property.delete"
+    SIGNATURE_APPROVE = "signature.approve"
+    SIGNATURE_REJECT = "signature.reject"
 
 
 class RiskSignal(StrEnum):
@@ -28,6 +30,8 @@ class RiskSignal(StrEnum):
 
     REREGISTRATION_ATTEMPT = "reregistration_attempt"
     DUPLICATE_ADDRESS = "duplicate_address"
+    SIGNATURE_MISMATCH = "signature_mismatch"  # ПІБ у підписі ≠ довідка / договір (FR-CTR-5)
+    BANNED_SIGNER = "banned_signer"  # РНОКПП із підпису є в бан-листі
 
 
 class BanIdentifiers(BaseModel):

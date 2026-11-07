@@ -110,6 +110,7 @@ const DEFAULT_TERMS: LeaseTerms = {
   minor_repairs: "tenant",
   major_repairs: "landlord",
   pets_allowed: false,
+  sublet_allowed: false,
   utilities_payer: "tenant_direct",
   residence_registration: false,
   early_termination_notice_days: 30,

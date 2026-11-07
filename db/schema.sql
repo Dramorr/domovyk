@@ -1,5 +1,5 @@
 -- =====================================================================
---  Домовик — цільова схема бази даних, v0.8
+--  Домовик — цільова схема бази даних, v0.9
 --  PostgreSQL 16 + PostGIS
 --
 --  Це ЦІЛЬОВА модель. Реальні зміни в базі робляться тільки
@@ -490,36 +490,61 @@ CREATE TABLE lease_invites (
 -- =====================================================================
 --  6. ДОГОВОРИ (підписання через портал Дії)
 -- =====================================================================
-CREATE TABLE contracts (
-    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+-- ПІБ сторін для тексту договору (FR-CTR-1). ПІБ із сертифіката Дії звіряється з ним.
+CREATE TABLE contract_parties (
     lease_id        uuid NOT NULL REFERENCES leases(id) ON DELETE CASCADE,
-    kind            text NOT NULL DEFAULT 'lease',   -- 'lease', 'acceptance_act', 'termination', 'addendum'
-    source          contract_source NOT NULL DEFAULT 'generated',
-    template_code   text,                  -- 'lease_v1'
-    version         smallint NOT NULL DEFAULT 1,
-    pdf_storage_key text NOT NULL,
-    pdf_sha256      text NOT NULL,         -- фіксує, що підписували саме цей файл
-    status          contract_status NOT NULL DEFAULT 'draft',
-    data_snapshot   jsonb NOT NULL DEFAULT '{}',  -- дані, з яких згенеровано PDF
-    created_at      timestamptz NOT NULL DEFAULT now(),
-    signed_at       timestamptz
+    user_id         uuid NOT NULL REFERENCES users(id),
+    party_role      party_role NOT NULL,
+    full_name       text NOT NULL CHECK (char_length(full_name) BETWEEN 5 AND 120),
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (lease_id, user_id)
+);
+
+CREATE TABLE contracts (
+    id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    lease_id            uuid NOT NULL REFERENCES leases(id) ON DELETE CASCADE,
+    kind                text NOT NULL DEFAULT 'lease',   -- 'lease', 'acceptance_act', 'termination', 'addendum'
+    source              contract_source NOT NULL DEFAULT 'generated',
+    template_code       text,                  -- 'lease_v1'
+    version             smallint NOT NULL DEFAULT 1,
+    pdf_storage_key     text NOT NULL,         -- PDF у сховищі зашифрований
+    pdf_sha256          text NOT NULL,         -- фіксує, що підписували саме цей файл
+    status              contract_status NOT NULL DEFAULT 'draft',
+    data_snapshot       jsonb NOT NULL DEFAULT '{}',  -- дані, з яких згенеровано PDF
+    conditions_hash     text NOT NULL,         -- відбиток погоджених умов; змінились → новий договір
+    void_reason         text,                  -- 'superseded', 'conditions_changed', 'external_rejected', 'lease_cancelled'
+    external_decided_at timestamptz,           -- CTR-EXT: орендар підтвердив / відхилив
+    created_by          uuid NOT NULL REFERENCES users(id),
+    created_at          timestamptz NOT NULL DEFAULT now(),
+    signed_at           timestamptz
 );
 CREATE INDEX idx_contracts_lease ON contracts(lease_id);
+-- Один «живий» або підписаний договір кожного виду на оренду.
+CREATE UNIQUE INDEX uq_contracts_live ON contracts(lease_id, kind)
+    WHERE status IN ('draft', 'sent', 'partially_signed', 'signed');
 
 CREATE TABLE contract_signatures (
-    id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    contract_id         uuid NOT NULL REFERENCES contracts(id) ON DELETE CASCADE,
-    user_id             uuid NOT NULL REFERENCES users(id),
-    party_role          party_role NOT NULL,
-    signature_storage_key text NOT NULL,   -- .p7s з порталу Дії
-    signer_name         text,              -- з сертифіката
-    signer_tax_id_hash  text,              -- HMAC(РНОКПП з сертифіката)
-    signed_at_claimed   timestamptz,       -- час підпису з контейнера
-    check_status        signature_check NOT NULL DEFAULT 'not_checked',
-    check_details       jsonb NOT NULL DEFAULT '{}',
-    uploaded_at         timestamptz NOT NULL DEFAULT now(),
+    id                      uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    contract_id             uuid NOT NULL REFERENCES contracts(id) ON DELETE CASCADE,
+    user_id                 uuid NOT NULL REFERENCES users(id),
+    party_role              party_role NOT NULL,
+    signature_storage_key   text NOT NULL,      -- .p7s / .asice з порталу Дії (зашифровано)
+    signature_filename      text NOT NULL,
+    signer_name             text,               -- з сертифіката
+    signer_tax_id_hash      text,               -- HMAC(РНОКПП з сертифіката)
+    signed_at_claimed       timestamptz,        -- час підпису з контейнера
+    check_status            signature_check NOT NULL DEFAULT 'not_checked',
+    check_details           jsonb NOT NULL DEFAULT '{}',  -- без персональних даних
+    uploaded_at             timestamptz NOT NULL DEFAULT now(),
+    reviewed_by             uuid REFERENCES users(id),    -- модератор (ADR 0010)
+    reviewed_at             timestamptz,
+    review_reason           text,
     UNIQUE (contract_id, user_id)
 );
+CREATE INDEX idx_contract_signatures_tax ON contract_signatures(signer_tax_id_hash)
+    WHERE signer_tax_id_hash IS NOT NULL;
+CREATE INDEX idx_contract_signatures_review ON contract_signatures(uploaded_at)
+    WHERE check_status IN ('not_checked', 'auto_ok', 'mismatch');
 
 -- =====================================================================
 --  7. ОПЛАТИ (тільки облік — гроші йдуть напряму власнику)

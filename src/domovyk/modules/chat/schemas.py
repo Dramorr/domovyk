@@ -21,6 +21,11 @@ class SystemCode(StrEnum):
     TERMS_DECLINED = "terms_declined"
     TERMS_UPDATED = "terms_updated"
     LEASE_CANCELLED = "lease_cancelled"
+    CONTRACT_READY = "contract_ready"  # M4: договір сформовано
+    CONTRACT_SIGNED_BY = "contract_signed_by"  # {name, role}
+    CONTRACT_EXTERNAL = "contract_external"  # власник завантажив чинний договір
+    CONTRACT_EXTERNAL_REJECTED = "contract_external_rejected"
+    LEASE_ACTIVATED = "lease_activated"  # {start}
 
 
 class MessageOut(BaseModel):

@@ -72,6 +72,12 @@ class Settings(BaseSettings):
     # Рівні заповненості анкети об'єкта (FR-PRP-8), відсотки.
     profile_medium_from: int = Field(default=40, ge=0, le=100)
     profile_high_from: int = Field(default=75, ge=0, le=100)
+    # Договори (M4, ADR 0010). Поки немає криптоперевірки підпису — кожен підпис дивиться модератор.
+    contracts_require_moderator: bool = True
+    # Де сторона підписує PDF Дія.Підписом (FR-CTR-3).
+    diia_sign_url: str = "https://id.gov.ua/sign"
+    # WeasyPrint на Windows: тека з DLL Pango (MSYS2), напр. C:\msys64\mingw64\bin.
+    weasyprint_dll_directories: str = ""
     # Типове місто (код із довідника cities), коли клієнт його не передав (ADR 0008).
     default_city: str = "lviv"
     # Скільки живих оренд одночасно може мати відповідальний орендар (FR-LSE-8).

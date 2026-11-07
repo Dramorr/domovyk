@@ -14,6 +14,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domovyk.adapters.geocoder.manual import ManualGeocoder
+from domovyk.adapters.signing.diia_portal import DiiaPortalVerifier
 from domovyk.container import Services, wire_guards
 from domovyk.core.clock import FixedClock
 from domovyk.core.crypto import Cipher
@@ -23,6 +24,8 @@ from domovyk.modules.analytics.repository import SqlEventsRepository
 from domovyk.modules.analytics.service import AnalyticsService
 from domovyk.modules.chat.repository import SqlChatRepository
 from domovyk.modules.chat.service import ChatService
+from domovyk.modules.contracts.repository import SqlContractsRepository
+from domovyk.modules.contracts.service import ContractsConfig, ContractsService
 from domovyk.modules.leases.repository import SqlLeasesRepository
 from domovyk.modules.leases.service import LeasesConfig, LeasesService
 from domovyk.modules.moderation.repository import SqlModerationRepository
@@ -34,6 +37,7 @@ from domovyk.modules.properties.service import PropertiesConfig, PropertiesServi
 from domovyk.modules.users.repository import SqlUsersRepository
 from domovyk.modules.users.service import UsersService
 from tests.fakes import fake_config
+from tests.fakes_contracts import FakePdfRenderer
 from tests.fakes_properties import FakeNotifier, MemoryStorage
 
 
@@ -125,6 +129,22 @@ def services(engine: AsyncEngine, it_clock: FixedClock) -> Services:
         it_clock,
         LeasesConfig(hmac_secret="test-hmac-secret"),
     )
+    contracts = ContractsService(
+        tx,
+        SqlContractsRepository,
+        users,
+        properties,
+        leases,
+        chat,
+        notifications,
+        moderation,
+        MemoryStorage(),
+        FakePdfRenderer(),
+        DiiaPortalVerifier(),
+        it_clock,
+        ContractsConfig(hmac_secret="test-hmac-secret"),
+        notifier=FakeNotifier(),
+    )
     wire_guards(users, properties, leases)
     return Services(
         users=users,
@@ -134,4 +154,5 @@ def services(engine: AsyncEngine, it_clock: FixedClock) -> Services:
         properties=properties,
         chat=chat,
         leases=leases,
+        contracts=contracts,
     )

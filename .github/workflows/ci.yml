@@ -17,6 +17,8 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --frozen
+      - name: Pango і шрифти для WeasyPrint (PDF договорів)
+        run: sudo apt-get update && sudo apt-get install -y libpango-1.0-0 libpangoft2-1.0-0 fonts-dejavu-core
       - name: ruff
         run: uv run ruff check . && uv run ruff format --check .
       - name: mypy

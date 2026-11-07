@@ -404,6 +404,17 @@ class PropertiesService:
             property_id = await repo.property_id_of_unit(unit_id)
             return await repo.get_property(property_id) if property_id else None
 
+    async def verified_owner_name(self, property_id: uuid.UUID) -> str | None:
+        """ПІБ власника з довідки (owner_name_in_doc) — для звірки з підписом договору.
+
+        None — власність не підтверджено модератором (наприклад, dev-обхід).
+        """
+        async with self._tx.begin() as tx:
+            v = await self._repo(tx).latest_verification(property_id)
+        if v is None or v.status is not VerificationStatus.VERIFIED:
+            return None
+        return v.owner_name_in_doc
+
     def set_delete_guard(self, guard: Callable[[PropertyOut], Awaitable[bool]]) -> None:
         """Модуль оренд каже, чи є на об'єкті жива оренда (без циклічних імпортів)."""
         self._delete_guard = guard

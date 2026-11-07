@@ -10,6 +10,9 @@ ENV UV_COMPILE_BYTECODE=1 \
 
 WORKDIR /app
 
+# WeasyPrint (PDF договорів): Pango і шрифти з кирилицею.
+RUN apt-get update     && apt-get install -y --no-install-recommends libpango-1.0-0 libpangoft2-1.0-0 fonts-dejavu-core     && rm -rf /var/lib/apt/lists/*
+
 COPY pyproject.toml uv.lock README.md ./
 RUN uv sync --frozen --no-dev --no-install-project
 
