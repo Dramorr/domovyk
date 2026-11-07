@@ -24,17 +24,9 @@
   table.parties td { width: 50%; vertical-align: top; padding: 6pt; border: 0.6pt solid #999; }
   .act { page-break-before: always; }
   .note { font-size: 9pt; color: #444; margin-top: 14pt; }
-  .draft-mark {
-    position: fixed; top: 42%; left: 0; right: 0; text-align: center;
-    font-size: 64pt; font-weight: bold; color: rgba(30, 77, 59, 0.10);
-    transform: rotate(-30deg); letter-spacing: 6pt;
-  }
-  .draft-note { border: 0.8pt solid #c9a227; background: #fdf6dd; padding: 6pt 8pt; margin: 0 0 10pt; font-size: 10pt; }
 </style>
 </head>
 <body>
-{% if draft %}<div class="draft-mark">ЧЕРНЕТКА</div>
-<p class="draft-note">Чернетка з поточних умов — ще не для підпису. Остаточний договір сформує власник, коли обидві сторони погодять умови.</p>{% endif %}
 <h1>ДОГОВІР НАЙМУ (ОРЕНДИ) ЖИТЛА</h1>
 <p class="sub">№ {{ number }}</p>
 <div class="row"><span>м. {{ city }}</span><span>{{ date_signed_label }}</span></div>

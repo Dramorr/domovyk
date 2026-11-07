@@ -510,7 +510,7 @@ async def test_preview_draft_then_real_file(env: tuple[Services, FakeDb]) -> Non
     s, db = env
     lease_id = await _agreed_lease(s, db)
     _, data, draft = await s.contracts.preview(TENANT, lease_id)
-    assert draft and data.startswith(b"%PDF") and "ЧЕРНЕТКА" in (db.pdf.last_html or "")
+    assert draft and data.startswith(b"%PDF") and "ЧЕРНЕТКА" not in (db.pdf.last_html or "")
     await s.contracts.set_legal_name(OWNER, lease_id, OWNER_NAME)
     await s.contracts.set_legal_name(TENANT, lease_id, TENANT_NAME)
     state = await s.contracts.generate(OWNER, lease_id)

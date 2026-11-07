@@ -632,7 +632,8 @@ class ContractsService:
         snapshot = self._snapshot(
             info, landlord, tenant or blank, uuid.uuid4(), version, self._clock.now()
         )
-        snapshot.update(draft=True, number="ЧЕРНЕТКА")
+        # Позначка «Чернетка» — лише бейджем у застосунку, у самому PDF її немає.
+        snapshot.update(draft=True, number="—")
         try:
             pdf = await self._pdf.render(render_contract(snapshot))
         except PdfError as exc:
