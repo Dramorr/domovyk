@@ -293,6 +293,9 @@ class ContractsService:
         accepted = accepted_checks(self._config.require_moderator)
         if mine is not None and mine.check_status in accepted:
             raise Conflict("Твій підпис уже прийнято", field="signature")
+        if looks_like_pdf(data):
+            # PAdES: підпис усередині PDF. Поки приймаємо лише CAdES / ASiC-E (ADR 0010).
+            raise InvalidInput("Потрібен файл підпису .p7s", field="signature", reason="pades")
         pdf = await self._storage.get(contract.pdf_storage_key)
         try:
             report = await self._verifier.inspect(data, pdf)

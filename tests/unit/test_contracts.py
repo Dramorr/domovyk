@@ -301,6 +301,7 @@ async def test_signature_errors(env: tuple[Services, FakeDb]) -> None:
     lease_id, contract_id, pdf = await _generated(s, db)
     cases = [
         (b"not a signature", "unreadable"),
+        (b"%PDF-1.7 signed inside", "pades"),
         (cades(b"%PDF other file", TENANT_NAME), "other_document"),
         (cades(pdf, "ТОВ Ромашка", tax_id=None, organization="ТОВ Ромашка"), "legal_entity"),
     ]
@@ -449,3 +450,19 @@ async def test_real_pdf_render() -> None:
     except Exception as exc:  # PdfError: немає Pango на цій машині
         pytest.skip(f"WeasyPrint недоступний: {exc}")
     assert pdf.startswith(b"%PDF-") and len(pdf) > 5000
+
+
+async def test_attached_cades_is_default_of_diia(env: tuple[Services, FakeDb]) -> None:
+    """Сервіс підписання Дії за замовчуванням: CAdES, «підпис та дані в одному файлі»."""
+    s, db = env
+    _, contract_id, pdf = await _generated(s, db)
+    await s.contracts.upload_signature(
+        TENANT, contract_id, "dogovir.pdf.p7s", cades(pdf, TENANT_NAME, detached=False)
+    )
+    sig = next(iter(db.contract.signatures.values()))
+    assert sig.check_status is SignatureCheck.AUTO_OK
+    assert sig.check_details["document_match"] == "match"
+    with pytest.raises(InvalidInput):  # вкладено інший документ
+        await s.contracts.upload_signature(
+            OWNER, contract_id, "x.p7s", cades(b"%PDF other", OWNER_NAME, detached=False)
+        )

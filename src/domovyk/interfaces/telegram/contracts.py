@@ -32,7 +32,7 @@ from domovyk.interfaces.telegram.texts import uk
 from domovyk.modules.contracts.service import ContractsService
 
 SIG_PREFIX = "sig_"
-_SIGNATURE_EXT = (".p7s", ".p7m", ".asice", ".sce")
+_SIGNATURE_EXT = (".p7s", ".p7m", ".asice", ".sce", ".pdf")  # .pdf — щоб підказати про PAdES
 
 
 class ContractSign(StatesGroup):
