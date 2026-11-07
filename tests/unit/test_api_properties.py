@@ -99,7 +99,8 @@ async def test_ownership_flow_with_moderation(client: httpx.AsyncClient, now: da
     assert (r.status_code, r.json()["error"]) == (403, "not_staff")
 
     assert (await client.get("/api/v1/moderation/summary", headers=admin)).json() == {
-        "ownership_pending": 1
+        "ownership_pending": 1,
+        "signatures_pending": 0,
     }
     queue = (await client.get("/api/v1/moderation/ownership", headers=admin)).json()
     vid = queue[0]["verification_id"]

@@ -60,7 +60,10 @@ from domovyk.modules.contracts.repository import (
 from domovyk.modules.contracts.schemas import (
     ContractOut,
     ContractState,
+    ExternalDecisionIn,
+    LegalNameIn,
     PartyOut,
+    ReviewIn,
     SignatureCase,
     SignatureOut,
     SignatureState,
@@ -81,7 +84,10 @@ __all__ = [
     "ContractState",
     "ContractsConfig",
     "ContractsService",
+    "ExternalDecisionIn",
+    "LegalNameIn",
     "PartyOut",
+    "ReviewIn",
     "SignatureCase",
     "SignatureOut",
 ]
@@ -441,6 +447,11 @@ class ContractsService:
         return True
 
     # ------------------------------------------------- модератор (ADR 0010)
+
+    async def review_count(self, telegram_uid: int) -> int:
+        await self._users.require_staff(telegram_uid)
+        async with self._tx.begin() as tx:
+            return len(await self._repo(tx).signatures_to_review(self._config.review_limit))
 
     async def review_queue(self, telegram_uid: int) -> list[SignatureCase]:
         await self._users.require_staff(telegram_uid)

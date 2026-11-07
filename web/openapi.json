@@ -242,6 +242,34 @@
         "title": "BlackoutReady",
         "type": "string"
       },
+      "Body_contract_external_api_v1_leases__lease_id__contract_external_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_contract_external_api_v1_leases__lease_id__contract_external_post",
+        "type": "object"
+      },
+      "Body_contract_signature_api_v1_contracts__contract_id__signature_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_contract_signature_api_v1_contracts__contract_id__signature_post",
+        "type": "object"
+      },
       "Body_upload_ownership_document_api_v1_properties__property_id__ownership_documents_post": {
         "properties": {
           "file": {
@@ -433,6 +461,194 @@
         "title": "ConsentInfo",
         "type": "object"
       },
+      "ContractOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "pdf_sha256": {
+            "title": "Pdf Sha256",
+            "type": "string"
+          },
+          "signed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signed At"
+          },
+          "source": {
+            "$ref": "#/components/schemas/ContractSource"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ContractStatus"
+          },
+          "template_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Code"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "status",
+          "version",
+          "template_code",
+          "pdf_sha256",
+          "filename",
+          "created_at",
+          "signed_at"
+        ],
+        "title": "ContractOut",
+        "type": "object"
+      },
+      "ContractSource": {
+        "enum": [
+          "generated",
+          "uploaded_external"
+        ],
+        "title": "ContractSource",
+        "type": "string"
+      },
+      "ContractState": {
+        "description": "Блок «Договір» у картці оренди (CTR-CHOICE, CTR-SIGN, CTR-EXT).",
+        "properties": {
+          "awaiting_my_confirmation": {
+            "title": "Awaiting My Confirmation",
+            "type": "boolean"
+          },
+          "can_generate": {
+            "title": "Can Generate",
+            "type": "boolean"
+          },
+          "can_sign": {
+            "title": "Can Sign",
+            "type": "boolean"
+          },
+          "can_upload_external": {
+            "title": "Can Upload External",
+            "type": "boolean"
+          },
+          "contract": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ContractOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "diia_sign_url": {
+            "title": "Diia Sign Url",
+            "type": "string"
+          },
+          "landlord_name_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Landlord Name Hint"
+          },
+          "lease_id": {
+            "format": "uuid",
+            "title": "Lease Id",
+            "type": "string"
+          },
+          "lease_status": {
+            "title": "Lease Status",
+            "type": "string"
+          },
+          "my_role": {
+            "enum": [
+              "landlord",
+              "responsible",
+              "co_tenant"
+            ],
+            "title": "My Role",
+            "type": "string"
+          },
+          "needs_names": {
+            "title": "Needs Names",
+            "type": "boolean"
+          },
+          "parties": {
+            "items": {
+              "$ref": "#/components/schemas/PartyOut"
+            },
+            "title": "Parties",
+            "type": "array"
+          },
+          "require_moderator": {
+            "title": "Require Moderator",
+            "type": "boolean"
+          },
+          "stale": {
+            "title": "Stale",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "lease_id",
+          "lease_status",
+          "my_role",
+          "contract",
+          "parties",
+          "stale",
+          "needs_names",
+          "can_generate",
+          "can_upload_external",
+          "can_sign",
+          "awaiting_my_confirmation",
+          "require_moderator",
+          "landlord_name_hint",
+          "diia_sign_url"
+        ],
+        "title": "ContractState",
+        "type": "object"
+      },
+      "ContractStatus": {
+        "enum": [
+          "draft",
+          "sent",
+          "partially_signed",
+          "signed",
+          "void"
+        ],
+        "title": "ContractStatus",
+        "type": "string"
+      },
       "DocumentOut": {
         "properties": {
           "deleted": {
@@ -466,6 +682,19 @@
           "deleted"
         ],
         "title": "DocumentOut",
+        "type": "object"
+      },
+      "ExternalDecisionIn": {
+        "properties": {
+          "accept": {
+            "title": "Accept",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "accept"
+        ],
+        "title": "ExternalDecisionIn",
         "type": "object"
       },
       "Furnishing": {
@@ -1247,6 +1476,20 @@
         "title": "LeaseTerms",
         "type": "object"
       },
+      "LegalNameIn": {
+        "properties": {
+          "full_name": {
+            "maxLength": 200,
+            "title": "Full Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "full_name"
+        ],
+        "title": "LegalNameIn",
+        "type": "object"
+      },
       "MeOut": {
         "properties": {
           "consent": {
@@ -1463,6 +1706,11 @@
           "ownership_pending": {
             "title": "Ownership Pending",
             "type": "integer"
+          },
+          "signatures_pending": {
+            "default": 0,
+            "title": "Signatures Pending",
+            "type": "integer"
           }
         },
         "required": [
@@ -1586,6 +1834,62 @@
         ],
         "title": "Parking",
         "type": "string"
+      },
+      "PartyOut": {
+        "properties": {
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "is_me": {
+            "title": "Is Me",
+            "type": "boolean"
+          },
+          "legal_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legal Name"
+          },
+          "role": {
+            "enum": [
+              "landlord",
+              "tenant"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "signature": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SignatureOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "user_id",
+          "display_name",
+          "legal_name",
+          "is_me",
+          "signature"
+        ],
+        "title": "PartyOut",
+        "type": "object"
       },
       "PayDetailsIn": {
         "description": "Реквізити — шифруються (FR-PAY-8). Для готівки не потрібні.",
@@ -2965,6 +3269,31 @@
         "title": "Repair",
         "type": "string"
       },
+      "ReviewIn": {
+        "properties": {
+          "approve": {
+            "title": "Approve",
+            "type": "boolean"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "approve"
+        ],
+        "title": "ReviewIn",
+        "type": "object"
+      },
       "RoomIn": {
         "properties": {
           "area": {
@@ -2994,6 +3323,21 @@
         "title": "RoomIn",
         "type": "object"
       },
+      "SendFilesIn": {
+        "properties": {
+          "what": {
+            "default": "pdf",
+            "enum": [
+              "pdf",
+              "package"
+            ],
+            "title": "What",
+            "type": "string"
+          }
+        },
+        "title": "SendFilesIn",
+        "type": "object"
+      },
       "SentOut": {
         "properties": {
           "sent": {
@@ -3018,6 +3362,246 @@
         ],
         "title": "Shelter",
         "type": "string"
+      },
+      "SignatureCase": {
+        "description": "Підпис на перевірці в модератора (ADR 0010).",
+        "properties": {
+          "apartment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Apartment"
+          },
+          "check_status": {
+            "$ref": "#/components/schemas/SignatureCheck"
+          },
+          "container": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Container"
+          },
+          "contract_id": {
+            "format": "uuid",
+            "title": "Contract Id",
+            "type": "string"
+          },
+          "digest_algorithm": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Digest Algorithm"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "document_match": {
+            "title": "Document Match",
+            "type": "string"
+          },
+          "expected_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Name"
+          },
+          "house_number": {
+            "title": "House Number",
+            "type": "string"
+          },
+          "issuer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issuer"
+          },
+          "lease_id": {
+            "format": "uuid",
+            "title": "Lease Id",
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "owner_name_in_doc": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Name In Doc"
+          },
+          "party_role": {
+            "enum": [
+              "landlord",
+              "tenant"
+            ],
+            "title": "Party Role",
+            "type": "string"
+          },
+          "signature_id": {
+            "format": "uuid",
+            "title": "Signature Id",
+            "type": "string"
+          },
+          "signed_at_claimed": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signed At Claimed"
+          },
+          "signer_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signer Name"
+          },
+          "street": {
+            "title": "Street",
+            "type": "string"
+          },
+          "uploaded_at": {
+            "format": "date-time",
+            "title": "Uploaded At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature_id",
+          "contract_id",
+          "lease_id",
+          "street",
+          "house_number",
+          "apartment",
+          "party_role",
+          "display_name",
+          "expected_name",
+          "owner_name_in_doc",
+          "signer_name",
+          "check_status",
+          "document_match",
+          "digest_algorithm",
+          "container",
+          "issuer",
+          "signed_at_claimed",
+          "uploaded_at",
+          "notes"
+        ],
+        "title": "SignatureCase",
+        "type": "object"
+      },
+      "SignatureCheck": {
+        "enum": [
+          "not_checked",
+          "auto_ok",
+          "mismatch",
+          "manual_ok",
+          "invalid"
+        ],
+        "title": "SignatureCheck",
+        "type": "string"
+      },
+      "SignatureOut": {
+        "properties": {
+          "check_status": {
+            "$ref": "#/components/schemas/SignatureCheck"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "review_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Reason"
+          },
+          "signer_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signer Name"
+          },
+          "state": {
+            "enum": [
+              "accepted",
+              "review",
+              "rejected"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "uploaded_at": {
+            "format": "date-time",
+            "title": "Uploaded At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "state",
+          "check_status",
+          "signer_name",
+          "uploaded_at",
+          "review_reason"
+        ],
+        "title": "SignatureOut",
+        "type": "object"
       },
       "SmokingPolicy": {
         "enum": [
@@ -3645,6 +4229,312 @@
         "summary": "List Cities"
       }
     },
+    "/api/v1/contracts/{contract_id}/external-decision": {
+      "post": {
+        "operationId": "contract_external_decision_api_v1_contracts__contract_id__external_decision_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Contract Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExternalDecisionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Contract External Decision"
+      }
+    },
+    "/api/v1/contracts/{contract_id}/package": {
+      "get": {
+        "operationId": "contract_package_api_v1_contracts__contract_id__package_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Contract Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Contract Package"
+      }
+    },
+    "/api/v1/contracts/{contract_id}/pdf": {
+      "get": {
+        "operationId": "contract_pdf_api_v1_contracts__contract_id__pdf_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Contract Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Contract Pdf"
+      }
+    },
+    "/api/v1/contracts/{contract_id}/send": {
+      "post": {
+        "operationId": "contract_send_api_v1_contracts__contract_id__send_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Contract Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendFilesIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Contract Send"
+      }
+    },
+    "/api/v1/contracts/{contract_id}/signature": {
+      "post": {
+        "operationId": "contract_signature_api_v1_contracts__contract_id__signature_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Contract Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_contract_signature_api_v1_contracts__contract_id__signature_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Contract Signature"
+      }
+    },
     "/api/v1/invites/{token}": {
       "get": {
         "operationId": "preview_invite_api_v1_invites__token__get",
@@ -4091,6 +4981,250 @@
           }
         },
         "summary": "Update Lease Conditions"
+      }
+    },
+    "/api/v1/leases/{lease_id}/contract": {
+      "get": {
+        "operationId": "contract_state_api_v1_leases__lease_id__contract_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lease_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Lease Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Contract State"
+      }
+    },
+    "/api/v1/leases/{lease_id}/contract/external": {
+      "post": {
+        "operationId": "contract_external_api_v1_leases__lease_id__contract_external_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lease_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Lease Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_contract_external_api_v1_leases__lease_id__contract_external_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Contract External"
+      }
+    },
+    "/api/v1/leases/{lease_id}/contract/generate": {
+      "post": {
+        "operationId": "contract_generate_api_v1_leases__lease_id__contract_generate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lease_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Lease Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Contract Generate"
+      }
+    },
+    "/api/v1/leases/{lease_id}/contract/name": {
+      "put": {
+        "operationId": "contract_name_api_v1_leases__lease_id__contract_name_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lease_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Lease Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LegalNameIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Contract Name"
       }
     },
     "/api/v1/leases/{lease_id}/invites": {
@@ -5243,6 +6377,234 @@
           }
         },
         "summary": "Send Ownership Documents"
+      }
+    },
+    "/api/v1/moderation/signatures": {
+      "get": {
+        "operationId": "signature_queue_api_v1_moderation_signatures_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SignatureCase"
+                  },
+                  "title": "Response Signature Queue Api V1 Moderation Signatures Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Signature Queue"
+      }
+    },
+    "/api/v1/moderation/signatures/{signature_id}": {
+      "get": {
+        "operationId": "signature_case_api_v1_moderation_signatures__signature_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "signature_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Signature Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignatureCase"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Signature Case"
+      }
+    },
+    "/api/v1/moderation/signatures/{signature_id}/review": {
+      "post": {
+        "operationId": "review_signature_api_v1_moderation_signatures__signature_id__review_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "signature_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Signature Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignatureCase"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Review Signature"
+      }
+    },
+    "/api/v1/moderation/signatures/{signature_id}/send-files": {
+      "post": {
+        "operationId": "send_signature_files_api_v1_moderation_signatures__signature_id__send_files_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "signature_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Signature Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Send Signature Files"
       }
     },
     "/api/v1/moderation/summary": {

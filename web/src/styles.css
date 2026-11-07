@@ -1244,3 +1244,13 @@ ul.plain li {
   width: 22px;
   background: var(--brand);
 }
+
+/* ---- Договір (M4) ---- */
+label.file-button {
+  cursor: pointer;
+}
+
+.button.disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}

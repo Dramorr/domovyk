@@ -26,6 +26,9 @@ export type Message = S["MessageOut"];
 export type MessagesPage = S["MessagesPage"];
 export type NotifyPrefs = S["LeaseNotificationPrefs"];
 export type VerificationCase = S["VerificationCase"];
+export type ContractState = S["ContractState"];
+export type ContractParty = S["PartyOut"];
+export type SignatureCase = S["SignatureCase"];
 
 export type ApiErrorKind = "no_api" | "unauthorized" | "network" | "server" | "unavailable" | "domain";
 
@@ -90,6 +93,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
 const p = (id: string) => `/api/v1/properties/${encodeURIComponent(id)}`;
 const l = (id: string) => `/api/v1/leases/${encodeURIComponent(id)}`;
+const c = (id: string) => `/api/v1/contracts/${encodeURIComponent(id)}`;
 const v = (id: string) => `/api/v1/moderation/ownership/${encodeURIComponent(id)}`;
 
 export const api = {
@@ -131,6 +135,35 @@ export const api = {
     request<Ownership>("DELETE", `${p(id)}/ownership/documents/${encodeURIComponent(docId)}`),
   submitOwnership: (id: string) => request<Ownership>("POST", `${p(id)}/ownership/submit`),
   devVerify: (id: string) => request<Ownership>("POST", `${p(id)}/ownership/dev-verify`),
+
+  // Договори (M4)
+  contract: (leaseId: string) => request<ContractState>("GET", `${l(leaseId)}/contract`),
+  setLegalName: (leaseId: string, full_name: string) =>
+    request<ContractState>("PUT", `${l(leaseId)}/contract/name`, { full_name }),
+  generateContract: (leaseId: string) => request<ContractState>("POST", `${l(leaseId)}/contract/generate`),
+  uploadExternal: (leaseId: string, data: Blob, filename: string) => {
+    const form = new FormData();
+    form.append("file", data, filename);
+    return request<ContractState>("POST", `${l(leaseId)}/contract/external`, form);
+  },
+  uploadSignature: (contractId: string, data: Blob, filename: string) => {
+    const form = new FormData();
+    form.append("file", data, filename);
+    return request<ContractState>("POST", `${c(contractId)}/signature`, form);
+  },
+  decideExternal: (contractId: string, accept: boolean) =>
+    request<ContractState>("POST", `${c(contractId)}/external-decision`, { accept }),
+  sendContract: (contractId: string, what: "pdf" | "package") =>
+    request<S["SentOut"]>("POST", `${c(contractId)}/send`, { what }),
+  signatureQueue: () => request<SignatureCase[]>("GET", "/api/v1/moderation/signatures"),
+  signatureCase: (id: string) => request<SignatureCase>("GET", `/api/v1/moderation/signatures/${encodeURIComponent(id)}`),
+  sendSignatureFiles: (id: string) =>
+    request<S["SentOut"]>("POST", `/api/v1/moderation/signatures/${encodeURIComponent(id)}/send-files`),
+  reviewSignature: (id: string, approve: boolean, reason?: string) =>
+    request<SignatureCase>("POST", `/api/v1/moderation/signatures/${encodeURIComponent(id)}/review`, {
+      approve,
+      reason: reason ?? null,
+    }),
 
   // Оренди (M3)
   leases: () => request<LeaseSummary[]>("GET", "/api/v1/leases"),

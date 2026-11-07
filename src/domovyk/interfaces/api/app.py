@@ -7,7 +7,7 @@ import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import timedelta
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import (
     Depends,
@@ -38,11 +38,19 @@ from domovyk.core.errors import (
     PermissionDenied,
     ServiceUnavailable,
 )
+from domovyk.domain.contracts import EXTERNAL_PDF_MAX_BYTES, SIGNATURE_MAX_BYTES
 from domovyk.domain.leases import MemberRole
 from domovyk.interfaces.api.telegram_auth import (
     InitDataError,
     TelegramAuth,
     validate_init_data,
+)
+from domovyk.modules.contracts.service import (
+    ContractState,
+    ExternalDecisionIn,
+    LegalNameIn,
+    ReviewIn,
+    SignatureCase,
 )
 from domovyk.modules.leases.service import (
     InviteOut,
@@ -125,6 +133,11 @@ class RejectIn(BaseModel):
 
 class ModerationSummaryOut(BaseModel):
     ownership_pending: int
+    signatures_pending: int = 0
+
+
+class SendFilesIn(BaseModel):
+    what: Literal["pdf", "package"] = "pdf"
 
 
 class SentOut(BaseModel):
@@ -439,7 +452,8 @@ def create_app(
     @app.get("/api/v1/moderation/summary")
     async def moderation_summary(auth: Auth) -> ModerationSummaryOut:
         return ModerationSummaryOut(
-            ownership_pending=await svc.properties.pending_count(auth.user.id)
+            ownership_pending=await svc.properties.pending_count(auth.user.id),
+            signatures_pending=await svc.contracts.review_count(auth.user.id),
         )
 
     @app.get("/api/v1/moderation/ownership")
@@ -467,4 +481,91 @@ def create_app(
     ) -> VerificationCase:
         return await svc.properties.reject(auth.user.id, verification_id, body.reason)
 
+    # ------------------------------------------------ модерація підписів (ADR 0010)
+
+    @app.get("/api/v1/moderation/signatures")
+    async def signature_queue(auth: Auth) -> list[SignatureCase]:
+        return await svc.contracts.review_queue(auth.user.id)
+
+    @app.get("/api/v1/moderation/signatures/{signature_id}")
+    async def signature_case(auth: Auth, signature_id: uuid.UUID) -> SignatureCase:
+        return await svc.contracts.review_case(auth.user.id, signature_id)
+
+    @app.post("/api/v1/moderation/signatures/{signature_id}/send-files")
+    async def send_signature_files(auth: Auth, signature_id: uuid.UUID) -> SentOut:
+        return SentOut(sent=await svc.contracts.send_review_files(auth.user.id, signature_id))
+
+    @app.post("/api/v1/moderation/signatures/{signature_id}/review")
+    async def review_signature(
+        auth: Auth, signature_id: uuid.UUID, body: ReviewIn
+    ) -> SignatureCase:
+        return await svc.contracts.review_signature(
+            auth.user.id, signature_id, body.approve, body.reason
+        )
+
+    # ------------------------------------------------------ договори (M4, FR-CTR)
+
+    @app.get("/api/v1/leases/{lease_id}/contract")
+    async def contract_state(auth: Auth, lease_id: uuid.UUID) -> ContractState:
+        return await svc.contracts.state(auth.user.id, lease_id)
+
+    @app.put("/api/v1/leases/{lease_id}/contract/name")
+    async def contract_name(auth: Auth, lease_id: uuid.UUID, body: LegalNameIn) -> ContractState:
+        return await svc.contracts.set_legal_name(auth.user.id, lease_id, body.full_name)
+
+    @app.post("/api/v1/leases/{lease_id}/contract/generate")
+    async def contract_generate(auth: Auth, lease_id: uuid.UUID) -> ContractState:
+        return await svc.contracts.generate(auth.user.id, lease_id)
+
+    @app.post("/api/v1/leases/{lease_id}/contract/external")
+    async def contract_external(
+        auth: Auth, lease_id: uuid.UUID, file: Annotated[UploadFile, File()]
+    ) -> ContractState:
+        data = await file.read(EXTERNAL_PDF_MAX_BYTES + 1)
+        return await svc.contracts.upload_external(
+            auth.user.id, lease_id, file.filename or "dogovir.pdf", data
+        )
+
+    @app.post("/api/v1/contracts/{contract_id}/signature")
+    async def contract_signature(
+        auth: Auth, contract_id: uuid.UUID, file: Annotated[UploadFile, File()]
+    ) -> ContractState:
+        data = await file.read(SIGNATURE_MAX_BYTES + 1)
+        return await svc.contracts.upload_signature(
+            auth.user.id, contract_id, file.filename or "signature.p7s", data
+        )
+
+    @app.post("/api/v1/contracts/{contract_id}/external-decision")
+    async def contract_external_decision(
+        auth: Auth, contract_id: uuid.UUID, body: ExternalDecisionIn
+    ) -> ContractState:
+        return await svc.contracts.decide_external(auth.user.id, contract_id, body.accept)
+
+    @app.post("/api/v1/contracts/{contract_id}/send")
+    async def contract_send(auth: Auth, contract_id: uuid.UUID, body: SendFilesIn) -> SentOut:
+        return SentOut(sent=await svc.contracts.send_to_chat(auth.user.id, contract_id, body.what))
+
+    @app.get("/api/v1/contracts/{contract_id}/pdf")
+    async def contract_pdf(auth: Auth, contract_id: uuid.UUID) -> Response:
+        name, data = await svc.contracts.document(auth.user.id, contract_id)
+        return _file(data, name, "application/pdf")
+
+    @app.get("/api/v1/contracts/{contract_id}/package")
+    async def contract_package(auth: Auth, contract_id: uuid.UUID) -> Response:
+        name, data = await svc.contracts.package(auth.user.id, contract_id)
+        return _file(data, name, "application/zip")
+
     return app
+
+
+def _file(data: bytes, filename: str, media_type: str) -> Response:
+    """Файл для завантаження (сайт, Desktop). Ім'я — ASCII-безпечне + UTF-8 за RFC 5987."""
+    from urllib.parse import quote
+
+    ascii_name = filename.encode("ascii", "ignore").decode() or "file"
+    disposition = f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(filename)}"
+    return Response(
+        content=data,
+        media_type=media_type,
+        headers={"Content-Disposition": disposition, "Cache-Control": "no-store"},
+    )

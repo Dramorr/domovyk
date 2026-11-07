@@ -16,6 +16,7 @@ from aiogram.types import BotCommand, MenuButtonWebApp, WebAppInfo
 from domovyk.config import Settings, get_settings
 from domovyk.container import Container, Services
 from domovyk.core.logging import setup_logging
+from domovyk.interfaces.telegram.contracts import make_contracts_router
 from domovyk.interfaces.telegram.handlers import make_router
 from domovyk.interfaces.telegram.ownership import make_ownership_router
 from domovyk.interfaces.telegram.texts import uk
@@ -41,7 +42,10 @@ async def run_bot(settings: Settings, services: Services | None = None) -> None:
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
     dp = Dispatcher(
-        storage=_storage(settings), users=services.users, properties=services.properties
+        storage=_storage(settings),
+        users=services.users,
+        properties=services.properties,
+        contracts=services.contracts,
     )
     # Порядок важливий: /start own_… має перехопити роутер власності раніше за загальний /start.
     dp.include_router(
@@ -51,6 +55,7 @@ async def run_bot(settings: Settings, services: Services | None = None) -> None:
             retention_days=settings.ownership_doc_retention_days,
         )
     )
+    dp.include_router(make_contracts_router(settings.mini_app_url))
     dp.include_router(make_router(settings.mini_app_url))
 
     await bot.set_my_commands(

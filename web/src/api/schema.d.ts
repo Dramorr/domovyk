@@ -38,6 +38,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/contracts/{contract_id}/external-decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Contract External Decision */
+        post: operations["contract_external_decision_api_v1_contracts__contract_id__external_decision_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contracts/{contract_id}/package": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Contract Package */
+        get: operations["contract_package_api_v1_contracts__contract_id__package_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contracts/{contract_id}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Contract Pdf */
+        get: operations["contract_pdf_api_v1_contracts__contract_id__pdf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contracts/{contract_id}/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Contract Send */
+        post: operations["contract_send_api_v1_contracts__contract_id__send_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contracts/{contract_id}/signature": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Contract Signature */
+        post: operations["contract_signature_api_v1_contracts__contract_id__signature_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/invites/{token}": {
         parameters: {
             query?: never;
@@ -151,6 +236,74 @@ export interface paths {
         get?: never;
         /** Update Lease Conditions */
         put: operations["update_lease_conditions_api_v1_leases__lease_id__conditions_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/leases/{lease_id}/contract": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Contract State */
+        get: operations["contract_state_api_v1_leases__lease_id__contract_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/leases/{lease_id}/contract/external": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Contract External */
+        post: operations["contract_external_api_v1_leases__lease_id__contract_external_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/leases/{lease_id}/contract/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Contract Generate */
+        post: operations["contract_generate_api_v1_leases__lease_id__contract_generate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/leases/{lease_id}/contract/name": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Contract Name */
+        put: operations["contract_name_api_v1_leases__lease_id__contract_name_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -412,6 +565,74 @@ export interface paths {
         put?: never;
         /** Send Ownership Documents */
         post: operations["send_ownership_documents_api_v1_moderation_ownership__verification_id__send_documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/moderation/signatures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Signature Queue */
+        get: operations["signature_queue_api_v1_moderation_signatures_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/moderation/signatures/{signature_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Signature Case */
+        get: operations["signature_case_api_v1_moderation_signatures__signature_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/moderation/signatures/{signature_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Review Signature */
+        post: operations["review_signature_api_v1_moderation_signatures__signature_id__review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/moderation/signatures/{signature_id}/send-files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send Signature Files */
+        post: operations["send_signature_files_api_v1_moderation_signatures__signature_id__send_files_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -727,6 +948,16 @@ export interface components {
          * @enum {string}
          */
         BlackoutReady: "elevator" | "water" | "heating" | "internet" | "lighting";
+        /** Body_contract_external_api_v1_leases__lease_id__contract_external_post */
+        Body_contract_external_api_v1_leases__lease_id__contract_external_post: {
+            /** File */
+            file: string;
+        };
+        /** Body_contract_signature_api_v1_contracts__contract_id__signature_post */
+        Body_contract_signature_api_v1_contracts__contract_id__signature_post: {
+            /** File */
+            file: string;
+        };
         /** Body_upload_ownership_document_api_v1_properties__property_id__ownership_documents_post */
         Body_upload_ownership_document_api_v1_properties__property_id__ownership_documents_post: {
             /** File */
@@ -809,6 +1040,80 @@ export interface components {
             /** Terms Version */
             terms_version: string;
         };
+        /** ContractOut */
+        ContractOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Filename */
+            filename: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Pdf Sha256 */
+            pdf_sha256: string;
+            /** Signed At */
+            signed_at: string | null;
+            source: components["schemas"]["ContractSource"];
+            status: components["schemas"]["ContractStatus"];
+            /** Template Code */
+            template_code: string | null;
+            /** Version */
+            version: number;
+        };
+        /**
+         * ContractSource
+         * @enum {string}
+         */
+        ContractSource: "generated" | "uploaded_external";
+        /**
+         * ContractState
+         * @description Блок «Договір» у картці оренди (CTR-CHOICE, CTR-SIGN, CTR-EXT).
+         */
+        ContractState: {
+            /** Awaiting My Confirmation */
+            awaiting_my_confirmation: boolean;
+            /** Can Generate */
+            can_generate: boolean;
+            /** Can Sign */
+            can_sign: boolean;
+            /** Can Upload External */
+            can_upload_external: boolean;
+            contract: components["schemas"]["ContractOut"] | null;
+            /** Diia Sign Url */
+            diia_sign_url: string;
+            /** Landlord Name Hint */
+            landlord_name_hint: string | null;
+            /**
+             * Lease Id
+             * Format: uuid
+             */
+            lease_id: string;
+            /** Lease Status */
+            lease_status: string;
+            /**
+             * My Role
+             * @enum {string}
+             */
+            my_role: "landlord" | "responsible" | "co_tenant";
+            /** Needs Names */
+            needs_names: boolean;
+            /** Parties */
+            parties: components["schemas"]["PartyOut"][];
+            /** Require Moderator */
+            require_moderator: boolean;
+            /** Stale */
+            stale: boolean;
+        };
+        /**
+         * ContractStatus
+         * @enum {string}
+         */
+        ContractStatus: "draft" | "sent" | "partially_signed" | "signed" | "void";
         /** DocumentOut */
         DocumentOut: {
             /** Deleted */
@@ -827,6 +1132,11 @@ export interface components {
              * Format: date-time
              */
             uploaded_at: string;
+        };
+        /** ExternalDecisionIn */
+        ExternalDecisionIn: {
+            /** Accept */
+            accept: boolean;
         };
         /**
          * Furnishing
@@ -1160,6 +1470,11 @@ export interface components {
              */
             visits_notice_hours: number;
         };
+        /** LegalNameIn */
+        LegalNameIn: {
+            /** Full Name */
+            full_name: string;
+        };
         /** MeOut */
         MeOut: {
             consent: components["schemas"]["ConsentInfo"];
@@ -1237,6 +1552,11 @@ export interface components {
         ModerationSummaryOut: {
             /** Ownership Pending */
             ownership_pending: number;
+            /**
+             * Signatures Pending
+             * @default 0
+             */
+            signatures_pending: number;
         };
         /** NameIn */
         NameIn: {
@@ -1295,6 +1615,26 @@ export interface components {
          * @enum {string}
          */
         Parking: "none" | "street" | "yard" | "underground" | "garage";
+        /** PartyOut */
+        PartyOut: {
+            /** Display Name */
+            display_name: string;
+            /** Is Me */
+            is_me: boolean;
+            /** Legal Name */
+            legal_name: string | null;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "landlord" | "tenant";
+            signature: components["schemas"]["SignatureOut"] | null;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
         /**
          * PayDetailsIn
          * @description Реквізити — шифруються (FR-PAY-8). Для готівки не потрібні.
@@ -1589,12 +1929,28 @@ export interface components {
          * @enum {string}
          */
         Repair: "designer" | "euro" | "cosmetic" | "livable" | "needs_repair";
+        /** ReviewIn */
+        ReviewIn: {
+            /** Approve */
+            approve: boolean;
+            /** Reason */
+            reason?: string | null;
+        };
         /** RoomIn */
         RoomIn: {
             /** Area */
             area?: number | string | null;
             /** Name */
             name: string;
+        };
+        /** SendFilesIn */
+        SendFilesIn: {
+            /**
+             * What
+             * @default pdf
+             * @enum {string}
+             */
+            what: "pdf" | "package";
         };
         /** SentOut */
         SentOut: {
@@ -1607,6 +1963,92 @@ export interface components {
          * @enum {string}
          */
         Shelter: "none" | "basement" | "underground_parking" | "dedicated" | "nearby";
+        /**
+         * SignatureCase
+         * @description Підпис на перевірці в модератора (ADR 0010).
+         */
+        SignatureCase: {
+            /** Apartment */
+            apartment: string | null;
+            check_status: components["schemas"]["SignatureCheck"];
+            /** Container */
+            container: string | null;
+            /**
+             * Contract Id
+             * Format: uuid
+             */
+            contract_id: string;
+            /** Digest Algorithm */
+            digest_algorithm: string | null;
+            /** Display Name */
+            display_name: string;
+            /** Document Match */
+            document_match: string;
+            /** Expected Name */
+            expected_name: string | null;
+            /** House Number */
+            house_number: string;
+            /** Issuer */
+            issuer: string | null;
+            /**
+             * Lease Id
+             * Format: uuid
+             */
+            lease_id: string;
+            /** Notes */
+            notes: string[];
+            /** Owner Name In Doc */
+            owner_name_in_doc: string | null;
+            /**
+             * Party Role
+             * @enum {string}
+             */
+            party_role: "landlord" | "tenant";
+            /**
+             * Signature Id
+             * Format: uuid
+             */
+            signature_id: string;
+            /** Signed At Claimed */
+            signed_at_claimed: string | null;
+            /** Signer Name */
+            signer_name: string | null;
+            /** Street */
+            street: string;
+            /**
+             * Uploaded At
+             * Format: date-time
+             */
+            uploaded_at: string;
+        };
+        /**
+         * SignatureCheck
+         * @enum {string}
+         */
+        SignatureCheck: "not_checked" | "auto_ok" | "mismatch" | "manual_ok" | "invalid";
+        /** SignatureOut */
+        SignatureOut: {
+            check_status: components["schemas"]["SignatureCheck"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Review Reason */
+            review_reason: string | null;
+            /** Signer Name */
+            signer_name: string | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "accepted" | "review" | "rejected";
+            /**
+             * Uploaded At
+             * Format: date-time
+             */
+            uploaded_at: string;
+        };
         /**
          * SmokingPolicy
          * @enum {string}
@@ -1841,6 +2283,183 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CityOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    contract_external_decision_api_v1_contracts__contract_id__external_decision_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                contract_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExternalDecisionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractState"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    contract_package_api_v1_contracts__contract_id__package_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                contract_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    contract_pdf_api_v1_contracts__contract_id__pdf_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                contract_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    contract_send_api_v1_contracts__contract_id__send_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                contract_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendFilesIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    contract_signature_api_v1_contracts__contract_id__signature_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                contract_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_contract_signature_api_v1_contracts__contract_id__signature_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractState"];
                 };
             };
             /** @description Validation Error */
@@ -2109,6 +2728,146 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LeaseOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    contract_state_api_v1_leases__lease_id__contract_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                lease_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractState"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    contract_external_api_v1_leases__lease_id__contract_external_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                lease_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_contract_external_api_v1_leases__lease_id__contract_external_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractState"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    contract_generate_api_v1_leases__lease_id__contract_generate_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                lease_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractState"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    contract_name_api_v1_leases__lease_id__contract_name_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                lease_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LegalNameIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractState"];
                 };
             };
             /** @description Validation Error */
@@ -2779,6 +3538,140 @@ export interface operations {
             };
             path: {
                 verification_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    signature_queue_api_v1_moderation_signatures_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignatureCase"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    signature_case_api_v1_moderation_signatures__signature_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                signature_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignatureCase"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    review_signature_api_v1_moderation_signatures__signature_id__review_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                signature_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignatureCase"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_signature_files_api_v1_moderation_signatures__signature_id__send_files_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                signature_id: string;
             };
             cookie?: never;
         };

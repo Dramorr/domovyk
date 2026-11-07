@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { api, type QueueItem, type VerificationCase } from "../api/client";
+import { api, type QueueItem, type SignatureCase, type VerificationCase } from "../api/client";
 import { t, type TextKey } from "../i18n";
 import {
   Chip,
@@ -18,7 +18,15 @@ import {
   Screen,
 } from "../ui";
 
-export function ModerationQueue({ onBack, onOpen }: { onBack?: () => void; onOpen: (vid: string) => void }) {
+export function ModerationQueue({
+  onBack,
+  onOpen,
+  onOpenSignature,
+}: {
+  onBack?: () => void;
+  onOpen: (vid: string) => void;
+  onOpenSignature: (sid: string) => void;
+}) {
   const [items, setItems] = useState<QueueItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,6 +62,8 @@ export function ModerationQueue({ onBack, onOpen }: { onBack?: () => void; onOpe
           onClick={() => onOpen(q.verification_id)}
         />
       ))}
+      <p className="section-title">{t("mod_sig_title")}</p>
+      <SignatureQueue onOpen={onOpenSignature} />
     </Screen>
   );
 }
@@ -203,6 +213,181 @@ export function ModerationCase({ vid, onBack }: { vid: string; onBack: () => voi
             />
           </label>
           <button className="button" disabled={busy || otherReason.trim().length < 2} onClick={() => reject(otherReason)}>
+            {t("mod_reject")}
+          </button>
+          <button className="link" onClick={() => setRejecting(false)}>
+            {t("cancel")}
+          </button>
+        </section>
+      )}
+
+      {message && <p className="ok">{message}</p>}
+      {error && <p className="error">{error}</p>}
+    </Screen>
+  );
+}
+
+// ------------------------------------------- підписи під договорами (ADR 0010)
+
+export function SignatureQueue({ onOpen }: { onOpen: (sid: string) => void }) {
+  const [items, setItems] = useState<SignatureCase[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.signatureQueue().then(setItems).catch((e: unknown) => setError(errorText(e)));
+  }, []);
+
+  if (error) return <p className="error">{error}</p>;
+  if (!items) return <div className="skeleton" />;
+  if (items.length === 0) return <p className="hint small">{t("mod_sig_empty")}</p>;
+  return (
+    <>
+      {items.map((c) => (
+        <ListRow
+          key={c.signature_id}
+          icon="doc"
+          title={formatAddress(c)}
+          sub={
+            <>
+              <span>{c.display_name}</span>
+              <span>· {t(`mod_sig_role_${c.party_role}` as TextKey)}</span>
+              <span>· {formatDate(c.uploaded_at)}</span>
+              {c.check_status === "mismatch" && <Chip tone="bad">{t("mod_sig_mismatch")}</Chip>}
+            </>
+          }
+          onClick={() => onOpen(c.signature_id)}
+        />
+      ))}
+    </>
+  );
+}
+
+const SIG_REASONS: TextKey[] = ["mod_sig_reason_invalid", "mod_sig_reason_name", "mod_sig_reason_document"];
+
+export function SignatureReview({ sid, onBack }: { sid: string; onBack: () => void }) {
+  const [item, setItem] = useState<SignatureCase | null>(null);
+  const [rejecting, setRejecting] = useState(false);
+  const [otherReason, setOtherReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.signatureCase(sid).then(setItem).catch((e: unknown) => setError(errorText(e)));
+  }, [sid]);
+
+  async function run(action: () => Promise<void>) {
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      await action();
+    } catch (e) {
+      setError(errorCode(e) === "permission_denied" ? t("mod_sig_own") : errorText(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!item) {
+    return (
+      <Screen onBack={onBack}>
+        {error ? <p className="error">{error}</p> : <p className="hint">{t("loading")}</p>}
+      </Screen>
+    );
+  }
+
+  const open = ["not_checked", "auto_ok", "mismatch"].includes(item.check_status);
+  const decide = (approve: boolean, reason?: string) =>
+    run(async () => {
+      setItem(await api.reviewSignature(sid, approve, reason));
+      setRejecting(false);
+      setMessage(approve ? t("mod_sig_done_ok") : t("mod_done_rejected"));
+    });
+
+  return (
+    <Screen onBack={onBack}>
+      <h1 className="left">{formatAddress(item)}</h1>
+      <p className="hint left">
+        {item.display_name} · {t(`mod_sig_role_${item.party_role}` as TextKey)}
+      </p>
+
+      <section className="card">
+        <h2>{t("mod_sig_compare")}</h2>
+        <div className="unit">
+          <span className="hint small">{t("mod_sig_in_cert")}</span>
+          <span>{item.signer_name ?? "—"}</span>
+        </div>
+        <div className="unit">
+          <span className="hint small">{t("mod_sig_in_contract")}</span>
+          <span>{item.expected_name ?? "—"}</span>
+        </div>
+        {item.party_role === "landlord" && (
+          <div className="unit">
+            <span className="hint small">{t("mod_sig_in_doc")}</span>
+            <span>{item.owner_name_in_doc ?? "—"}</span>
+          </div>
+        )}
+        <p className="small">
+          {t(`mod_sig_doc_${item.document_match}` as TextKey)}
+          {item.digest_algorithm && ` · ${item.digest_algorithm}`}
+          {item.container && ` · ${item.container}`}
+        </p>
+        {item.issuer && <p className="hint small">{t("mod_sig_issuer", { issuer: item.issuer })}</p>}
+        {item.signed_at_claimed && <p className="hint small">{t("mod_sig_signed_at", { date: formatDate(item.signed_at_claimed) })}</p>}
+        <button
+          className="button secondary"
+          disabled={busy}
+          onClick={() =>
+            run(async () => {
+              const { sent } = await api.sendSignatureFiles(sid);
+              setMessage(t("mod_docs_sent", { n: String(sent) }));
+            })
+          }
+        >
+          {t("mod_sig_send")}
+        </button>
+      </section>
+
+      {!open && (
+        <p className={item.check_status === "manual_ok" ? "ok" : "error"}>{t(`mod_sig_status_${item.check_status}` as TextKey)}</p>
+      )}
+
+      {open && !rejecting && (
+        <section className="card">
+          <MascotTip tone="calm">
+            <p>{t("mod_sig_check_hint")}</p>
+          </MascotTip>
+          <button className="button" disabled={busy} onClick={() => decide(true)}>
+            {t("mod_sig_approve")}
+          </button>
+          <button className="button secondary" disabled={busy} onClick={() => setRejecting(true)}>
+            {t("mod_reject")}
+          </button>
+        </section>
+      )}
+
+      {open && rejecting && (
+        <section className="card">
+          <h2>{t("mod_reject_title")}</h2>
+          <div className="choices">
+            {SIG_REASONS.map((key) => (
+              <button key={key} className="button secondary" disabled={busy} onClick={() => decide(false, t(key))}>
+                {t(key)}
+              </button>
+            ))}
+          </div>
+          <label className="field">
+            {t("mod_reason_other")}
+            <input
+              className="input"
+              value={otherReason}
+              maxLength={500}
+              placeholder={t("mod_reason_placeholder")}
+              onChange={(e) => setOtherReason(e.target.value)}
+            />
+          </label>
+          <button className="button" disabled={busy || otherReason.trim().length < 2} onClick={() => decide(false, otherReason)}>
             {t("mod_reject")}
           </button>
           <button className="link" onClick={() => setRejecting(false)}>

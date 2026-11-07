@@ -6,7 +6,7 @@ import { t } from "./i18n";
 import { Icon } from "./icons";
 import { Chat } from "./screens/Chat";
 import { InviteAccept, InviteShare, LeaseCard, LeaseForm, LeaseList, LeaseNotifications } from "./screens/Leases";
-import { ModerationCase, ModerationQueue } from "./screens/Moderation";
+import { ModerationCase, ModerationQueue, SignatureReview } from "./screens/Moderation";
 import { ConsentAndName, ModeChoice, PhoneStep } from "./screens/Onboarding";
 import { Profile } from "./screens/Profile";
 import { PropertyProfile } from "./screens/PropertyProfile";
@@ -31,6 +31,7 @@ type Route =
   | { name: "profile-form"; id: string }
   | { name: "moderation" }
   | { name: "mod-case"; vid: string }
+  | { name: "mod-sig"; sid: string }
   | { name: "leases" }
   | { name: "lease"; id: string }
   | { name: "lease-new"; propertyId: string }
@@ -110,7 +111,7 @@ export function App() {
     if (isStaff)
       api
         .moderationSummary()
-        .then((s) => setModCount(s.ownership_pending))
+        .then((s) => setModCount(s.ownership_pending + (s.signatures_pending ?? 0)))
         .catch(() => setModCount(null));
   }, [ready, isStaff, atHome]);
 
@@ -278,8 +279,15 @@ export function App() {
       break;
     case "moderation":
       screen = (
-        <ModerationQueue onBack={stack.length > 1 ? back : undefined} onOpen={(vid) => push({ name: "mod-case", vid })} />
+        <ModerationQueue
+          onBack={stack.length > 1 ? back : undefined}
+          onOpen={(vid) => push({ name: "mod-case", vid })}
+          onOpenSignature={(sid) => push({ name: "mod-sig", sid })}
+        />
       );
+      break;
+    case "mod-sig":
+      screen = <SignatureReview key={route.sid} sid={route.sid} onBack={back} />;
       break;
     case "mod-case":
       screen = <ModerationCase key={route.vid} vid={route.vid} onBack={back} />;

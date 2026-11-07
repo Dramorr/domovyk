@@ -17,6 +17,7 @@ import {
 import { botLink } from "../config";
 import { t, type TextKey } from "../i18n";
 import { Icon } from "../icons";
+import { ContractBlock } from "./Contract";
 import { confirm, openTelegramLink, type WebApp } from "../telegram";
 import { Chip, errorCode, errorField, errorText, formatAddress, formatDate, ListRow, MascotTip, Screen } from "../ui";
 
@@ -396,6 +397,10 @@ export function LeaseForm({
           <Chips<boolean> value={f.terms.residence_registration} options={[true, false]} label={(b) => (b ? t("pf_yes") : t("pf_no"))} onChange={(b) => term({ residence_registration: b })} />
         </div>
         <div className="field">
+          {t("ls_sublet")}
+          <Chips<boolean> value={f.terms.sublet_allowed} options={[false, true]} label={(b) => (b ? t("ls_sublet_yes") : t("ls_sublet_no"))} onChange={(b) => term({ sublet_allowed: b })} />
+        </div>
+        <div className="field">
           {t("ls_early")}
           <Chips<number> value={f.terms.early_termination_notice_days} options={[14, 30, 60]} label={(n) => t("ls_days_n", { n: String(n) })} onChange={(n) => term({ early_termination_notice_days: n })} />
         </div>
@@ -560,6 +565,7 @@ function termsLines(terms: LeaseTerms): string[] {
     t("ls_t_util", { who: k(`ls_util_${terms.utilities_payer}`) }),
     terms.residence_registration ? t("ls_t_reg_yes") : t("ls_t_reg_no"),
     t("ls_t_early", { n: String(terms.early_termination_notice_days) }),
+    terms.sublet_allowed ? t("ls_t_sublet_yes") : t("ls_t_sublet_no"),
   ];
 }
 
@@ -697,7 +703,17 @@ export function LeaseCard({
           <p>{hasResponsible ? t("ls_landlord_review_wait") : t("ls_wait_tenant_tip")}</p>
         </MascotTip>
       )}
-      {l.status === "awaiting_signatures" && (
+      {(l.status === "awaiting_signatures" || l.status === "active") && l.my_role !== "co_tenant" && (
+        <ContractBlock
+          key={`${l.id}:${l.status}`}
+          leaseId={l.id}
+          webApp={webApp}
+          onActivated={() => {
+            api.lease(l.id).then(setL).catch(() => undefined);
+          }}
+        />
+      )}
+      {l.status === "awaiting_signatures" && l.my_role === "co_tenant" && (
         <MascotTip>
           <p>{t("ls_wait_contract_tip")}</p>
         </MascotTip>

@@ -13,6 +13,7 @@ log = logging.getLogger(__name__)
 
 OUTBOX_INTERVAL_SECONDS = 15
 PURGE_INTERVAL_SECONDS = 6 * 60 * 60
+REMIND_INTERVAL_SECONDS = 30 * 60
 
 
 async def send_notifications(services: Services, notifier: Notifier, mini_app_url: str) -> int:
@@ -31,16 +32,29 @@ async def purge_ownership_documents(services: Services) -> int:
     return purged
 
 
+async def remind_unsigned_contracts(services: Services) -> int:
+    """CTR-SIGN: нагадування тим, хто ще не підписав договір (24 і 72 год)."""
+    queued = await services.contracts.remind_unsigned()
+    if queued:
+        log.info("Нагадувань про підпис договору: %s", queued)
+    return queued
+
+
 async def dev_background_loop(services: Services, notifier: Notifier, mini_app_url: str) -> None:
     """Для dev без окремого воркера: outbox кожні 15 с, прибирання кожні 6 год."""
     since_purge = PURGE_INTERVAL_SECONDS
+    since_remind = REMIND_INTERVAL_SECONDS
     while True:
         try:
             await send_notifications(services, notifier, mini_app_url)
             if since_purge >= PURGE_INTERVAL_SECONDS:
                 await purge_ownership_documents(services)
                 since_purge = 0
+            if since_remind >= REMIND_INTERVAL_SECONDS:
+                await remind_unsigned_contracts(services)
+                since_remind = 0
         except Exception:  # фонова петля не має падати через один збій
             log.exception("Помилка фонової задачі")
         await asyncio.sleep(OUTBOX_INTERVAL_SECONDS)
         since_purge += OUTBOX_INTERVAL_SECONDS
+        since_remind += OUTBOX_INTERVAL_SECONDS

@@ -46,6 +46,11 @@ async def purge_ownership_documents(ctx: dict[str, Any]) -> int:
     return await jobs.purge_ownership_documents(container.services)
 
 
+async def remind_unsigned_contracts(ctx: dict[str, Any]) -> int:
+    container: Container = ctx["container"]
+    return await jobs.remind_unsigned_contracts(container.services)
+
+
 async def startup(ctx: dict[str, Any]) -> None:
     setup_logging()
     # arq має власний обробник логів; без цього кожен рядок дублюється через root.
@@ -62,11 +67,17 @@ async def shutdown(ctx: dict[str, Any]) -> None:
 
 
 class WorkerSettings:
-    functions: ClassVar[list[Any]] = [heartbeat, send_notifications, purge_ownership_documents]
+    functions: ClassVar[list[Any]] = [
+        heartbeat,
+        send_notifications,
+        purge_ownership_documents,
+        remind_unsigned_contracts,
+    ]
     cron_jobs: ClassVar[list[Any]] = [
         cron(heartbeat, minute={0, 15, 30, 45}, run_at_startup=True),
         cron(send_notifications, second={0, 15, 30, 45}),
         cron(purge_ownership_documents, hour={3}, minute={30}),
+        cron(remind_unsigned_contracts, minute={5, 35}),
     ]
     on_startup = startup
     on_shutdown = shutdown
