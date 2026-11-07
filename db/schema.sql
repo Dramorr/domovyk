@@ -1,5 +1,5 @@
 -- =====================================================================
---  Домовик — цільова схема бази даних, v0.12
+--  Домовик — цільова схема бази даних, v0.13
 --  PostgreSQL 16 + PostGIS
 --
 --  Це ЦІЛЬОВА модель. Реальні зміни в базі робляться тільки
@@ -600,10 +600,13 @@ CREATE TABLE payments (
     amount              numeric(12,2) NOT NULL CHECK (amount > 0),
     paid_at             timestamptz,
     receipt_storage_key text,
+    receipt_filename    text,
+    receipt_mime        text,              -- PDF або фото
     receipt_sha256      text UNIQUE,       -- той самий файл двічі не пройде
     bank_reference      text,              -- номер операції з квитанції
     parsed              jsonb NOT NULL DEFAULT '{}',   -- що витягнув парсер
     mismatches          text[] NOT NULL DEFAULT '{}',  -- 'amount', 'recipient', 'date', 'unparsed'
+    note                text CHECK (note IS NULL OR char_length(note) <= 300),
     status              payment_status NOT NULL,
     dispute_deadline    timestamptz,       -- для auto_accepted
     decided_by          uuid REFERENCES users(id),

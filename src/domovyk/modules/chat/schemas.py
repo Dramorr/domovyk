@@ -32,6 +32,9 @@ class SystemCode(StrEnum):
     TERMINATION_REQUESTED = "termination_requested"  # {name, date}
     TERMINATION_WITHDRAWN = "termination_withdrawn"  # {name}
     LEASE_ENDED = "lease_ended"
+    PAYMENT_REPORTED = "payment_reported"  # {name, period}
+    PAYMENT_CONFIRMED = "payment_confirmed"  # {period, amount}
+    PAYMENT_REJECTED = "payment_rejected"  # {period, amount, reason}
 
 
 class MessageOut(BaseModel):

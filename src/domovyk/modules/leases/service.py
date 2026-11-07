@@ -234,6 +234,19 @@ class LeasesService:
             {"start": lease.start_date.isoformat()},
         )
 
+    async def billable_ids(self) -> list[uuid.UUID]:
+        """Оренди, за якими нараховуємо оплату (M5): активні й ті, що завершуються."""
+        async with self._tx.begin() as tx:
+            return await self._repo(tx).ids_with_status([LeaseStatus.ACTIVE, LeaseStatus.ENDING])
+
+    async def pay_requisites(self, tx: Tx, lease_id: uuid.UUID) -> dict[str, str]:
+        """Повні реквізити для «Оплатити» (FR-PAY-8). Права перевіряє модуль payments."""
+        lease = await self._repo(tx).get(lease_id)
+        if lease is None or not lease.pay_details_enc:
+            return {}
+        data: dict[str, str] = json.loads(self._cipher.decrypt(lease.pay_details_enc))
+        return data
+
     async def open_lease_ids(self, lease_ids: list[uuid.UUID]) -> set[uuid.UUID]:
         """Які з оренд ще живі — для ліміту оренд за РНОКПП (FR-LSE-8)."""
         async with self._tx.begin() as tx:

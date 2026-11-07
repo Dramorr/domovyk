@@ -21,6 +21,7 @@ class NotificationType(StrEnum):
     OWNERSHIP_REJECTED = "ownership_rejected"
     CHAT_MESSAGE = "chat_message"
     LEASE_UPDATE = "lease_update"  # приєднався орендар, погоджено умови, прохання змін тощо
+    PAYMENT = "payment"  # нагадування про оплату, «оплатив», підтвердження (M5)
 
 
 # Типи, які людина може вимкнути для своєї оренди (NTF-LEASE, FR-NTF-1).

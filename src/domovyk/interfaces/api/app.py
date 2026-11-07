@@ -8,12 +8,14 @@ import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from datetime import timedelta
+from decimal import Decimal
 from typing import Annotated, Literal
 
 from fastapi import (
     Depends,
     FastAPI,
     File,
+    Form,
     Header,
     HTTPException,
     Query,
@@ -41,6 +43,7 @@ from domovyk.core.errors import (
 )
 from domovyk.domain.contracts import EXTERNAL_PDF_MAX_BYTES, SIGNATURE_MAX_BYTES
 from domovyk.domain.leases import MemberRole
+from domovyk.domain.payments import RECEIPT_MAX_BYTES
 from domovyk.interfaces.api.telegram_auth import (
     InitDataError,
     TelegramAuth,
@@ -66,6 +69,12 @@ from domovyk.modules.leases.service import (
     ProposalIn,
     RespondIn,
     TerminationIn,
+)
+from domovyk.modules.payments.service import (
+    CashIn,
+    DecisionIn,
+    PayInfo,
+    PaymentsOverview,
 )
 from domovyk.modules.properties.service import (
     AddressCandidate,
@@ -547,6 +556,56 @@ def create_app(
         )
 
     # ------------------------------------------------------ договори (M4, FR-CTR)
+
+    # ------------------------------------------------------- оплати (M5, FR-PAY)
+
+    @app.get("/api/v1/leases/{lease_id}/payments")
+    async def payments_overview(auth: Auth, lease_id: uuid.UUID) -> PaymentsOverview:
+        return await svc.payments.overview(auth.user.id, lease_id)
+
+    @app.get("/api/v1/charges/{charge_id}/pay-info")
+    async def pay_info(auth: Auth, charge_id: uuid.UUID) -> PayInfo:
+        return await svc.payments.pay_info(auth.user.id, charge_id)
+
+    @app.post("/api/v1/charges/{charge_id}/cash")
+    async def report_cash(auth: Auth, charge_id: uuid.UUID, body: CashIn) -> PaymentsOverview:
+        return await svc.payments.report_cash(auth.user.id, charge_id, body)
+
+    @app.post("/api/v1/charges/{charge_id}/receipt")
+    async def report_receipt(
+        auth: Auth,
+        charge_id: uuid.UUID,
+        file: Annotated[UploadFile, File()],
+        amount: Annotated[Decimal, Form(gt=0)],
+        note: Annotated[str | None, Form(max_length=300)] = None,
+    ) -> PaymentsOverview:
+        data = await file.read(RECEIPT_MAX_BYTES + 1)
+        return await svc.payments.report_receipt(
+            auth.user.id, charge_id, amount, file.filename or "kvytantsiia", data, note
+        )
+
+    @app.post("/api/v1/charges/{charge_id}/received")
+    async def mark_received(auth: Auth, charge_id: uuid.UUID, body: CashIn) -> PaymentsOverview:
+        return await svc.payments.mark_received(auth.user.id, charge_id, body)
+
+    @app.post("/api/v1/payments/{payment_id}/decision")
+    async def decide_payment(
+        auth: Auth, payment_id: uuid.UUID, body: DecisionIn
+    ) -> PaymentsOverview:
+        return await svc.payments.decide(auth.user.id, payment_id, body)
+
+    @app.get("/api/v1/payments/{payment_id}/receipt")
+    async def payment_receipt(auth: Auth, payment_id: uuid.UUID) -> Response:
+        name, data, mime = await svc.payments.receipt(auth.user.id, payment_id)
+        response = _file(data, name, mime)
+        response.headers["Content-Disposition"] = response.headers["Content-Disposition"].replace(
+            "attachment", "inline", 1
+        )
+        return response
+
+    @app.post("/api/v1/payments/{payment_id}/send")
+    async def send_receipt(auth: Auth, payment_id: uuid.UUID) -> SentOut:
+        return SentOut(sent=await svc.payments.send_receipt_to_chat(auth.user.id, payment_id))
 
     @app.get("/api/v1/leases/{lease_id}/contract")
     async def contract_state(auth: Auth, lease_id: uuid.UUID) -> ContractState:

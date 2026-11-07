@@ -212,3 +212,62 @@ SIG_BOT_ACCEPTED = "✍️ Підпис прийнято: <b>{name}</b>. Дог�
 INV_START = (
     "🔑 Тебе запросили в оренду через Домовика. Відкрий застосунок — там умови й картка оренди."
 )
+
+
+# Оплати (BOT_FLOWS §10, M5). Домовик гроші не проводить — лише нагадує й фіксує.
+BTN_OPEN_PAYMENTS = "💸 Відкрити оплати"
+PAYMENT_HOW_CASH = "готівкою"
+PAYMENT_HOW_RECEIPT = "з квитанцією"
+_MONTHS = (
+    "січень",
+    "лютий",
+    "березень",
+    "квітень",
+    "травень",
+    "червень",
+    "липень",
+    "серпень",
+    "вересень",
+    "жовтень",
+    "листопад",
+    "грудень",
+)
+
+
+def period_label(period: str, kind: str) -> str:
+    """'2027-01-01' → «січень 2027»; депозит — «депозит»."""
+    if kind == "deposit":
+        return "депозит"
+    try:
+        year, month = int(period[:4]), int(period[5:7])
+    except ValueError:
+        return ""
+    return f"{_MONTHS[month - 1]} {year}"
+
+
+PAYMENT_EVENTS = {
+    "rent_reminder_before": (
+        "Нагадую: {due} — оплата за <b>{period}</b>, {address} · {amount} ₴. "
+        "Реквізити вже в застосунку, натисни «Відкрити оплати»."
+    ),
+    "rent_reminder_today": "Сьогодні день оплати оренди 🔑 {address} · {period} · {amount} ₴.",
+    "rent_reminder_after": (
+        "Оплата за <b>{period}</b> ще не позначена ({address}). Якщо вже заплатив — "
+        "додай квитанцію або познач оплату готівкою."
+    ),
+    "rent_overdue_landlord": (
+        "Оплата за <b>{period}</b> прострочена: {address}. Орендар ще не позначив оплату."
+    ),
+    "payment_reported": (
+        "💸 {name} позначає оплату за <b>{period}</b>: {amount} ₴ {how}. {address}. "
+        "Підтверди, будь ласка, коли перевіриш."
+    ),
+    "payment_pending_reminder": (
+        "Оплата за <b>{period}</b> ({amount} ₴) ще чекає твого підтвердження: {address}."
+    ),
+    "payment_confirmed": "✅ Оплату за <b>{period}</b> підтверджено: {amount} ₴. {address}.",
+    "payment_rejected": (
+        "Власник не підтвердив оплату за <b>{period}</b> ({amount} ₴): {reason}. "
+        "Подробиці — у чаті."
+    ),
+}

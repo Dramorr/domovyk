@@ -76,6 +76,25 @@ def make_renderer(base_url: str) -> Renderer:
                     ),
                     lease_button(p, uk.BTN_OPEN_LEASE, "lease"),
                 )
+            case NotificationType.PAYMENT:
+                event = str(p.get("event") or "")
+                template = uk.PAYMENT_EVENTS.get(event)
+                if template is None:
+                    return None
+                return RenderedMessage(
+                    template.format(
+                        address=format_address(p),
+                        name=escape(str(p.get("name") or "")),
+                        amount=escape(str(p.get("amount") or "")),
+                        reason=escape(str(p.get("reason") or "")),
+                        due=escape(str(p.get("due") or "")),
+                        period=uk.period_label(
+                            str(p.get("period") or ""), str(p.get("kind") or "rent")
+                        ),
+                        how=uk.PAYMENT_HOW_CASH if p.get("cash") else uk.PAYMENT_HOW_RECEIPT,
+                    ),
+                    lease_button(p, uk.BTN_OPEN_PAYMENTS, "lease"),
+                )
             case NotificationType.OWNERSHIP_VERIFIED:
                 return RenderedMessage(
                     uk.NOTIFY_OWNERSHIP_VERIFIED.format(address=format_address(p)),

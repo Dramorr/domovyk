@@ -108,6 +108,9 @@ class FakeLeasesRepository:
                 out.append(lease.id)
         return out
 
+    async def ids_with_status(self, statuses: list[LeaseStatus]) -> list[uuid.UUID]:
+        return [lease.id for lease in self.db.leases.values() if lease.status in statuses]
+
     async def due_to_finish(self, today: date) -> list[uuid.UUID]:
         return [
             lease.id

@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domovyk.adapters.geocoder.manual import ManualGeocoder
 from domovyk.adapters.signing.diia_portal import DiiaPortalVerifier
-from domovyk.container import Services, wire_guards
+from domovyk.container import Services, wire_contracts, wire_guards
 from domovyk.core.clock import FixedClock
 from domovyk.core.crypto import Cipher
 from domovyk.core.db import make_engine, make_sessionmaker
@@ -32,6 +32,8 @@ from domovyk.modules.moderation.repository import SqlModerationRepository
 from domovyk.modules.moderation.service import ModerationService
 from domovyk.modules.notifications.repository import SqlNotificationsRepository
 from domovyk.modules.notifications.service import NotificationsService
+from domovyk.modules.payments.repository import SqlPaymentsRepository
+from domovyk.modules.payments.service import PaymentsConfig, PaymentsService
 from domovyk.modules.properties.repository import SqlPropertiesRepository
 from domovyk.modules.properties.service import PropertiesConfig, PropertiesService
 from domovyk.modules.users.repository import SqlUsersRepository
@@ -145,7 +147,20 @@ def services(engine: AsyncEngine, it_clock: FixedClock) -> Services:
         ContractsConfig(hmac_secret="test-hmac-secret"),
         notifier=FakeNotifier(),
     )
+    payments = PaymentsService(
+        tx,
+        SqlPaymentsRepository,
+        users,
+        leases,
+        chat,
+        notifications,
+        MemoryStorage(),
+        it_clock,
+        PaymentsConfig(),
+        notifier=FakeNotifier(),
+    )
     wire_guards(users, properties, leases)
+    wire_contracts(leases, contracts)
     return Services(
         users=users,
         moderation=moderation,
@@ -155,4 +170,5 @@ def services(engine: AsyncEngine, it_clock: FixedClock) -> Services:
         chat=chat,
         leases=leases,
         contracts=contracts,
+        payments=payments,
     )

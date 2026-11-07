@@ -56,6 +56,11 @@ async def finish_leases(ctx: dict[str, Any]) -> int:
     return await jobs.finish_leases(container.services)
 
 
+async def payments_daily(ctx: dict[str, Any]) -> int:
+    container: Container = ctx["container"]
+    return await jobs.payments_daily(container.services)
+
+
 async def startup(ctx: dict[str, Any]) -> None:
     setup_logging()
     # arq має власний обробник логів; без цього кожен рядок дублюється через root.
@@ -78,6 +83,7 @@ class WorkerSettings:
         purge_ownership_documents,
         remind_unsigned_contracts,
         finish_leases,
+        payments_daily,
     ]
     cron_jobs: ClassVar[list[Any]] = [
         cron(heartbeat, minute={0, 15, 30, 45}, run_at_startup=True),
@@ -85,6 +91,8 @@ class WorkerSettings:
         cron(purge_ownership_documents, hour={3}, minute={30}),
         cron(remind_unsigned_contracts, minute={5, 35}),
         cron(finish_leases, hour={0, 6, 12, 18}, minute={10}),
+        # О 9:00 за Києвом (UTC+2/+3) — нагадування приходять зранку, не вночі.
+        cron(payments_daily, hour={6, 7}, minute={0}),
     ]
     on_startup = startup
     on_shutdown = shutdown

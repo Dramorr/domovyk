@@ -30,11 +30,13 @@ from domovyk.modules.leases.service import LeasesConfig, LeasesService
 from domovyk.modules.moderation.schemas import BanIdentifiers, BanOut
 from domovyk.modules.moderation.service import ModerationService
 from domovyk.modules.notifications.service import NotificationsService
+from domovyk.modules.payments.service import PaymentsConfig, PaymentsService
 from domovyk.modules.properties.service import PropertiesConfig, PropertiesService
 from domovyk.modules.users.schemas import TenantProfile, UserOut
 from domovyk.modules.users.service import UsersConfig, UsersService
 from tests.fakes_contracts import ContractDb, FakeContractsRepository, FakePdfRenderer
 from tests.fakes_leases import FakeChatRepository, FakeLeasesRepository, LeaseDb
+from tests.fakes_payments import FakePaymentsRepository, PaymentDb
 from tests.fakes_properties import (
     FakeNotificationsRepository,
     FakeNotifier,
@@ -84,6 +86,7 @@ class FakeDb:
         self.prop = PropDb()
         self.lease = LeaseDb()
         self.contract = ContractDb()
+        self.payment = PaymentDb()
         self.pdf = FakePdfRenderer()
         self.cipher = Cipher(Fernet.generate_key().decode())
         self.storage = MemoryStorage()
@@ -349,6 +352,18 @@ def make_fake_services(
         contracts_config or ContractsConfig(hmac_secret=TEST_HMAC),
         notifier=db.notifier,
     )
+    payments = PaymentsService(
+        NullTxManager(),
+        lambda _: FakePaymentsRepository(db.payment),
+        users,
+        leases,
+        chat,
+        notifications,
+        db.storage,
+        clock,
+        PaymentsConfig(),
+        notifier=db.notifier,
+    )
     wire_guards(users, properties, leases)
     wire_contracts(leases, contracts)
     services = Services(
@@ -360,5 +375,6 @@ def make_fake_services(
         chat=chat,
         leases=leases,
         contracts=contracts,
+        payments=payments,
     )
     return services, db

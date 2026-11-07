@@ -29,6 +29,10 @@ export type VerificationCase = S["VerificationCase"];
 export type ContractState = S["ContractState"];
 export type ContractParty = S["PartyOut"];
 export type SignatureCase = S["SignatureCase"];
+export type PaymentsOverview = S["PaymentsOverview"];
+export type Charge = S["ChargeOut"];
+export type PaymentItem = S["PaymentOut"];
+export type PayInfo = S["PayInfo"];
 
 export type ApiErrorKind = "no_api" | "unauthorized" | "network" | "server" | "unavailable" | "domain";
 
@@ -89,6 +93,22 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     throw new ApiFailure("server");
   }
   return data as T;
+}
+
+/** Файл квитанції для перегляду (PDF або фото). */
+async function requestFile(path: string): Promise<{ data: ArrayBuffer; mime: string }> {
+  if (!apiConfigured()) throw new ApiFailure("no_api");
+  let response: Response;
+  try {
+    response = await fetch(API_URL + path, {
+      headers: { Authorization: `tma ${initData}`, "ngrok-skip-browser-warning": "1" },
+    });
+  } catch {
+    throw new ApiFailure("network");
+  }
+  if (response.status === 401) throw new ApiFailure("unauthorized");
+  if (!response.ok) throw new ApiFailure(response.status === 404 ? "domain" : "server", "not_found");
+  return { data: await response.arrayBuffer(), mime: response.headers.get("Content-Type") ?? "" };
 }
 
 /** PDF для перегляду в застосунку (договір або чернетка). */
@@ -156,6 +176,28 @@ export const api = {
     request<Ownership>("DELETE", `${p(id)}/ownership/documents/${encodeURIComponent(docId)}`),
   submitOwnership: (id: string) => request<Ownership>("POST", `${p(id)}/ownership/submit`),
   devVerify: (id: string) => request<Ownership>("POST", `${p(id)}/ownership/dev-verify`),
+
+  // Оплати (M5)
+  payments: (leaseId: string) => request<PaymentsOverview>("GET", `${l(leaseId)}/payments`),
+  payInfo: (chargeId: string) => request<PayInfo>("GET", `/api/v1/charges/${encodeURIComponent(chargeId)}/pay-info`),
+  reportCash: (chargeId: string, amount: string, note?: string) =>
+    request<PaymentsOverview>("POST", `/api/v1/charges/${encodeURIComponent(chargeId)}/cash`, { amount, note: note ?? null }),
+  reportReceipt: (chargeId: string, data: Blob, filename: string, amount: string) => {
+    const form = new FormData();
+    form.append("file", data, filename);
+    form.append("amount", amount);
+    return request<PaymentsOverview>("POST", `/api/v1/charges/${encodeURIComponent(chargeId)}/receipt`, form);
+  },
+  markReceived: (chargeId: string, amount: string) =>
+    request<PaymentsOverview>("POST", `/api/v1/charges/${encodeURIComponent(chargeId)}/received`, { amount, note: null }),
+  decidePayment: (paymentId: string, accept: boolean, reason?: string) =>
+    request<PaymentsOverview>("POST", `/api/v1/payments/${encodeURIComponent(paymentId)}/decision`, {
+      accept,
+      reason: reason ?? null,
+    }),
+  paymentReceipt: (paymentId: string) => requestFile(`/api/v1/payments/${encodeURIComponent(paymentId)}/receipt`),
+  sendReceipt: (paymentId: string) =>
+    request<S["SentOut"]>("POST", `/api/v1/payments/${encodeURIComponent(paymentId)}/send`),
 
   // Договори (M4)
   contract: (leaseId: string) => request<ContractState>("GET", `${l(leaseId)}/contract`),

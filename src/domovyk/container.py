@@ -31,6 +31,8 @@ from domovyk.modules.moderation.repository import SqlModerationRepository
 from domovyk.modules.moderation.service import ModerationService
 from domovyk.modules.notifications.repository import SqlNotificationsRepository
 from domovyk.modules.notifications.service import NotificationsService
+from domovyk.modules.payments.repository import SqlPaymentsRepository
+from domovyk.modules.payments.service import PaymentsConfig, PaymentsService
 from domovyk.modules.properties.repository import SqlPropertiesRepository
 from domovyk.modules.properties.service import PropertiesConfig, PropertiesService
 from domovyk.modules.users.repository import SqlUsersRepository
@@ -47,6 +49,7 @@ class Services:
     chat: ChatService
     leases: LeasesService
     contracts: ContractsService
+    payments: PaymentsService
 
 
 def users_config(settings: Settings) -> UsersConfig:
@@ -164,6 +167,18 @@ class Container:
             contracts_config(settings),
             notifier=self.notifier,
         )
+        payments = PaymentsService(
+            tx,
+            SqlPaymentsRepository,
+            users,
+            leases,
+            chat,
+            notifications,
+            storage,
+            clock,
+            PaymentsConfig(),
+            notifier=self.notifier,
+        )
         wire_guards(users, properties, leases)
         wire_contracts(leases, contracts)
         self.services = Services(
@@ -175,6 +190,7 @@ class Container:
             chat=chat,
             leases=leases,
             contracts=contracts,
+            payments=payments,
         )
 
     async def close(self) -> None:

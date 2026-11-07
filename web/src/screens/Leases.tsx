@@ -20,6 +20,7 @@ import { t, type TextKey } from "../i18n";
 import { Icon } from "../icons";
 import { AgreementBar, AgreementSheet } from "./AgreementBar";
 import { ContractBlock } from "./Contract";
+import { PaymentsBlock } from "./Payments";
 import { confirm, openTelegramLink, type WebApp } from "../telegram";
 import { Chip, errorCode, errorField, errorText, formatAddress, formatDate, ListRow, MascotTip, Screen } from "../ui";
 
@@ -1055,6 +1056,9 @@ export function LeaseCard({
         >
           {t("ls_cancel")}
         </button>
+      )}
+      {["active", "ending", "ended"].includes(l.status) && (
+        <PaymentsBlock leaseId={l.id} address={leaseAddress(l)} webApp={webApp} />
       )}
       {(l.status === "active" || l.status === "ending") && l.my_role !== "co_tenant" && (
         <TerminationBlock l={l} webApp={webApp} busy={busy} run={run} />

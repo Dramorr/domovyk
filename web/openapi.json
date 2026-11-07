@@ -301,6 +301,46 @@
         "title": "Body_contract_signature_api_v1_contracts__contract_id__signature_post",
         "type": "object"
       },
+      "Body_report_receipt_api_v1_charges__charge_id__receipt_post": {
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Amount"
+          },
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "required": [
+          "file",
+          "amount"
+        ],
+        "title": "Body_report_receipt_api_v1_charges__charge_id__receipt_post",
+        "type": "object"
+      },
       "Body_upload_ownership_document_api_v1_properties__property_id__ownership_documents_post": {
         "properties": {
           "file": {
@@ -341,6 +381,120 @@
           "other"
         ],
         "title": "BuildingType",
+        "type": "string"
+      },
+      "CashIn": {
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Amount"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "required": [
+          "amount"
+        ],
+        "title": "CashIn",
+        "type": "object"
+      },
+      "ChargeOut": {
+        "properties": {
+          "amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "due_date": {
+            "format": "date",
+            "title": "Due Date",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "rent",
+              "deposit",
+              "utilities",
+              "other"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "paid": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Paid",
+            "type": "string"
+          },
+          "payments": {
+            "items": {
+              "$ref": "#/components/schemas/PaymentOut"
+            },
+            "title": "Payments",
+            "type": "array"
+          },
+          "period_month": {
+            "format": "date",
+            "title": "Period Month",
+            "type": "string"
+          },
+          "remaining": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Remaining",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ChargeStatus"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "period_month",
+          "due_date",
+          "amount",
+          "paid",
+          "remaining",
+          "status",
+          "payments"
+        ],
+        "title": "ChargeOut",
+        "type": "object"
+      },
+      "ChargeStatus": {
+        "enum": [
+          "upcoming",
+          "due",
+          "overdue",
+          "reported",
+          "paid",
+          "disputed",
+          "waived"
+        ],
+        "title": "ChargeStatus",
         "type": "string"
       },
       "ChildrenPolicy": {
@@ -679,6 +833,31 @@
         ],
         "title": "ContractStatus",
         "type": "string"
+      },
+      "DecisionIn": {
+        "properties": {
+          "accept": {
+            "title": "Accept",
+            "type": "boolean"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "accept"
+        ],
+        "title": "DecisionIn",
+        "type": "object"
       },
       "DocumentOut": {
         "properties": {
@@ -2056,6 +2235,112 @@
         "title": "PayDisplay",
         "type": "object"
       },
+      "PayInfo": {
+        "description": "PAY-REQ: що й куди платити. Повні реквізити — лише учасникам оренди (FR-PAY-8).",
+        "properties": {
+          "amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "apartment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Apartment"
+          },
+          "card": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Card"
+          },
+          "charge_id": {
+            "format": "uuid",
+            "title": "Charge Id",
+            "type": "string"
+          },
+          "house_number": {
+            "title": "House Number",
+            "type": "string"
+          },
+          "iban": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iban"
+          },
+          "jar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jar Url"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "method": {
+            "$ref": "#/components/schemas/PayMethod"
+          },
+          "period_month": {
+            "format": "date",
+            "title": "Period Month",
+            "type": "string"
+          },
+          "recipient": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recipient"
+          },
+          "street": {
+            "title": "Street",
+            "type": "string"
+          }
+        },
+        "required": [
+          "charge_id",
+          "kind",
+          "period_month",
+          "amount",
+          "method",
+          "card",
+          "iban",
+          "jar_url",
+          "recipient",
+          "street",
+          "house_number",
+          "apartment"
+        ],
+        "title": "PayInfo",
+        "type": "object"
+      },
       "PayMethod": {
         "enum": [
           "card",
@@ -2065,6 +2350,171 @@
         ],
         "title": "PayMethod",
         "type": "string"
+      },
+      "PaymentOut": {
+        "properties": {
+          "amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "decided_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided At"
+          },
+          "dispute_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dispute Reason"
+          },
+          "has_receipt": {
+            "title": "Has Receipt",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "method": {
+            "$ref": "#/components/schemas/PayMethod"
+          },
+          "mismatches": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Mismatches",
+            "type": "array"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "payer_name": {
+            "title": "Payer Name",
+            "type": "string"
+          },
+          "receipt_mime": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Receipt Mime"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PaymentStatus"
+          }
+        },
+        "required": [
+          "id",
+          "method",
+          "amount",
+          "status",
+          "payer_name",
+          "has_receipt",
+          "receipt_mime",
+          "mismatches",
+          "note",
+          "dispute_reason",
+          "created_at",
+          "decided_at"
+        ],
+        "title": "PaymentOut",
+        "type": "object"
+      },
+      "PaymentStatus": {
+        "enum": [
+          "auto_accepted",
+          "pending_landlord",
+          "confirmed",
+          "disputed",
+          "rejected"
+        ],
+        "title": "PaymentStatus",
+        "type": "string"
+      },
+      "PaymentsOverview": {
+        "description": "Блок «Оплати» в картці оренди (PAY-LIST).",
+        "properties": {
+          "awaiting_my_decision": {
+            "title": "Awaiting My Decision",
+            "type": "integer"
+          },
+          "charges": {
+            "items": {
+              "$ref": "#/components/schemas/ChargeOut"
+            },
+            "title": "Charges",
+            "type": "array"
+          },
+          "lease_id": {
+            "format": "uuid",
+            "title": "Lease Id",
+            "type": "string"
+          },
+          "my_role": {
+            "enum": [
+              "landlord",
+              "responsible",
+              "co_tenant"
+            ],
+            "title": "My Role",
+            "type": "string"
+          },
+          "next_charge": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChargeOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pay_method": {
+            "$ref": "#/components/schemas/PayMethod"
+          }
+        },
+        "required": [
+          "lease_id",
+          "my_role",
+          "pay_method",
+          "next_charge",
+          "charges",
+          "awaiting_my_decision"
+        ],
+        "title": "PaymentsOverview",
+        "type": "object"
       },
       "PendingInvite": {
         "properties": {
@@ -3857,7 +4307,10 @@
           "lease_activated",
           "termination_requested",
           "termination_withdrawn",
-          "lease_ended"
+          "lease_ended",
+          "payment_reported",
+          "payment_confirmed",
+          "payment_rejected"
         ],
         "title": "SystemCode",
         "type": "string"
@@ -4454,6 +4907,260 @@
           }
         },
         "summary": "Search Addresses"
+      }
+    },
+    "/api/v1/charges/{charge_id}/cash": {
+      "post": {
+        "operationId": "report_cash_api_v1_charges__charge_id__cash_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "charge_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Charge Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CashIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentsOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Report Cash"
+      }
+    },
+    "/api/v1/charges/{charge_id}/pay-info": {
+      "get": {
+        "operationId": "pay_info_api_v1_charges__charge_id__pay_info_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "charge_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Charge Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayInfo"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Pay Info"
+      }
+    },
+    "/api/v1/charges/{charge_id}/receipt": {
+      "post": {
+        "operationId": "report_receipt_api_v1_charges__charge_id__receipt_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "charge_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Charge Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_report_receipt_api_v1_charges__charge_id__receipt_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentsOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Report Receipt"
+      }
+    },
+    "/api/v1/charges/{charge_id}/received": {
+      "post": {
+        "operationId": "mark_received_api_v1_charges__charge_id__received_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "charge_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Charge Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CashIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentsOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mark Received"
       }
     },
     "/api/v1/cities": {
@@ -6046,6 +6753,62 @@
         "summary": "Set Lease Notification Prefs"
       }
     },
+    "/api/v1/leases/{lease_id}/payments": {
+      "get": {
+        "operationId": "payments_overview_api_v1_leases__lease_id__payments_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lease_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Lease Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentsOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Payments Overview"
+      }
+    },
     "/api/v1/leases/{lease_id}/proposal": {
       "post": {
         "operationId": "propose_changes_api_v1_leases__lease_id__proposal_post",
@@ -7282,6 +8045,182 @@
           }
         },
         "summary": "Moderation Summary"
+      }
+    },
+    "/api/v1/payments/{payment_id}/decision": {
+      "post": {
+        "operationId": "decide_payment_api_v1_payments__payment_id__decision_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "payment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Payment Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentsOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Decide Payment"
+      }
+    },
+    "/api/v1/payments/{payment_id}/receipt": {
+      "get": {
+        "operationId": "payment_receipt_api_v1_payments__payment_id__receipt_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "payment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Payment Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Payment Receipt"
+      }
+    },
+    "/api/v1/payments/{payment_id}/send": {
+      "post": {
+        "operationId": "send_receipt_api_v1_payments__payment_id__send_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "payment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Payment Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Send Receipt"
       }
     },
     "/api/v1/properties": {

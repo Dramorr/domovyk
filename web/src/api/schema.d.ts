@@ -21,6 +21,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/charges/{charge_id}/cash": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Report Cash */
+        post: operations["report_cash_api_v1_charges__charge_id__cash_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/charges/{charge_id}/pay-info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pay Info */
+        get: operations["pay_info_api_v1_charges__charge_id__pay_info_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/charges/{charge_id}/receipt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Report Receipt */
+        post: operations["report_receipt_api_v1_charges__charge_id__receipt_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/charges/{charge_id}/received": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark Received */
+        post: operations["mark_received_api_v1_charges__charge_id__received_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cities": {
         parameters: {
             query?: never;
@@ -419,6 +487,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/leases/{lease_id}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Payments Overview */
+        get: operations["payments_overview_api_v1_leases__lease_id__payments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/leases/{lease_id}/proposal": {
         parameters: {
             query?: never;
@@ -723,6 +808,57 @@ export interface paths {
         get: operations["moderation_summary_api_v1_moderation_summary_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/{payment_id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide Payment */
+        post: operations["decide_payment_api_v1_payments__payment_id__decision_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/{payment_id}/receipt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Payment Receipt */
+        get: operations["payment_receipt_api_v1_payments__payment_id__receipt_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/{payment_id}/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send Receipt */
+        post: operations["send_receipt_api_v1_payments__payment_id__send_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1047,6 +1183,15 @@ export interface components {
             /** File */
             file: string;
         };
+        /** Body_report_receipt_api_v1_charges__charge_id__receipt_post */
+        Body_report_receipt_api_v1_charges__charge_id__receipt_post: {
+            /** Amount */
+            amount: number | string;
+            /** File */
+            file: string;
+            /** Note */
+            note?: string | null;
+        };
         /** Body_upload_ownership_document_api_v1_properties__property_id__ownership_documents_post */
         Body_upload_ownership_document_api_v1_properties__property_id__ownership_documents_post: {
             /** File */
@@ -1063,6 +1208,50 @@ export interface components {
          * @enum {string}
          */
         BuildingType: "austrian_polish" | "stalinka" | "khrushchovka" | "czech" | "soviet_panel" | "gostynka" | "new_build" | "private_house" | "other";
+        /** CashIn */
+        CashIn: {
+            /** Amount */
+            amount: number | string;
+            /** Note */
+            note?: string | null;
+        };
+        /** ChargeOut */
+        ChargeOut: {
+            /** Amount */
+            amount: string;
+            /**
+             * Due Date
+             * Format: date
+             */
+            due_date: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "rent" | "deposit" | "utilities" | "other";
+            /** Paid */
+            paid: string;
+            /** Payments */
+            payments: components["schemas"]["PaymentOut"][];
+            /**
+             * Period Month
+             * Format: date
+             */
+            period_month: string;
+            /** Remaining */
+            remaining: string;
+            status: components["schemas"]["ChargeStatus"];
+        };
+        /**
+         * ChargeStatus
+         * @enum {string}
+         */
+        ChargeStatus: "upcoming" | "due" | "overdue" | "reported" | "paid" | "disputed" | "waived";
         /**
          * ChildrenPolicy
          * @enum {string}
@@ -1203,6 +1392,13 @@ export interface components {
          * @enum {string}
          */
         ContractStatus: "draft" | "sent" | "partially_signed" | "signed" | "void";
+        /** DecisionIn */
+        DecisionIn: {
+            /** Accept */
+            accept: boolean;
+            /** Reason */
+            reason?: string | null;
+        };
         /** DocumentOut */
         DocumentOut: {
             /** Deleted */
@@ -1760,10 +1956,103 @@ export interface components {
             recipient: string | null;
         };
         /**
+         * PayInfo
+         * @description PAY-REQ: що й куди платити. Повні реквізити — лише учасникам оренди (FR-PAY-8).
+         */
+        PayInfo: {
+            /** Amount */
+            amount: string;
+            /** Apartment */
+            apartment: string | null;
+            /** Card */
+            card: string | null;
+            /**
+             * Charge Id
+             * Format: uuid
+             */
+            charge_id: string;
+            /** House Number */
+            house_number: string;
+            /** Iban */
+            iban: string | null;
+            /** Jar Url */
+            jar_url: string | null;
+            /** Kind */
+            kind: string;
+            method: components["schemas"]["PayMethod"];
+            /**
+             * Period Month
+             * Format: date
+             */
+            period_month: string;
+            /** Recipient */
+            recipient: string | null;
+            /** Street */
+            street: string;
+        };
+        /**
          * PayMethod
          * @enum {string}
          */
         PayMethod: "card" | "iban" | "jar" | "cash";
+        /** PaymentOut */
+        PaymentOut: {
+            /** Amount */
+            amount: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Decided At */
+            decided_at: string | null;
+            /** Dispute Reason */
+            dispute_reason: string | null;
+            /** Has Receipt */
+            has_receipt: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            method: components["schemas"]["PayMethod"];
+            /** Mismatches */
+            mismatches: string[];
+            /** Note */
+            note: string | null;
+            /** Payer Name */
+            payer_name: string;
+            /** Receipt Mime */
+            receipt_mime: string | null;
+            status: components["schemas"]["PaymentStatus"];
+        };
+        /**
+         * PaymentStatus
+         * @enum {string}
+         */
+        PaymentStatus: "auto_accepted" | "pending_landlord" | "confirmed" | "disputed" | "rejected";
+        /**
+         * PaymentsOverview
+         * @description Блок «Оплати» в картці оренди (PAY-LIST).
+         */
+        PaymentsOverview: {
+            /** Awaiting My Decision */
+            awaiting_my_decision: number;
+            /** Charges */
+            charges: components["schemas"]["ChargeOut"][];
+            /**
+             * Lease Id
+             * Format: uuid
+             */
+            lease_id: string;
+            /**
+             * My Role
+             * @enum {string}
+             */
+            my_role: "landlord" | "responsible" | "co_tenant";
+            next_charge: components["schemas"]["ChargeOut"] | null;
+            pay_method: components["schemas"]["PayMethod"];
+        };
         /** PendingInvite */
         PendingInvite: {
             /**
@@ -2227,7 +2516,7 @@ export interface components {
          * @description Системні повідомлення (FR-CHT-2). Текст — у файлі локалізації інтерфейсу.
          * @enum {string}
          */
-        SystemCode: "lease_created" | "member_joined" | "member_left" | "terms_accepted" | "terms_change_requested" | "terms_declined" | "terms_updated" | "lease_cancelled" | "terms_proposed" | "proposal_accepted" | "proposal_declined" | "contract_ready" | "contract_signed_by" | "contract_external" | "contract_external_rejected" | "lease_activated" | "termination_requested" | "termination_withdrawn" | "lease_ended";
+        SystemCode: "lease_created" | "member_joined" | "member_left" | "terms_accepted" | "terms_change_requested" | "terms_declined" | "terms_updated" | "lease_cancelled" | "terms_proposed" | "proposal_accepted" | "proposal_declined" | "contract_ready" | "contract_signed_by" | "contract_external" | "contract_external_rejected" | "lease_activated" | "termination_requested" | "termination_withdrawn" | "lease_ended" | "payment_reported" | "payment_confirmed" | "payment_rejected";
         /** TelegramUserOut */
         TelegramUserOut: {
             /** First Name */
@@ -2448,6 +2737,150 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AddressCandidate"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_cash_api_v1_charges__charge_id__cash_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                charge_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CashIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentsOverview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pay_info_api_v1_charges__charge_id__pay_info_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                charge_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_receipt_api_v1_charges__charge_id__receipt_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                charge_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_report_receipt_api_v1_charges__charge_id__receipt_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentsOverview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_received_api_v1_charges__charge_id__received_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                charge_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CashIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentsOverview"];
                 };
             };
             /** @description Validation Error */
@@ -3384,6 +3817,39 @@ export interface operations {
             };
         };
     };
+    payments_overview_api_v1_leases__lease_id__payments_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                lease_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentsOverview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     propose_changes_api_v1_leases__lease_id__proposal_post: {
         parameters: {
             query?: never;
@@ -4119,6 +4585,109 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModerationSummaryOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decide_payment_api_v1_payments__payment_id__decision_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                payment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentsOverview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    payment_receipt_api_v1_payments__payment_id__receipt_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                payment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_receipt_api_v1_payments__payment_id__send_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                payment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SentOut"];
                 };
             };
             /** @description Validation Error */
