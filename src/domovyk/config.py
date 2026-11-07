@@ -83,6 +83,8 @@ class Settings(BaseSettings):
     # Скільки живих оренд одночасно може мати відповідальний орендар (FR-LSE-8).
     # Більше — поки заблоковано; пізніше — платна можливість.
     tenant_max_open_leases: int = Field(default=2, ge=1, le=20)
+    # Скасовану оренду стираємо повністю (з чатом і файлами) через N днів (FR-LSE-9).
+    lease_cancelled_retention_days: int = Field(default=30, ge=0, le=365)
     # Мінімальна заповненість анкети для публікації оголошення, %.
     listing_min_completeness: int = Field(default=40, ge=0, le=100)
 

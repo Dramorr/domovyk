@@ -174,6 +174,7 @@ export const api = {
   requestChanges: (id: string, text: string) => request<Lease>("POST", `${l(id)}/request-changes`, { text }),
   leaveLease: (id: string) => request<void>("POST", `${l(id)}/leave`),
   cancelLease: (id: string) => request<Lease>("POST", `${l(id)}/cancel`),
+  hideLease: (id: string) => request<void>("DELETE", l(id)),
   newInvite: (id: string, role: Invite["role"]) => request<Invite>("POST", `${l(id)}/invites`, { role }),
   previewInvite: (token: string) => request<InvitePreview>("GET", `/api/v1/invites/${encodeURIComponent(token)}`),
   acceptInvite: (token: string) => request<Lease>("POST", `/api/v1/invites/${encodeURIComponent(token)}/accept`),

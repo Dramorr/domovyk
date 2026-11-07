@@ -636,6 +636,13 @@ class ContractsService:
 
     # ------------------------------------------------------ фонові задачі
 
+    async def delete_files_for_lease(self, lease_id: uuid.UUID) -> None:
+        """FR-LSE-9: перед повним видаленням скасованої оренди — файли договорів зі сховища."""
+        async with self._tx.begin() as tx:
+            keys = await self._repo(tx).file_keys_for_lease(lease_id)
+        for key in keys:
+            await self._delete_file(key)
+
     async def remind_unsigned(self) -> int:
         """Нагадування тим, хто ще не підписав: через 24 і 72 год (BOT_FLOWS CTR-SIGN)."""
         hours = sorted(self._config.reminder_hours)

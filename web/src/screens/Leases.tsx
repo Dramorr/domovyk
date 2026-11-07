@@ -51,7 +51,56 @@ function inviteLink(token: string): string {
 
 // ------------------------------------------------------------------ список
 
-export function LeaseList({ onBack, onOpen }: { onBack?: () => void; onOpen: (id: string) => void }) {
+/** Меню «⋯» на рядку списку (окремою кнопкою: кнопка в кнопці — некоректний HTML). */
+function RowMenu({ label, danger, onPick }: { label: string; danger?: boolean; onPick: () => void }) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, [open]);
+  return (
+    <>
+      <button
+        className="row-menu-btn"
+        aria-label={t("ls_row_actions")}
+        aria-expanded={open}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+      >
+        <Icon name="more" size={22} />
+      </button>
+      {open && (
+        <div className="menu-pop" role="menu">
+          <button
+            role="menuitem"
+            className={danger ? "danger" : undefined}
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpen(false);
+              onPick();
+            }}
+          >
+            {label}
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
+
+export function LeaseList({
+  onBack,
+  onOpen,
+  webApp,
+}: {
+  onBack?: () => void;
+  onOpen: (id: string) => void;
+  webApp: WebApp;
+}) {
   const [items, setItems] = useState<LeaseSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,19 +119,35 @@ export function LeaseList({ onBack, onOpen }: { onBack?: () => void; onOpen: (id
         </MascotTip>
       )}
       {items?.map((l) => (
-        <ListRow
-          key={l.id}
-          icon="key"
-          title={leaseAddress(l)}
-          sub={
-            <>
-              <LeaseStatusChip status={l.status} />
-              <span>{k(`ls_role_${l.my_role}`)}</span>
-            </>
-          }
-          right={l.unread > 0 && <span className="count">{l.unread}</span>}
-          onClick={() => onOpen(l.id)}
-        />
+        <div key={l.id} className={l.status === "cancelled" ? "row-with-menu" : undefined}>
+          <ListRow
+            icon="key"
+            title={leaseAddress(l)}
+            sub={
+              <>
+                <LeaseStatusChip status={l.status} />
+                <span>{k(`ls_role_${l.my_role}`)}</span>
+              </>
+            }
+            right={l.unread > 0 && <span className="count">{l.unread}</span>}
+            onClick={() => onOpen(l.id)}
+          />
+          {l.status === "cancelled" && (
+            <RowMenu
+              label={t("ls_delete")}
+              danger
+              onPick={async () => {
+                if (!(await confirm(webApp, t("ls_delete_confirm")))) return;
+                try {
+                  await api.hideLease(l.id);
+                  setItems((xs) => xs?.filter((x) => x.id !== l.id) ?? null);
+                } catch (e) {
+                  setError(errorText(e));
+                }
+              }}
+            />
+          )}
+        </div>
       ))}
     </Screen>
   );
@@ -794,6 +859,21 @@ export function LeaseCard({
           }}
         >
           {t("ls_cancel")}
+        </button>
+      )}
+      {l.status === "cancelled" && (
+        <button
+          className="link danger"
+          disabled={busy}
+          onClick={async () => {
+            if (!(await confirm(webApp, t("ls_delete_confirm")))) return;
+            await run(async () => {
+              await api.hideLease(l.id);
+              onBack();
+            });
+          }}
+        >
+          {t("ls_delete")}
         </button>
       )}
       {l.my_role === "co_tenant" && open && (

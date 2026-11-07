@@ -293,7 +293,9 @@ export function App() {
       screen = <ModerationCase key={route.vid} vid={route.vid} onBack={back} />;
       break;
     case "leases":
-      screen = <LeaseList onBack={stack.length > 1 ? back : undefined} onOpen={(id) => push({ name: "lease", id })} />;
+      screen = (
+        <LeaseList webApp={webApp} onBack={stack.length > 1 ? back : undefined} onOpen={(id) => push({ name: "lease", id })} />
+      );
       break;
     case "lease":
       screen = (

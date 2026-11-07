@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import secrets
 import uuid
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import asdict, dataclass
 from datetime import date, datetime, timedelta
 from typing import Any
@@ -106,6 +106,8 @@ class LeasesConfig:
     invite_ttl_days: int = INVITE_TTL_DAYS
     # FR-LSE-8: живих оренд одночасно як відповідальний орендар. Більше — заблоковано.
     tenant_max_open_leases: int = 2
+    # FR-LSE-9: скасовану оренду стираємо повністю через N днів (або коли всі її прибрали).
+    cancelled_retention_days: int = 30
 
 
 @dataclass(frozen=True)
@@ -151,6 +153,7 @@ class LeasesService:
         self._cipher = cipher
         self._clock = clock
         self._config = config
+        self._purge_hook: Callable[[uuid.UUID], Awaitable[None]] | None = None
 
     # ------------------------------------------------------- для інших модулів
 
@@ -583,6 +586,36 @@ class LeasesService:
             await self._notify_lease(
                 tx, ctx.lease, [ctx.lease.landlord_user_id], code.value, {"name": user.display_name}
             )
+
+    async def hide(self, telegram_uid: int, lease_id: uuid.UUID) -> None:
+        """FR-LSE-9: «Видалити» скасовану оренду — лише зі свого списку.
+
+        Повністю (з чатом і файлами договору) оренда стирається, коли її прибрали всі
+        учасники або минув строк зберігання (`purge_cancelled`).
+        """
+        user = await self._users.require_active(telegram_uid)
+        async with self._tx.begin() as tx:
+            ctx = await self._ctx(tx, lease_id, user)
+            if ctx.lease.status is not LeaseStatus.CANCELLED:
+                raise Conflict("Видалити можна лише скасовану оренду", field="status")
+            await self._repo(tx).hide(lease_id, user.id, self._clock.now())
+        await self.purge_cancelled()
+
+    def set_purge_hook(self, hook: Callable[[uuid.UUID], Awaitable[None]]) -> None:
+        """Модуль contracts прибирає файли договорів (без циклічних імпортів модулів)."""
+        self._purge_hook = hook
+
+    async def purge_cancelled(self) -> int:
+        """Стерти скасовані оренди: їх прибрали всі учасники або минув строк зберігання."""
+        before = self._clock.now() - timedelta(days=self._config.cancelled_retention_days)
+        async with self._tx.begin() as tx:
+            ids = await self._repo(tx).purgeable(before)
+        for lease_id in ids:
+            if self._purge_hook is not None:
+                await self._purge_hook(lease_id)
+            async with self._tx.begin() as tx:
+                await self._repo(tx).delete(lease_id)
+        return len(ids)
 
     async def cancel(self, telegram_uid: int, lease_id: uuid.UUID) -> LeaseOut:
         """Власник скасовує оренду до активації."""

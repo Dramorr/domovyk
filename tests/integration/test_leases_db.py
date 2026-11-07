@@ -142,3 +142,20 @@ async def test_tenant_lease_limit_db(services: Services, engine: AsyncEngine) ->
     with pytest.raises(LeaseLimitReached):
         await s.leases.accept_invite(TENANT, invites[1].token)
     await s.leases.accept_invite(ROOMMATE, invites[1].token)
+
+
+async def test_hide_and_purge_cancelled_db(services: Services, engine: AsyncEngine) -> None:
+    """FR-LSE-9 на справжній БД: обидві сторони прибрали → оренда стерта каскадом."""
+    s = services
+    data = await _setup(s, engine)
+    lease, invite = await s.leases.create_lease(OWNER, data)
+    await s.leases.accept_invite(TENANT, invite.token)
+    await s.leases.post_message(TENANT, lease.id, "Привіт")
+    await s.leases.cancel(OWNER, lease.id)
+    await s.leases.hide(OWNER, lease.id)
+    assert await s.leases.list_mine(OWNER) == []
+    assert len(await s.leases.list_mine(TENANT)) == 1
+    await s.leases.hide(TENANT, lease.id)
+    async with engine.connect() as conn:
+        for table in ("leases", "lease_members", "conversations", "messages", "lease_hidden"):
+            assert await conn.scalar(text(f"SELECT count(*) FROM {table}")) == 0, table  # noqa: S608

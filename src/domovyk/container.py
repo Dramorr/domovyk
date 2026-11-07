@@ -82,6 +82,11 @@ def contracts_config(settings: Settings) -> ContractsConfig:
     )
 
 
+def wire_contracts(leases: LeasesService, contracts: ContractsService) -> None:
+    """Повне видалення скасованої оренди прибирає й файли договорів (FR-LSE-9)."""
+    leases.set_purge_hook(contracts.delete_files_for_lease)
+
+
 def wire_guards(users: UsersService, properties: PropertiesService, leases: LeasesService) -> None:
     """Заборони видаляти акаунт і об'єкт з живою орендою — без циклічних імпортів модулів."""
     users.set_delete_guard(leases.has_open_leases)
@@ -140,6 +145,7 @@ class Container:
             LeasesConfig(
                 hmac_secret=settings.hmac_secret.get_secret_value(),
                 tenant_max_open_leases=settings.tenant_max_open_leases,
+                cancelled_retention_days=settings.lease_cancelled_retention_days,
             ),
         )
         contracts = ContractsService(
@@ -159,6 +165,7 @@ class Container:
             notifier=self.notifier,
         )
         wire_guards(users, properties, leases)
+        wire_contracts(leases, contracts)
         self.services = Services(
             users=users,
             moderation=moderation,

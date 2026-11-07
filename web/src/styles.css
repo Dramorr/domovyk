@@ -1254,3 +1254,70 @@ label.file-button {
   opacity: 0.55;
   pointer-events: none;
 }
+
+/* ---- Меню «⋯» на рядку списку ---- */
+.row-with-menu {
+  position: relative;
+}
+
+.row-with-menu .row {
+  padding-right: 60px;
+}
+
+.row-with-menu .row-chevron {
+  display: none;
+}
+
+.row-menu-btn {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-2);
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.row-menu-btn:active {
+  background: var(--surface-2);
+}
+
+.menu-pop {
+  position: absolute;
+  top: calc(100% - 14px);
+  right: 12px;
+  z-index: 30;
+  min-width: 160px;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.menu-pop button {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--text);
+  font: 600 15px Manrope, sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu-pop button.danger {
+  color: var(--danger);
+}
+
+.menu-pop button:active {
+  background: var(--danger-50);
+}

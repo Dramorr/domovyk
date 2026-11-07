@@ -104,6 +104,13 @@ class FakeContractsRepository:
             (c.version for c in self.db.contracts.values() if c.lease_id == lease_id), default=0
         )
 
+    async def file_keys_for_lease(self, lease_id: uuid.UUID) -> list[str]:
+        contracts = [c for c in self.db.contracts.values() if c.lease_id == lease_id]
+        ids = {c.id for c in contracts}
+        return [c.pdf_storage_key for c in contracts] + [
+            s.signature_storage_key for s in self.db.signatures.values() if s.contract_id in ids
+        ]
+
     async def update(self, contract_id: uuid.UUID, **values: Any) -> None:
         values.pop("external_decided_at", None)
         self.db.contracts[contract_id] = dataclasses.replace(

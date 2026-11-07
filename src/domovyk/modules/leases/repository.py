@@ -7,11 +7,17 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any, Protocol
 
-from sqlalchemy import func, or_, select, update
+from sqlalchemy import delete, func, or_, select, update
+from sqlalchemy.dialects.postgresql import insert
 
 from domovyk.core.tx import Tx, session_of
 from domovyk.domain.leases import OPEN_STATUSES, LeaseOrigin, LeaseStatus, MemberRole, PayMethod
-from domovyk.modules.leases.models import LeaseInviteRow, LeaseMemberRow, LeaseRow
+from domovyk.modules.leases.models import (
+    LeaseHiddenRow,
+    LeaseInviteRow,
+    LeaseMemberRow,
+    LeaseRow,
+)
 
 
 @dataclass(frozen=True)
@@ -75,6 +81,9 @@ class LeasesRepository(Protocol):
     async def get(self, lease_id: uuid.UUID) -> LeaseRecord | None: ...
     async def update(self, lease_id: uuid.UUID, **values: Any) -> None: ...
     async def for_user(self, user_id: uuid.UUID) -> list[LeaseRecord]: ...
+    async def hide(self, lease_id: uuid.UUID, user_id: uuid.UUID, at: datetime) -> None: ...
+    async def purgeable(self, cancelled_before: datetime) -> list[uuid.UUID]: ...
+    async def delete(self, lease_id: uuid.UUID) -> None: ...
     async def open_unit_ids(self, unit_ids: list[uuid.UUID]) -> set[uuid.UUID]: ...
     async def count_open_for_user(self, user_id: uuid.UUID) -> int: ...
     async def count_open_as_responsible(self, user_id: uuid.UUID) -> int: ...
@@ -160,13 +169,50 @@ class SqlLeasesRepository:
         member = select(LeaseMemberRow.lease_id).where(
             LeaseMemberRow.user_id == user_id, LeaseMemberRow.left_at.is_(None)
         )
+        hidden = select(LeaseHiddenRow.lease_id).where(LeaseHiddenRow.user_id == user_id)
         rows = await self._s.scalars(
             select(LeaseRow)
-            .where(or_(LeaseRow.landlord_user_id == user_id, LeaseRow.id.in_(member)))
+            .where(
+                or_(LeaseRow.landlord_user_id == user_id, LeaseRow.id.in_(member)),
+                LeaseRow.id.not_in(hidden),
+            )
             .order_by(LeaseRow.created_at.desc())
             .execution_options(populate_existing=True)
         )
         return [_lease(r) for r in rows]
+
+    async def hide(self, lease_id: uuid.UUID, user_id: uuid.UUID, at: datetime) -> None:
+        await self._s.execute(
+            insert(LeaseHiddenRow)
+            .values(lease_id=lease_id, user_id=user_id, hidden_at=at)
+            .on_conflict_do_nothing()
+        )
+
+    async def purgeable(self, cancelled_before: datetime) -> list[uuid.UUID]:
+        """Скасовані оренди, які пора стерти: минув строк або всі учасники їх прибрали."""
+        members = (
+            select(func.count())
+            .select_from(LeaseMemberRow)
+            .where(LeaseMemberRow.lease_id == LeaseRow.id)
+            .scalar_subquery()
+        )
+        hidden = (
+            select(func.count())
+            .select_from(LeaseHiddenRow)
+            .where(LeaseHiddenRow.lease_id == LeaseRow.id)
+            .scalar_subquery()
+        )
+        rows = await self._s.scalars(
+            select(LeaseRow.id).where(
+                LeaseRow.status == LeaseStatus.CANCELLED,
+                # +1 — власник (він не в lease_members).
+                or_(LeaseRow.cancelled_at < cancelled_before, hidden >= members + 1),
+            )
+        )
+        return list(rows)
+
+    async def delete(self, lease_id: uuid.UUID) -> None:
+        await self._s.execute(delete(LeaseRow).where(LeaseRow.id == lease_id))
 
     async def open_unit_ids(self, unit_ids: list[uuid.UUID]) -> set[uuid.UUID]:
         if not unit_ids:

@@ -96,6 +96,7 @@ class ContractsRepository(Protocol):
     async def get(self, contract_id: uuid.UUID) -> ContractRecord | None: ...
     async def current_for_lease(self, lease_id: uuid.UUID) -> ContractRecord | None: ...
     async def latest_version(self, lease_id: uuid.UUID) -> int: ...
+    async def file_keys_for_lease(self, lease_id: uuid.UUID) -> list[str]: ...
     async def update(self, contract_id: uuid.UUID, **values: Any) -> None: ...
     async def live_older_than(self, before: datetime) -> list[ContractRecord]: ...
     async def signatures(self, contract_id: uuid.UUID) -> list[SignatureRecord]: ...
@@ -221,6 +222,18 @@ class SqlContractsRepository:
             select(func.max(ContractRow.version)).where(ContractRow.lease_id == lease_id)
         )
         return int(value or 0)
+
+    async def file_keys_for_lease(self, lease_id: uuid.UUID) -> list[str]:
+        """Усі файли договорів оренди (PDF і підписи, разом зі старими версіями)."""
+        pdfs = await self._s.scalars(
+            select(ContractRow.pdf_storage_key).where(ContractRow.lease_id == lease_id)
+        )
+        sigs = await self._s.scalars(
+            select(SignatureRow.signature_storage_key)
+            .join(ContractRow, ContractRow.id == SignatureRow.contract_id)
+            .where(ContractRow.lease_id == lease_id)
+        )
+        return [*pdfs, *sigs]
 
     async def update(self, contract_id: uuid.UUID, **values: Any) -> None:
         await self._s.execute(

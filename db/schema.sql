@@ -1,5 +1,5 @@
 -- =====================================================================
---  Домовик — цільова схема бази даних, v0.9
+--  Домовик — цільова схема бази даних, v0.10
 --  PostgreSQL 16 + PostGIS
 --
 --  Це ЦІЛЬОВА модель. Реальні зміни в базі робляться тільки
@@ -456,6 +456,16 @@ CREATE TRIGGER trg_leases_updated BEFORE UPDATE ON leases
 
 -- Хто живе. Обов'язковий лише один responsible; co_tenant — опційно,
 -- без жодних обов'язкових дій (бачить картку, чат, нагадування — якщо увімкне).
+-- Учасник прибрав скасовану оренду зі свого списку (FR-LSE-9). Прибрали всі
+-- або минуло LEASE_CANCELLED_RETENTION_DAYS → оренда видаляється каскадом.
+CREATE TABLE lease_hidden (
+    lease_id    uuid NOT NULL REFERENCES leases(id) ON DELETE CASCADE,
+    user_id     uuid NOT NULL REFERENCES users(id),
+    hidden_at   timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (lease_id, user_id)
+);
+CREATE INDEX idx_leases_cancelled ON leases(cancelled_at) WHERE status = 'cancelled';
+
 CREATE TABLE lease_members (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     lease_id        uuid NOT NULL REFERENCES leases(id) ON DELETE CASCADE,

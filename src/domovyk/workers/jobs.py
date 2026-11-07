@@ -26,6 +26,9 @@ async def send_notifications(services: Services, notifier: Notifier, mini_app_ur
 
 async def purge_ownership_documents(services: Services) -> int:
     """FR-PRP-4, п. 4: файли довідок — геть через N днів після рішення."""
+    leases = await services.leases.purge_cancelled()  # FR-LSE-9
+    if leases:
+        log.info("Видалено скасованих оренд: %s", leases)
     purged = await services.properties.purge_documents()
     if purged:
         log.info("Видалено документів власності: %s", purged)

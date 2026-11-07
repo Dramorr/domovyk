@@ -12,7 +12,7 @@ from cryptography.fernet import Fernet
 from domovyk.adapters.geocoder.base import Geocoder
 from domovyk.adapters.geocoder.manual import ManualGeocoder
 from domovyk.adapters.signing.diia_portal import DiiaPortalVerifier
-from domovyk.container import Services, wire_guards
+from domovyk.container import Services, wire_contracts, wire_guards
 from domovyk.core.clock import Clock, FixedClock
 from domovyk.core.crypto import Cipher
 from domovyk.core.tx import NullTxManager, Tx
@@ -350,6 +350,7 @@ def make_fake_services(
         notifier=db.notifier,
     )
     wire_guards(users, properties, leases)
+    wire_contracts(leases, contracts)
     services = Services(
         users=users,
         moderation=moderation,

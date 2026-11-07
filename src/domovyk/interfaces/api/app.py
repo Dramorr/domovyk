@@ -412,6 +412,11 @@ def create_app(
         await svc.leases.decline(auth.user.id, lease_id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
+    @app.delete("/api/v1/leases/{lease_id}", status_code=status.HTTP_204_NO_CONTENT)
+    async def hide_lease(auth: Auth, lease_id: uuid.UUID) -> Response:
+        await svc.leases.hide(auth.user.id, lease_id)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
     @app.post("/api/v1/leases/{lease_id}/cancel")
     async def cancel_lease(auth: Auth, lease_id: uuid.UUID) -> LeaseOut:
         return await svc.leases.cancel(auth.user.id, lease_id)

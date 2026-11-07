@@ -7,7 +7,7 @@ from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from typing import Any
 
-from domovyk.domain.leases import OPEN_STATUSES, LeaseOrigin, MemberRole
+from domovyk.domain.leases import OPEN_STATUSES, LeaseOrigin, LeaseStatus, MemberRole
 from domovyk.modules.chat.repository import encode_system_params
 from domovyk.modules.chat.schemas import MessageOut, SystemCode
 from domovyk.modules.leases.repository import (
@@ -38,6 +38,8 @@ class LeaseDb:
         default_factory=dict
     )
     reads: dict[tuple[uuid.UUID, uuid.UUID], int] = field(default_factory=dict)
+    hidden: set[tuple[uuid.UUID, uuid.UUID]] = field(default_factory=set)
+    cancelled_at: dict[uuid.UUID, datetime] = field(default_factory=dict)
     seq: int = 0
 
 
@@ -73,6 +75,8 @@ class FakeLeasesRepository:
         return self.db.leases.get(lease_id)
 
     async def update(self, lease_id: uuid.UUID, **values: Any) -> None:
+        if values.get("cancelled_at") is not None:
+            self.db.cancelled_at[lease_id] = values["cancelled_at"]
         known = {k: v for k, v in values.items() if k in LeaseRecord.__dataclass_fields__}
         self.db.leases[lease_id] = replace(self.db.leases[lease_id], **known)
 
@@ -80,9 +84,33 @@ class FakeLeasesRepository:
         return [
             lease
             for lease in self.db.leases.values()
-            if lease.landlord_user_id == user_id
-            or any(m.user_id == user_id and m.left_at is None for m in self.db.members[lease.id])
+            if (lease.id, user_id) not in self.db.hidden
+            and (
+                lease.landlord_user_id == user_id
+                or any(
+                    m.user_id == user_id and m.left_at is None for m in self.db.members[lease.id]
+                )
+            )
         ]
+
+    async def hide(self, lease_id: uuid.UUID, user_id: uuid.UUID, at: datetime) -> None:
+        self.db.hidden.add((lease_id, user_id))
+
+    async def purgeable(self, cancelled_before: datetime) -> list[uuid.UUID]:
+        out = []
+        for lease in self.db.leases.values():
+            if lease.status is not LeaseStatus.CANCELLED:
+                continue
+            people = {lease.landlord_user_id} | {m.user_id for m in self.db.members[lease.id]}
+            hidden = {u for lid, u in self.db.hidden if lid == lease.id}
+            cancelled_at = self.db.cancelled_at.get(lease.id)
+            if people <= hidden or (cancelled_at is not None and cancelled_at < cancelled_before):
+                out.append(lease.id)
+        return out
+
+    async def delete(self, lease_id: uuid.UUID) -> None:
+        del self.db.leases[lease_id]
+        self.db.members.pop(lease_id, None)
 
     async def open_unit_ids(self, unit_ids: list[uuid.UUID]) -> set[uuid.UUID]:
         return {

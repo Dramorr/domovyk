@@ -371,3 +371,27 @@ async def _verified_flat_other(s: Services, db: FakeDb) -> uuid.UUID:
     )
     db.prop.properties[prop.id].ownership = OwnershipStatus.VERIFIED
     return prop.id
+
+
+async def test_hide_and_purge_cancelled(env: tuple[Services, FakeDb], clock: FixedClock) -> None:
+    """FR-LSE-9: «Видалити» — лише скасовану й лише у себе; стирається, коли прибрали всі."""
+    s, db = env
+    pid = await _verified_flat(s, db)
+    lease, invite = await s.leases.create_lease(OWNER, _lease(pid))
+    await s.leases.accept_invite(TENANT, invite.token)
+    with pytest.raises(Conflict):
+        await s.leases.hide(OWNER, lease.id)
+    await s.leases.cancel(OWNER, lease.id)
+    await s.leases.hide(OWNER, lease.id)
+    assert await s.leases.list_mine(OWNER) == []
+    assert len(await s.leases.list_mine(TENANT)) == 1  # в орендаря лишилась
+    await s.leases.hide(TENANT, lease.id)
+    assert lease.id not in db.lease.leases  # прибрали всі → стерто
+
+    # Ніхто не прибрав — стирається через строк зберігання.
+    lease2, _ = await s.leases.create_lease(OWNER, _lease(pid))
+    await s.leases.cancel(OWNER, lease2.id)
+    assert await s.leases.purge_cancelled() == 0
+    clock.advance(timedelta(days=31))
+    assert await s.leases.purge_cancelled() == 1
+    assert lease2.id not in db.lease.leases

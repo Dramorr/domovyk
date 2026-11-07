@@ -476,3 +476,16 @@ async def test_cades_x_long_attributes_do_not_break_parsing(env: tuple[Services,
     await s.contracts.upload_signature(TENANT, contract_id, "dogovir.pdf.p7s", data)
     sig = next(iter(db.contract.signatures.values()))
     assert sig.check_status is SignatureCheck.AUTO_OK and sig.signer_name == TENANT_NAME
+
+
+async def test_purged_lease_removes_contract_files(env: tuple[Services, FakeDb]) -> None:
+    """FR-LSE-9: повне видалення скасованої оренди прибирає PDF і файли підписів."""
+    s, db = env
+    lease_id, contract_id, pdf = await _generated(s, db)
+    await s.contracts.upload_signature(TENANT, contract_id, "t.p7s", cades(pdf, TENANT_NAME))
+    keys = [k for k in db.storage.files if k.startswith(f"contracts/{lease_id}/")]
+    assert len(keys) == 2
+    await s.leases.cancel(OWNER, lease_id)
+    await s.leases.hide(OWNER, lease_id)
+    await s.leases.hide(TENANT, lease_id)
+    assert not [k for k in db.storage.files if k.startswith(f"contracts/{lease_id}/")]
