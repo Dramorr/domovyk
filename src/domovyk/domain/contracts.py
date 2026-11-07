@@ -19,6 +19,7 @@ from domovyk.domain.state_machine import TransitionTable
 TEMPLATE_CODE = "lease_v1"
 SIGNATURE_MAX_BYTES = 5 * 1024 * 1024  # CTR-SIGN: файл підпису до 5 МБ
 EXTERNAL_PDF_MAX_BYTES = 10 * 1024 * 1024  # CTR-EXT: готовий договір до 10 МБ
+LEGAL_NAME_MIN = 5  # як CHECK у contract_parties.full_name
 LEGAL_NAME_MAX = 120
 
 
@@ -86,8 +87,11 @@ def clean_legal_name(raw: str) -> str:
     """ПІБ для договору: 2–4 слова з літер, апостроф і дефіс усередині слова."""
     name = " ".join(raw.translate(_APOSTROPHES).split())
     words = name.split(" ")
-    if not 2 <= len(words) <= 4 or len(name) > LEGAL_NAME_MAX:
+    if not 2 <= len(words) <= 4 or not LEGAL_NAME_MIN <= len(name) <= LEGAL_NAME_MAX:
         raise InvalidInput("Вкажи прізвище, ім'я та по батькові", field="full_name")
+    if any(len(w.replace("-", "").replace("'", "")) < 2 for w in words):
+        # Ініціали («К. Р.») у договорі не підходять: потрібне повне ім'я, як у документах.
+        raise InvalidInput("Вкажи повне ПІБ, без ініціалів", field="full_name")
     if not all(_NAME_WORD.fullmatch(w) for w in words):
         raise InvalidInput("ПІБ — лише літери, апостроф і дефіс", field="full_name")
     return " ".join(w[:1].upper() + w[1:] for w in words)

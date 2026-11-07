@@ -3,8 +3,9 @@
 Без `from __future__ import annotations`: FastAPI має бачити локальні залежності (Auth).
 """
 
+import logging
 import uuid
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from datetime import timedelta
 from typing import Annotated, Literal
@@ -77,6 +78,7 @@ from domovyk.modules.properties.service import (
 )
 from domovyk.modules.users.service import AppMode, ConsentInfo, TenantProfile, UserOut
 
+log = logging.getLogger(__name__)
 _AUTH_SCHEME = "tma "
 
 # Порядок важливий: перший збіг isinstance визначає HTTP-статус.
@@ -195,6 +197,22 @@ def create_app(
         redoc_url=None,
         lifespan=lifespan,
     )
+
+    @app.middleware("http")
+    async def _unexpected_errors(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        """Несподівана помилка → JSON 500 з CORS-заголовками.
+
+        Без цього браузер не бачить відповіді (CORS додається зовнішнім шаром), і Mini App
+        показує «немає зв'язку», хоча сервер працює. Зареєстровано до CORS — тобто всередині.
+        """
+        try:
+            return await call_next(request)
+        except Exception:
+            log.exception("Необроблена помилка API: %s %s", request.method, request.url.path)
+            return JSONResponse(status_code=500, content={"error": "internal"})
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,

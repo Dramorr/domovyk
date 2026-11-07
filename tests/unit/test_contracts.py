@@ -55,7 +55,15 @@ CARD = "4111 1111 1111 1111"  # тестовий номер (Luhn), не спр�
 def test_legal_name() -> None:
     assert clean_legal_name("  коваль   ірина  петрівна ") == "Коваль Ірина Петрівна"
     assert clean_legal_name("Д’Артаньян Шарль") == "Д'Артаньян Шарль"
-    for bad in ("Ірина", "Коваль Ірина 3", "a b c d e", "Коваль <b>Ірина</b>"):
+    assert clean_legal_name("Ян Лі") == "Ян Лі"
+    for bad in (
+        "Ірина",
+        "К Р",
+        "Коваль І. П.",
+        "Коваль Ірина 3",
+        "a b c d e",
+        "Коваль <b>Ірина</b>",
+    ):
         with pytest.raises(InvalidInput):
             clean_legal_name(bad)
 

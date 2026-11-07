@@ -113,3 +113,22 @@ async def test_contract_flow(client: httpx.AsyncClient, db: FakeDb, now: datetim
         f"/api/v1/contracts/{contract_id}/send", json={"what": "package"}, headers=owner
     )
     assert r.json()["sent"] == 1
+
+
+async def test_unexpected_error_is_json_with_cors(
+    settings: Settings, clock: FixedClock, db: FakeDb, now: datetime
+) -> None:
+    """Несподівана помилка → 500 JSON з CORS: інакше Mini App пише «немає зв'язку»."""
+    services, _ = make_fake_services(db, clock=clock)
+    await services.users.register(OWNER, "Тарас", terms_version=TERMS_V, privacy_version=PRIVACY_V)
+
+    async def boom(*_: object) -> None:
+        raise RuntimeError("тест")
+
+    services.properties.list_mine = boom  # type: ignore[method-assign]
+    app = create_app(settings, clock=clock, services=services)
+    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://api.test")
+    origin = settings.cors_origins[0]
+    r = await client.get("/api/v1/properties", headers={**_auth(now, OWNER), "Origin": origin})
+    assert (r.status_code, r.json()) == (500, {"error": "internal"})
+    assert r.headers.get("access-control-allow-origin") == origin
