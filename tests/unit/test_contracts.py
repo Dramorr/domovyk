@@ -41,7 +41,7 @@ from domovyk.modules.moderation.schemas import BanIdentifiers
 from domovyk.modules.properties.schemas import AddressIn, PropertyCreate
 from tests.fakes import ADMIN_TG, PRIVACY_V, TERMS_V, TEST_HMAC, FakeDb, make_fake_services
 from tests.fakes_properties import FakePropertiesRepository
-from tests.signing_fixtures import FAKE_TAX_ID, asice, cades
+from tests.signing_fixtures import FAKE_TAX_ID, asice, cades, with_unparseable_signed_attr
 
 OWNER, TENANT, ROOMMATE, OTHER_TENANT = 42, 43, 44, 46
 OWNER_NAME = "Коваль Ірина Петрівна"
@@ -466,3 +466,13 @@ async def test_attached_cades_is_default_of_diia(env: tuple[Services, FakeDb]) -
         await s.contracts.upload_signature(
             OWNER, contract_id, "x.p7s", cades(b"%PDF other", OWNER_NAME, detached=False)
         )
+
+
+async def test_cades_x_long_attributes_do_not_break_parsing(env: tuple[Services, FakeDb]) -> None:
+    """Регресія: справжній підпис Дії (CAdES-X Long) мав атрибут, на якому падав розбір."""
+    s, db = env
+    _, contract_id, pdf = await _generated(s, db)
+    data = with_unparseable_signed_attr(cades(pdf, TENANT_NAME, detached=False))
+    await s.contracts.upload_signature(TENANT, contract_id, "dogovir.pdf.p7s", data)
+    sig = next(iter(db.contract.signatures.values()))
+    assert sig.check_status is SignatureCheck.AUTO_OK and sig.signer_name == TENANT_NAME

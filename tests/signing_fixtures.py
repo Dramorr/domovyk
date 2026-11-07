@@ -74,3 +74,24 @@ def asice(document: bytes, full_name: str, filename: str = "contract.pdf") -> by
         archive.writestr(filename, document)
         archive.writestr("META-INF/signature001.p7s", cades(b"manifest", full_name))
     return buffer.getvalue()
+
+
+def with_unparseable_signed_attr(signature: bytes) -> bytes:
+    """Як справжній CAdES-X Long від Дії: мітка часу (content_time_stamp), яку asn1crypto
+    не може перетворити в native («Unknown element - context class, constructed, tag 0»).
+    Підпис після цього криптографічно не валідний — для тесту розбору це байдуже."""
+    from asn1crypto import cms, core
+
+    info = cms.ContentInfo.load(signature)
+    signer = info["content"]["signer_infos"][0]
+    # Вигадана «мітка часу»: SignedData з TSTInfo, у якому замість версії — [0] {NULL}.
+    token = cms.ContentInfo.load(cades(b"tsa", "Тестовий КНЕДП", tax_id=None, detached=False))
+    token["content"]["encap_content_info"] = cms.ContentInfo(
+        {
+            "content_type": "1.2.840.113549.1.9.16.1.4",  # id-ct-TSTInfo
+            "content": core.OctetString(bytes.fromhex("3004a0020500")),  # [0]{NULL} замість версії
+        }
+    )
+    stamp = cms.CMSAttribute({"type": "1.2.840.113549.1.9.16.2.20", "values": [token]})
+    signer["signed_attrs"] = cms.CMSAttributes([*list(signer["signed_attrs"]), stamp])
+    return info.dump(force=True)

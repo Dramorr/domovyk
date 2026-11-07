@@ -87,7 +87,11 @@ def _load_cms(data: bytes) -> cms.SignedData:
             if info["content_type"].native != "signed_data":
                 continue
             signed: cms.SignedData = info["content"]
-            signed["signer_infos"].native  # noqa: B018 — змушує asn1crypto розібрати структуру
+            # Лише те, що потрібно: повне `.native` падає на розширеннях CAdES-X Long
+            # (атрибути з національними алгоритмами), хоча сам підпис коректний.
+            if len(signed["signer_infos"]) == 0:
+                continue
+            signed["signer_infos"][0]["sid"].chosen  # noqa: B018 — перевірка структури
             return signed
         except (ValueError, TypeError, KeyError, IndexError):
             continue
@@ -135,29 +139,31 @@ def _digest_match(
 
 def _signed_attrs(info: cms.SignerInfo) -> dict[str, Any]:
     out: dict[str, Any] = {}
-    raw = info["signed_attrs"]
-    if raw.native is None:
+    try:
+        attrs = list(info["signed_attrs"])
+    except (ValueError, TypeError):
         return out
-    for attr in raw:
+    for attr in attrs:
         kind = attr["type"].native
-        values = attr["values"]
-        if not len(values):
+        if kind not in ("message_digest", "signing_time"):
+            continue  # інші атрибути (signing_certificate_v2 тощо) не розбираємо
+        try:
+            values = attr["values"]
+            value = values[0].native if len(values) else None
+        except (ValueError, TypeError, IndexError):
             continue
-        if kind == "message_digest":
-            out["message_digest"] = values[0].native
-        elif kind == "signing_time":
-            value = values[0].native
-            if isinstance(value, datetime):
-                out["signing_time"] = value
+        if kind == "message_digest" and isinstance(value, bytes):
+            out["message_digest"] = value
+        elif kind == "signing_time" and isinstance(value, datetime):
+            out["signing_time"] = value
     return out
 
 
 def _signer_cert(signed: cms.SignedData, info: cms.SignerInfo) -> x509.Certificate | None:
-    certs = (
-        [c.chosen for c in signed["certificates"] if c.name == "certificate"]
-        if signed["certificates"].native
-        else []
-    )
+    try:
+        certs = [c.chosen for c in signed["certificates"] if c.name == "certificate"]
+    except (ValueError, TypeError):
+        certs = []
     if not certs:
         return None
     sid = info["sid"]
