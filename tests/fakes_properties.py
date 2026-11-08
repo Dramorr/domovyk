@@ -54,6 +54,7 @@ class _Property:
     verified_at: datetime | None = None
     created_at: datetime = _T0
     details: dict[str, Any] = field(default_factory=dict)
+    archived_at: datetime | None = None
 
 
 @dataclass
@@ -139,7 +140,11 @@ class FakePropertiesRepository:
         self, building_id: uuid.UUID, apartment_norm: str | None
     ) -> tuple[uuid.UUID, uuid.UUID] | None:
         for p in self.db.properties.values():
-            if p.data.building_id == building_id and p.data.apartment_norm == apartment_norm:
+            if (
+                p.data.building_id == building_id
+                and p.data.apartment_norm == apartment_norm
+                and p.archived_at is None
+            ):
                 return p.id, p.data.owner_user_id
         return None
 
@@ -179,15 +184,19 @@ class FakePropertiesRepository:
             ),
         )
 
-    async def get_property(self, property_id: uuid.UUID) -> PropertyOut | None:
+    async def get_property(
+        self, property_id: uuid.UUID, include_archived: bool = False
+    ) -> PropertyOut | None:
         p = self.db.properties.get(property_id)
-        return self._out(p) if p else None
+        if p is None or (p.archived_at is not None and not include_archived):
+            return None
+        return self._out(p)
 
     async def list_by_owner(self, owner_user_id: uuid.UUID) -> list[PropertyOut]:
         return [
             self._out(p)
             for p in self.db.properties.values()
-            if p.data.owner_user_id == owner_user_id
+            if p.data.owner_user_id == owner_user_id and p.archived_at is None
         ]
 
     async def count_by_owner(self, owner_user_id: uuid.UUID) -> int:
@@ -215,6 +224,15 @@ class FakePropertiesRepository:
                 del self.db.documents[d.id]
         for ph in [p for p in self.db.photos.values() if p.property_id == property_id]:
             del self.db.photos[ph.id]
+
+    async def archive_property(self, property_id: uuid.UUID, at: datetime) -> None:
+        for v in [v for v in self.db.verifications.values() if v.property_id == property_id]:
+            del self.db.verifications[v.id]
+            for d in [d for d in self.db.documents.values() if d.verification_id == v.id]:
+                del self.db.documents[d.id]
+        for ph in [p for p in self.db.photos.values() if p.property_id == property_id]:
+            del self.db.photos[ph.id]
+        self.db.properties[property_id].archived_at = at
 
     async def property_id_of_unit(self, unit_id: uuid.UUID) -> uuid.UUID | None:
         u = self.db.units.get(unit_id)

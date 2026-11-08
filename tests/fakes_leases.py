@@ -134,6 +134,11 @@ class FakeLeasesRepository:
             if lease.unit_id in unit_ids and lease.status in OPEN_STATUSES
         }
 
+    async def statuses_on_units(
+        self, unit_ids: list[uuid.UUID]
+    ) -> list[tuple[uuid.UUID, LeaseStatus]]:
+        return [(x.id, x.status) for x in self.db.leases.values() if x.unit_id in unit_ids]
+
     async def count_open_for_user(self, user_id: uuid.UUID) -> int:
         return sum(1 for lease in await self.for_user(user_id) if lease.status in OPEN_STATUSES)
 

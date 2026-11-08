@@ -361,7 +361,7 @@ def create_app(
     async def remove_room(auth: Auth, property_id: uuid.UUID, unit_id: uuid.UUID) -> PropertyOut:
         return await svc.properties.remove_room(auth.user.id, property_id, unit_id)
 
-    # ------------------------------------------------- фото об'єкта (FR-PRP-9)
+    # ------------------------------------------------- фото об'єкта (FR-PRP-10)
 
     @app.get("/api/v1/properties/{property_id}/photos")
     async def property_photos(auth: Auth, property_id: uuid.UUID) -> list[PhotoOut]:

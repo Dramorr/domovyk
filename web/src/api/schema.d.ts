@@ -2162,7 +2162,7 @@ export interface components {
         PetsPolicy: "no" | "cats" | "small_dogs" | "any" | "discuss";
         /**
          * PhotoOut
-         * @description Фото об'єкта (FR-PRP-9). Сам файл — окремим запитом.
+         * @description Фото об'єкта (FR-PRP-10). Сам файл — окремим запитом.
          */
         PhotoOut: {
             /** Height */

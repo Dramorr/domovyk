@@ -98,6 +98,9 @@ class LeasesRepository(Protocol):
     async def due_to_finish(self, today: date) -> list[uuid.UUID]: ...
     async def ids_with_status(self, statuses: list[LeaseStatus]) -> list[uuid.UUID]: ...
     async def open_unit_ids(self, unit_ids: list[uuid.UUID]) -> set[uuid.UUID]: ...
+    async def statuses_on_units(
+        self, unit_ids: list[uuid.UUID]
+    ) -> list[tuple[uuid.UUID, LeaseStatus]]: ...
     async def count_open_for_user(self, user_id: uuid.UUID) -> int: ...
     async def count_open_as_responsible(self, user_id: uuid.UUID) -> int: ...
     async def members(self, lease_id: uuid.UUID) -> list[MemberRecord]: ...
@@ -262,6 +265,16 @@ class SqlLeasesRepository:
             )
         )
         return set(rows)
+
+    async def statuses_on_units(
+        self, unit_ids: list[uuid.UUID]
+    ) -> list[tuple[uuid.UUID, LeaseStatus]]:
+        if not unit_ids:
+            return []
+        rows = await self._s.execute(
+            select(LeaseRow.id, LeaseRow.status).where(LeaseRow.unit_id.in_(unit_ids))
+        )
+        return [(r[0], r[1]) for r in rows]
 
     async def count_open_for_user(self, user_id: uuid.UUID) -> int:
         member = select(LeaseMemberRow.lease_id).where(

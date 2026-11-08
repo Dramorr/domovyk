@@ -101,7 +101,9 @@ class PropertiesRepository(Protocol):
     ) -> tuple[uuid.UUID, uuid.UUID] | None: ...
 
     async def create_property(self, data: NewProperty) -> uuid.UUID: ...
-    async def get_property(self, property_id: uuid.UUID) -> PropertyOut | None: ...
+    async def get_property(
+        self, property_id: uuid.UUID, include_archived: bool = False
+    ) -> PropertyOut | None: ...
     async def list_by_owner(self, owner_user_id: uuid.UUID) -> list[PropertyOut]: ...
     async def count_by_owner(self, owner_user_id: uuid.UUID) -> int: ...
     async def update_details(
@@ -114,6 +116,7 @@ class PropertiesRepository(Protocol):
         area: Decimal | None,
     ) -> None: ...
     async def delete_property(self, property_id: uuid.UUID) -> None: ...
+    async def archive_property(self, property_id: uuid.UUID, at: datetime) -> None: ...
     async def property_id_of_unit(self, unit_id: uuid.UUID) -> uuid.UUID | None: ...
     async def set_profile(self, property_id: uuid.UUID, details: dict[str, Any]) -> None: ...
     async def set_ownership(
@@ -281,6 +284,7 @@ class SqlPropertiesRepository:
                 select(PropertyRow.id, PropertyRow.owner_user_id).where(
                     PropertyRow.building_id == building_id,
                     func.coalesce(PropertyRow.apartment_number_norm, "") == (apartment_norm or ""),
+                    PropertyRow.archived_at.is_(None),
                 )
             )
         ).first()
@@ -342,14 +346,13 @@ class SqlPropertiesRepository:
             details=_details(p.details),
         )
 
-    async def get_property(self, property_id: uuid.UUID) -> PropertyOut | None:
-        row = (
-            await self._s.execute(
-                _property_query()
-                .where(PropertyRow.id == property_id)
-                .execution_options(populate_existing=True)
-            )
-        ).first()
+    async def get_property(
+        self, property_id: uuid.UUID, include_archived: bool = False
+    ) -> PropertyOut | None:
+        query = _property_query().where(PropertyRow.id == property_id)
+        if not include_archived:
+            query = query.where(PropertyRow.archived_at.is_(None))
+        row = (await self._s.execute(query.execution_options(populate_existing=True))).first()
         if row is None:
             return None
         units = await self._units([property_id])
@@ -360,6 +363,7 @@ class SqlPropertiesRepository:
             await self._s.execute(
                 _property_query()
                 .where(PropertyRow.owner_user_id == owner_user_id)
+                .where(PropertyRow.archived_at.is_(None))
                 .order_by(PropertyRow.created_at)
                 .execution_options(populate_existing=True)
             )
@@ -371,7 +375,7 @@ class SqlPropertiesRepository:
         count = await self._s.scalar(
             select(func.count())
             .select_from(PropertyRow)
-            .where(PropertyRow.owner_user_id == owner_user_id)
+            .where(PropertyRow.owner_user_id == owner_user_id, PropertyRow.archived_at.is_(None))
         )
         return int(count or 0)
 
@@ -392,6 +396,18 @@ class SqlPropertiesRepository:
 
     async def delete_property(self, property_id: uuid.UUID) -> None:
         await self._s.execute(delete(PropertyRow).where(PropertyRow.id == property_id))
+
+    async def archive_property(self, property_id: uuid.UUID, at: datetime) -> None:
+        """Лишити рядок (і юніти) для історії оренд; перевірки, документи й фото — прибрати."""
+        await self._s.execute(
+            delete(PropertyPhotoRow).where(PropertyPhotoRow.property_id == property_id)
+        )
+        await self._s.execute(
+            delete(VerificationRow).where(VerificationRow.property_id == property_id)
+        )
+        await self._s.execute(
+            update(PropertyRow).where(PropertyRow.id == property_id).values(archived_at=at)
+        )
 
     async def property_id_of_unit(self, unit_id: uuid.UUID) -> uuid.UUID | None:
         return await self._s.scalar(select(UnitRow.property_id).where(UnitRow.id == unit_id))

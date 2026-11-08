@@ -1,5 +1,5 @@
 -- =====================================================================
---  Домовик — цільова схема бази даних, v0.14
+--  Домовик — цільова схема бази даних, v0.15
 --  PostgreSQL 16 + PostGIS
 --
 --  Це ЦІЛЬОВА модель. Реальні зміни в базі робляться тільки
@@ -198,12 +198,14 @@ CREATE TABLE properties (
     ownership_verified_at   timestamptz,
     settings                jsonb NOT NULL DEFAULT '{}',   -- внутрішні налаштування об'єкта
     details                 jsonb NOT NULL DEFAULT '{}',   -- анкета об'єкта (FR-PRP-8, ADR 0003): PropertyDetails + "v"
+    archived_at             timestamptz,        -- видалено власником, але лишилась історія завершених оренд (FR-PRP-9)
     created_at              timestamptz NOT NULL DEFAULT now(),
     updated_at              timestamptz NOT NULL DEFAULT now(),
     CHECK (kind = 'house' OR apartment_number_norm IS NOT NULL)
 );
 CREATE UNIQUE INDEX uq_property_address
-    ON properties(building_id, COALESCE(apartment_number_norm, ''));
+    ON properties(building_id, COALESCE(apartment_number_norm, ''))
+    WHERE archived_at IS NULL;
 CREATE INDEX idx_properties_owner ON properties(owner_user_id);
 CREATE TRIGGER trg_properties_updated BEFORE UPDATE ON properties
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -264,7 +266,7 @@ CREATE INDEX idx_verifications_queue ON user_verifications(submitted_at) WHERE s
 
 -- Файли до перевірки. Лежать у сховищі зашифрованими (Fernet); видаляються
 -- через OWNERSHIP_DOC_RETENTION_DAYS після рішення (deleted_at, рядок лишається).
-CREATE TABLE property_photos (                -- FR-PRP-9, ADR 0011
+CREATE TABLE property_photos (                -- FR-PRP-10, ADR 0011
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     property_id     uuid NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
     storage_key     text NOT NULL UNIQUE,         -- JPEG без EXIF

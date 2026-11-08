@@ -392,4 +392,8 @@ async def test_delete_property_while_pending_cancels_review(env: tuple[Services,
     assert await s.properties.pending_count(ADMIN_TG) == 0
     assert db.storage.files == {}
     assert db.audit[-1]["action"] == "property.delete"
-    assert db.audit[-1]["details"] == {"ownership_status": "pending", "documents": 1}
+    assert db.audit[-1]["details"] == {
+        "ownership_status": "pending",
+        "documents": 1,
+        "archived": False,
+    }

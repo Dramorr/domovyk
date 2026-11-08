@@ -3,7 +3,7 @@
 - Статус: **прийнято**
 - Дата: 2026-11-08
 - Автор: Олег
-- Зачіпає: SPEC FR-PRP-9, FR-LST-1, FR-LST-5; `property_photos` (замість `listing_photos`); `adapters/images/`
+- Зачіпає: SPEC FR-PRP-10, FR-LST-1, FR-LST-5; `property_photos` (замість `listing_photos`); `adapters/images/`
 
 ## Контекст
 

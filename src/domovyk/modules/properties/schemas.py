@@ -268,7 +268,7 @@ class VerificationCase(BaseModel):
 
 
 class PhotoOut(BaseModel):
-    """Фото об'єкта (FR-PRP-9). Сам файл — окремим запитом."""
+    """Фото об'єкта (FR-PRP-10). Сам файл — окремим запитом."""
 
     id: uuid.UUID
     position: int  # 0 — обкладинка

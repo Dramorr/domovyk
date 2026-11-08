@@ -324,6 +324,31 @@ async def test_cancel_and_delete_guards(env: tuple[Services, FakeDb]) -> None:
         await s.leases.post_message(TENANT, lease_id, "Ой")
     await s.users.delete_account(TENANT)  # тепер можна
     await s.properties.delete_property(OWNER, pid)
+    # Скасована оренда стерлась разом з об'єктом (FR-PRP-9), об'єкт — повністю.
+    assert lease_id not in db.lease.leases
+    assert pid not in db.prop.properties
+
+
+async def test_delete_property_with_ended_lease_archives(env: tuple[Services, FakeDb]) -> None:
+    """FR-PRP-9: завершена оренда лишається учасникам, об'єкт — в архіві."""
+    import dataclasses
+
+    s, db = env
+    lease_id = await _joined(s, db)
+    pid = (await s.leases.get(OWNER, lease_id)).property_id
+    db.lease.leases[lease_id] = dataclasses.replace(
+        db.lease.leases[lease_id], status=LeaseStatus.ENDED
+    )
+    await s.properties.delete_property(OWNER, pid)
+    assert db.prop.properties[pid].archived_at is not None
+    assert await s.properties.list_mine(OWNER) == []
+    with pytest.raises(NotFound):
+        await s.properties.get_mine(OWNER, pid)
+    card = await s.leases.get(TENANT, lease_id)  # картка з адресою лишилась
+    assert card.property_id == pid
+    # Ту саму адресу можна додати знову як новий об'єкт.
+    again = await _verified_flat(s, db)
+    assert again != pid
 
 
 async def test_tenant_lease_limit(env: tuple[Services, FakeDb]) -> None:

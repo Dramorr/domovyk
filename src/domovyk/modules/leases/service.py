@@ -18,6 +18,7 @@ from domovyk.core.clock import Clock, to_kyiv
 from domovyk.core.crypto import Cipher, token_hash
 from domovyk.core.errors import (
     Conflict,
+    HasOpenLease,
     InvalidInput,
     InviteInvalid,
     LeaseLimitReached,
@@ -175,10 +176,24 @@ class LeasesService:
         async with self._tx.begin() as tx:
             return await self._repo(tx).count_open_for_user(user_id) > 0
 
-    async def has_open_lease_on_property(self, prop: PropertyOut) -> bool:
-        """Об'єкт з живою орендою не видаляється."""
+    async def release_property(self, prop: PropertyOut) -> bool:
+        """Перед видаленням об'єкта (FR-PRP-9): звільнити його від оренд.
+
+        Жива оренда — HasOpenLease. Скасовані стираються повністю, як у FR-LSE-9.
+        Повертає True, якщо лишилась завершена оренда: її історія потрібна учасникам,
+        тому об'єкт не стирається, а архівується.
+        """
         async with self._tx.begin() as tx:
-            return bool(await self._repo(tx).open_unit_ids([u.id for u in prop.units]))
+            leases = await self._repo(tx).statuses_on_units([u.id for u in prop.units])
+        if any(is_open(status) for _, status in leases):
+            raise HasOpenLease("На об'єкті є оренда")
+        for lease_id, status in leases:
+            if status is LeaseStatus.CANCELLED:
+                if self._purge_hook is not None:
+                    await self._purge_hook(lease_id)
+                async with self._tx.begin() as tx:
+                    await self._repo(tx).delete(lease_id)
+        return any(status is LeaseStatus.ENDED for _, status in leases)
 
     # ------------------------------------------------------- для договорів (M4)
 
@@ -994,7 +1009,7 @@ class LeasesService:
             await self._ctx(tx, lease_id, user)
             return await self._notifications.set_lease_prefs(tx, user.id, lease_id, prefs)
 
-    # ------------------------------------------------- фото об'єкта (FR-PRP-9)
+    # ------------------------------------------------- фото об'єкта (FR-PRP-10)
 
     async def photos(self, telegram_uid: int, lease_id: uuid.UUID) -> list[PhotoOut]:
         """Фото об'єкта бачать усі учасники оренди."""

@@ -2561,7 +2561,7 @@
         "type": "string"
       },
       "PhotoOut": {
-        "description": "Фото об'єкта (FR-PRP-9). Сам файл — окремим запитом.",
+        "description": "Фото об'єкта (FR-PRP-10). Сам файл — окремим запитом.",
         "properties": {
           "height": {
             "title": "Height",

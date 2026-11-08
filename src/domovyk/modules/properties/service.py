@@ -23,7 +23,6 @@ from domovyk.core.errors import (
     Conflict,
     ContactsInText,
     DuplicateAddress,
-    HasOpenLease,
     InvalidInput,
     NotFound,
     OwnershipNotVerified,
@@ -122,7 +121,7 @@ class PropertiesConfig:
     listing_min_completeness: int = 40
     # Місто за замовчуванням, коли клієнт його не передав (ADR 0008).
     default_city: str = "lviv"
-    # Фото об'єкта (FR-PRP-9).
+    # Фото об'єкта (FR-PRP-10).
     max_photos: int = 15
     max_photo_bytes: int = 15 * 1024 * 1024
 
@@ -155,7 +154,7 @@ class PropertiesService:
         self._config = config
         self._notifier = notifier
         self._images = images
-        self._delete_guard: Callable[[PropertyOut], Awaitable[bool]] | None = None
+        self._release: Callable[[PropertyOut], Awaitable[bool]] | None = None
 
     # ----------------------------------------------------------------- адреси
 
@@ -350,30 +349,36 @@ class PropertiesService:
             return await self._must_get(repo, property_id)
 
     async def delete_property(self, telegram_uid: int, property_id: uuid.UUID) -> None:
-        """Видалити об'єкт разом із перевірками власності та їхніми документами.
+        """Видалити об'єкт разом із перевірками власності, документами й фото (FR-PRP-9).
 
         Перевірку, що чекає на модератора, теж знімаємо: вона зникає з черги.
-        Слід лишається в audit_log (адреса не пишеться — лише ID і статус).
-
-        TODO(M3): заборонити, поки є живе оголошення чи оренда (через їхні service.py).
+        Жива оренда — HasOpenLease; скасовані оренди стираються. Якщо була завершена
+        оренда, об'єкт архівується: зникає у власника, а картка оренди з адресою
+        лишається учасникам. Слід — в audit_log (лише ID і статус, без адреси).
         """
         user = await self._users.require_active(telegram_uid)
         async with self._tx.begin() as tx:
             prop = await self._owned(self._repo(tx), property_id, user.id)
-        if self._delete_guard is not None and await self._delete_guard(prop):
-            raise HasOpenLease("На об'єкті є оренда")
+        archive = await self._release(prop) if self._release is not None else False
         async with self._tx.begin() as tx:
             repo = self._repo(tx)
             docs = await repo.all_documents_of_property(property_id)
             photos = await repo.list_photos(property_id)
-            await repo.delete_property(property_id)
+            if archive:
+                await repo.archive_property(property_id, self._clock.now())
+            else:
+                await repo.delete_property(property_id)
             await self._moderation.audit(
                 tx,
                 user.id,
                 AuditAction.PROPERTY_DELETE,
                 "property",
                 str(property_id),
-                {"ownership_status": prop.ownership_status.value, "documents": len(docs)},
+                {
+                    "ownership_status": prop.ownership_status.value,
+                    "documents": len(docs),
+                    "archived": archive,
+                },
             )
         for key in [d.storage_key for d in docs] + [p.storage_key for p in photos]:
             await self._delete_file(key)
@@ -412,7 +417,10 @@ class PropertiesService:
         async with self._tx.begin() as tx:
             repo = self._repo(tx)
             property_id = await repo.property_id_of_unit(unit_id)
-            return await repo.get_property(property_id) if property_id else None
+            if property_id is None:
+                return None
+            # Архівований об'єкт теж: картка завершеної оренди показує адресу.
+            return await repo.get_property(property_id, include_archived=True)
 
     async def verified_owner_name(self, property_id: uuid.UUID) -> str | None:
         """ПІБ власника з довідки (owner_name_in_doc) — для звірки з підписом договору.
@@ -425,9 +433,12 @@ class PropertiesService:
             return None
         return v.owner_name_in_doc
 
-    def set_delete_guard(self, guard: Callable[[PropertyOut], Awaitable[bool]]) -> None:
-        """Модуль оренд каже, чи є на об'єкті жива оренда (без циклічних імпортів)."""
-        self._delete_guard = guard
+    def set_release_hook(self, hook: Callable[[PropertyOut], Awaitable[bool]]) -> None:
+        """Модуль оренд звільняє об'єкт перед видаленням (без циклічних імпортів).
+
+        Кидає HasOpenLease, якщо оренда жива; True — треба архівувати, а не стирати.
+        """
+        self._release = hook
 
     async def require_verified_owner(
         self, user_id: uuid.UUID, property_id: uuid.UUID
@@ -764,7 +775,7 @@ class PropertiesService:
 
     # --------------------------------------------------------------- службове
 
-    # ------------------------------------------------------- фото (FR-PRP-9)
+    # ------------------------------------------------------- фото (FR-PRP-10)
 
     async def photos(self, telegram_uid: int, property_id: uuid.UUID) -> list[PhotoOut]:
         user = await self._users.require_active(telegram_uid)

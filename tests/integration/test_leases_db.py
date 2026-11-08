@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from datetime import date
 from decimal import Decimal
 
@@ -191,3 +192,59 @@ async def test_termination_db(
     it_clock.advance(timedelta(days=150))  # 2027-04-04
     assert await s.leases.finish_due() == 1
     assert (await s.leases.get(OWNER, lease.id)).status is LeaseStatus.ENDED
+
+
+async def test_delete_property_with_past_leases_db(services: Services, engine: AsyncEngine) -> None:
+    """FR-PRP-9 на справжній БД: скасована оренда не блокує видалення (зовнішній ключ),
+    а з завершеною об'єкт архівується, і адресу можна додати знову."""
+    s = services
+    data = await _setup(s, engine)
+    lease, invite = await s.leases.create_lease(OWNER, data)
+    await s.leases.accept_invite(TENANT, invite.token)
+    await s.leases.cancel(OWNER, lease.id)
+    await s.properties.delete_property(OWNER, data.property_id)
+    async with engine.connect() as conn:
+        for table in ("leases", "properties", "units"):
+            assert await conn.scalar(text(f"SELECT count(*) FROM {table}")) == 0, table  # noqa: S608
+
+    data = await _setup_again(s, engine)
+    lease, invite = await s.leases.create_lease(OWNER, data)
+    await s.leases.accept_invite(TENANT, invite.token)
+    async with engine.begin() as conn:
+        await conn.execute(text("UPDATE leases SET status='ended' WHERE id=:i"), {"i": lease.id})
+    await s.properties.delete_property(OWNER, data.property_id)
+    assert await s.properties.list_mine(OWNER) == []
+    assert (await s.leases.get(TENANT, lease.id)).status is LeaseStatus.ENDED
+    await _setup_again(s, engine)  # та сама адреса — новий об'єкт (частковий індекс)
+    async with engine.connect() as conn:
+        assert await conn.scalar(text("SELECT count(*) FROM properties")) == 2
+
+
+async def _setup_again(s: Services, engine: AsyncEngine) -> LeaseCreate:
+    prop = await s.properties.create_property(
+        OWNER,
+        PropertyCreate(
+            kind=PropertyKind.APARTMENT,
+            address=AddressIn(street="вул. Зелена", house_number="40"),
+            apartment="7",
+            rooms=2,
+        ),
+    )
+    async with engine.begin() as conn:
+        await conn.execute(
+            text("UPDATE properties SET ownership_status = 'verified' WHERE id = :id"),
+            {"id": prop.id},
+        )
+    return _setup_data(prop.id)
+
+
+def _setup_data(property_id: uuid.UUID) -> LeaseCreate:
+    return LeaseCreate(
+        property_id=property_id,
+        start_date=date(2026, 12, 1),
+        months=11,
+        rent_amount=15000,
+        rent_due_day=1,
+        pay_method=PayMethod.CARD,
+        pay_details=PayDetailsIn(card="4111111111111111", recipient_name="Тарас Шевченко"),
+    )

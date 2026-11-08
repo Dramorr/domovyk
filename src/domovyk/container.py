@@ -94,7 +94,7 @@ def wire_contracts(leases: LeasesService, contracts: ContractsService) -> None:
 def wire_guards(users: UsersService, properties: PropertiesService, leases: LeasesService) -> None:
     """Заборони видаляти акаунт і об'єкт з живою орендою — без циклічних імпортів модулів."""
     users.set_delete_guard(leases.has_open_leases)
-    properties.set_delete_guard(leases.has_open_lease_on_property)
+    properties.set_release_hook(leases.release_property)
 
 
 def make_geocoder(settings: Settings) -> Geocoder:
