@@ -158,7 +158,7 @@ export function AgreementSheet({
             </span>
           )}
           <button className="icon-button" aria-label={t("ab_close")} onClick={onClose}>
-            ✕
+            <Icon name="close" size={20} />
           </button>
         </div>
         {p && (

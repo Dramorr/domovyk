@@ -148,7 +148,7 @@ function PhotoViewer({
         ))}
       </div>
       <button type="button" className="photo-close" aria-label={t("ph_close")} onClick={onClose}>
-        ✕
+        <Icon name="close" size={22} />
       </button>
       <Dots count={photos.length} index={index} />
       {photos.length > 1 && (
@@ -237,7 +237,7 @@ export function PhotoManager({
                   title={t("ph_make_cover")}
                   onClick={() => act(() => api.coverPhoto(propertyId, p.id))}
                 >
-                  ★
+                  <Icon name="star" size={18} />
                 </button>
               )}
               <button

@@ -37,11 +37,12 @@ function contractError(e: unknown): string {
 function SignatureLine({ party }: { party: ContractParty }) {
   const sig = party.signature;
   const state = sig ? sig.state : "none";
-  const icon = state === "accepted" ? "✅" : state === "review" ? "⏳" : state === "rejected" ? "❌" : "✍️";
+  const icon = state === "accepted" ? "check" : state === "review" ? "clock" : state === "rejected" ? "close" : "pen";
   return (
     <div className="unit">
-      <span>
-        {icon} {party.legal_name ?? party.display_name}
+      <span className={`with-icon sig-${state}`}>
+        <Icon name={icon} size={18} />
+        {party.legal_name ?? party.display_name}
       </span>
       <span className="hint small">{k(`ct_sig_${state}`)}</span>
     </div>

@@ -17,7 +17,14 @@ type IconName =
   | "edit"
   | "send"
   | "swap"
-  | "more";
+  | "more"
+  | "close"
+  | "clock"
+  | "star"
+  | "photo"
+  | "pen"
+  | "link"
+  | "upload";
 
 const PATHS: Record<IconName, string> = {
   home: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z",
@@ -36,6 +43,13 @@ const PATHS: Record<IconName, string> = {
   edit: "M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4",
   send: "M4 12 20 4l-6 16-2.5-6.5z",
   swap: "M7 7h12l-3-3M17 17H5l3 3",
+  close: "M6 6l12 12M18 6 6 18",
+  clock: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7.5V12l3 2",
+  star: "m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z",
+  photo: "M4 6h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zM3 16l5-5 4 4 3-3 6 6M15.5 9.5v.01",
+  pen: "M4 20l1-4L16 5l3 3L8 19zM14 7l3 3",
+  link: "M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1",
+  upload: "M12 16V4M7 9l5-5 5 5M5 20h14",
   more: "M6.5 12a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zM13.5 12a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zM20.5 12a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z",
 };
 

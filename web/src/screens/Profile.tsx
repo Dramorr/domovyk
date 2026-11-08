@@ -94,7 +94,9 @@ export function Profile({
     <Screen onBack={onBack}>
       <h1>{t("prof_title")}</h1>
       <div className="chips">
-        {user.has_phone && <Chip tone="ok">✓ {t("prof_phone_ok")}</Chip>}
+        {user.has_phone && <Chip tone="ok">
+            <Icon name="check" size={14} /> {t("prof_phone_ok")}
+          </Chip>}
         {user.role !== "user" && <Chip tone="warn">{t(`role_${user.role}`)}</Chip>}
       </div>
 

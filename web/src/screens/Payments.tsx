@@ -135,7 +135,7 @@ function PaySheet({
         <div className="sheet-head">
           <h2>{t("pay_title_for", { period: periodLabel(charge) })}</h2>
           <button className="icon-button" aria-label={t("ab_close")} onClick={onClose}>
-            ✕
+            <Icon name="close" size={20} />
           </button>
         </div>
         {!info && !error && <div className="skeleton" style={{ height: 180 }} />}
@@ -213,7 +213,7 @@ function ReceiptSheet({ payment, onClose }: { payment: PaymentItem; onClose: () 
         <div className="sheet-head">
           <h2>{t("pay_receipt")}</h2>
           <button className="icon-button" aria-label={t("ab_close")} onClick={onClose}>
-            ✕
+            <Icon name="close" size={20} />
           </button>
         </div>
         {!file && !note && <div className="skeleton pdf-skeleton" />}

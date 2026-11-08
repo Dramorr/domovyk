@@ -208,10 +208,24 @@ export function errorText(e: unknown): string {
 }
 
 /** Адреса об'єкта для показу власнику (повна: вона його). */
+// Тип вулиці скорочуємо, як прийнято в адресах: «вулиця Шевченка» → «вул. Шевченка».
+const STREET_TYPES: [RegExp, string][] = [
+  [/(^|\s)вулиця(?=\s|$)/i, "$1вул."],
+  [/(^|\s)проспект(?=\s|$)/i, "$1просп."],
+  [/(^|\s)провулок(?=\s|$)/i, "$1пров."],
+  [/(^|\s)бульвар(?=\s|$)/i, "$1бульв."],
+  [/(^|\s)площа(?=\s|$)/i, "$1пл."],
+];
+
+export function shortStreet(street: string): string {
+  return STREET_TYPES.reduce((s, [re, short]) => s.replace(re, short), street);
+}
+
 export function formatAddress(p: { street: string; house_number: string; apartment?: string | null }): string {
+  const street = shortStreet(p.street);
   return p.apartment
-    ? t("address_apt", { street: p.street, house: p.house_number, apartment: p.apartment })
-    : t("address_house", { street: p.street, house: p.house_number });
+    ? t("address_apt", { street, house: p.house_number, apartment: p.apartment })
+    : t("address_house", { street, house: p.house_number });
 }
 
 export function roomsText(rooms: number): string {

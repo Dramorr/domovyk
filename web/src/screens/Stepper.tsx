@@ -1,11 +1,12 @@
 // Покрокові дії (створення об'єкта й подібне) — той самий слайдер, що на вході (Onboarding):
-// крапки прогресу, анімований перехід, свайп назад, «Пропустити» для необов'язкових кроків.
+// крапки прогресу, анімований перехід, свайп назад. На кожному кроці Домовик визирає
+// з-за кнопки щоразу з іншого місця — збоку від крапок, щоб не закривати форму.
 
 import { useEffect, useRef, useState, type ReactNode, type TouchEvent } from "react";
 
 import { t } from "../i18n";
-import { Icon } from "../icons";
-import { Screen } from "../ui";
+import { Icon, type IconName } from "../icons";
+import { BRAND, Screen } from "../ui";
 
 export type Step = {
   key: string;
@@ -13,12 +14,22 @@ export type Step = {
   text?: string;
   content: ReactNode;
   /** Головна кнопка внизу. Немає — крок іде далі сам (вибір зі списку). */
-  action?: { label: string; onClick: () => void; disabled?: boolean; final?: boolean; secondary?: boolean };
-  /** Необов'язковий крок: «Пропустити» вгорі й підказка під кнопкою. */
-  skip?: { onClick: () => void; note?: string };
+  action?: {
+    label: string;
+    onClick: () => void;
+    disabled?: boolean;
+    /** Останній крок: без стрілки, можна з іконкою. */
+    final?: boolean;
+    /** Другорядна дія (напр. «Пропустити»): контурна кнопка. */
+    secondary?: boolean;
+    icon?: IconName;
+  };
 };
 
 const SWIPE_PX = 48;
+
+/** Де визирає Домовик: збоку від крапок, по черзі ліворуч і праворуч. */
+const PEEK = ["peek-1", "peek-2", "peek-3", "peek-4"];
 
 /** Неактивні кроки недоступні з клавіатури. Типи React 18 ще не знають `inert`. */
 function inert(on: boolean): object {
@@ -61,18 +72,10 @@ export function Stepper({
   }
 
   if (!step) return null;
+  const action = step.action;
   return (
     <Screen onBack={back} title={title}>
       <div className="intro stepper" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-        <div className="intro-top stepper-top">
-          <span className="hint small">{t("wiz_step", { n: String(at + 1), total: String(steps.length) })}</span>
-          {step.skip && (
-            <button className="link" onClick={step.skip.onClick}>
-              {t("wiz_skip")}
-            </button>
-          )}
-        </div>
-
         <div
           className="intro-viewport"
           // Запасний захист для старих WebView без overflow: clip: браузер прокручує
@@ -111,17 +114,20 @@ export function Stepper({
             ))}
           </div>
           {error && <p className="error">{error}</p>}
-          {step.action && (
-            <button
-              className={step.action.secondary ? "button secondary" : "button"}
-              disabled={step.action.disabled}
-              onClick={step.action.onClick}
-            >
-              {step.action.label}
-              {!step.action.final && !step.action.secondary && !step.action.disabled && <Icon name="chevron" size={20} />}
-            </button>
-          )}
-          {step.skip?.note && <p className="hint small center-text">{step.skip.note}</p>}
+          <div className="stepper-action">
+            <img key={at} className={`peek ${PEEK[at % PEEK.length]}`} src={`${BRAND}mascot.svg`} alt="" />
+            {action && (
+              <button
+                className={action.secondary ? "button outline" : "button"}
+                disabled={action.disabled}
+                onClick={action.onClick}
+              >
+                {action.icon && <Icon name={action.icon} size={20} />}
+                {action.label}
+                {!action.final && !action.disabled && <Icon name="chevron" size={20} />}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </Screen>

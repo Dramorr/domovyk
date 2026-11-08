@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 
 import { api, type Photo, type Property, type PropertyDetails } from "../api/client";
+import { Icon } from "../icons";
 import { t, type TextKey } from "../i18n";
 import { PROFILE_SECTIONS, type FieldSpec } from "../profileSpec";
 import { PHOTO_MAX, PhotoManager, PhotoSlider } from "./Photos";
@@ -146,7 +147,7 @@ function Field({ spec, value, onChange }: { spec: FieldSpec; value: unknown; onC
               const on = !!selected?.includes(o);
               return (
                 <button key={o} type="button" className={`chip${on ? " active" : ""}`} aria-pressed={on} onClick={() => toggle(o)}>
-                  {on && "✓ "}
+                  {on && <Icon name="check" size={16} />}
                   {label(`pf_${spec.key}__${o}`)}
                 </button>
               );

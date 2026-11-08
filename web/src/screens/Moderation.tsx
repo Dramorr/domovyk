@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { api, type QueueItem, type SignatureCase, type VerificationCase } from "../api/client";
 import { t, type TextKey } from "../i18n";
+import { Icon } from "../icons";
 import {
   Chip,
   errorCode,
@@ -17,6 +18,15 @@ import {
   roomsText,
   Screen,
 } from "../ui";
+
+/** Збіг / розбіжність поля — іконкою замість ✓/✗. */
+function Match({ ok }: { ok: boolean }) {
+  return (
+    <span className={`match ${ok ? "ok" : "bad"}`} aria-label={t(ok ? "mod_match_yes" : "mod_match_no")}>
+      <Icon name={ok ? "check" : "close"} size={16} />
+    </span>
+  );
+}
 
 export function ModerationQueue({
   onBack,
@@ -139,7 +149,7 @@ export function ModerationCase({ vid, onBack }: { vid: string; onBack: () => voi
         <h2>{t("mod_docs", { n: String(v.documents.length) })}</h2>
         {v.documents.map((d) => (
           <p key={d.id} className="small">
-            📄 {d.filename} {d.deleted && <span className="hint">({t("own_file_deleted")})</span>}
+            <Icon name="doc" size={16} /> {d.filename} {d.deleted && <span className="hint">({t("own_file_deleted")})</span>}
           </p>
         ))}
         {v.documents.some((d) => !d.deleted) && (
@@ -153,6 +163,7 @@ export function ModerationCase({ vid, onBack }: { vid: string; onBack: () => voi
               })
             }
           >
+            <Icon name="send" size={20} />
             {t("mod_send_docs")}
           </button>
         )}
@@ -184,6 +195,7 @@ export function ModerationCase({ vid, onBack }: { vid: string; onBack: () => voi
               })
             }
           >
+            <Icon name="check" size={20} />
             {t("mod_approve")}
           </button>
           <button className="button secondary" disabled={busy} onClick={() => setRejecting(true)}>
@@ -321,14 +333,14 @@ export function SignatureReview({ sid, onBack }: { sid: string; onBack: () => vo
         <div className="unit">
           <span className="hint small">{t("mod_sig_in_contract")}</span>
           <span>
-            {item.expected_name ?? "—"} {item.contract_name_match ? "✓" : "✗"}
+            {item.expected_name ?? "—"} <Match ok={item.contract_name_match} />
           </span>
         </div>
         {item.party_role === "landlord" && (
           <div className="unit">
             <span className="hint small">{t("mod_sig_in_doc")}</span>
             <span>
-              {item.owner_name_in_doc ?? "—"} {item.owner_doc_match === null ? "" : item.owner_doc_match ? "✓" : "✗"}
+              {item.owner_name_in_doc ?? "—"} {item.owner_doc_match != null && <Match ok={item.owner_doc_match} />}
             </span>
           </div>
         )}

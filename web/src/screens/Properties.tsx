@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { api, ApiFailure, type AddressCandidate, type Ownership, type Property, type PropertyCreate, type City } from "../api/client";
+import { api, ApiFailure, type AddressCandidate, type Ownership, type Photo, type Property, type PropertyCreate, type City } from "../api/client";
 import { botLink, DIIA_URL } from "../config";
 import { t, type TextKey } from "../i18n";
 import { confirm, openLink, openTelegramLink, type WebApp } from "../telegram";
@@ -21,6 +21,7 @@ import {
   roomsText,
   Screen,
 } from "../ui";
+import { PhotoSlider } from "./Photos";
 import { CompletenessBar, PublishHint } from "./PropertyProfile";
 import { Stepper, type Step } from "./Stepper";
 
@@ -171,7 +172,8 @@ export function NewProperty({ onBack, onCreated }: { onBack: () => void; onCreat
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<Property | null>(null);
-  const [backToConfirm, setBackToConfirm] = useState(false); // прийшли по довідку з підтвердження
+  // «Додати довідку зараз» з підсумку: після вибору файлу повертаємось одразу до підсумку.
+  const [backToConfirm, setBackToConfirm] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   // ADR 0008: місто з довідника. Вибір показуємо, лише коли активних міст більше одного.
   const [cities, setCities] = useState<City[]>([]);
@@ -197,12 +199,27 @@ export function NewProperty({ onBack, onCreated }: { onBack: () => void; onCreat
     setError(null);
     setAt(i);
   };
+  const LAST = 3;
+  const afterDoc = () => {
+    go(backToConfirm ? LAST : 1);
+    setBackToConfirm(false);
+  };
+
+  function pick(a: AddressCandidate) {
+    set({ address: a, manual: false, street: a.street, house: a.house_number });
+    setFound(null);
+    go(2);
+  }
 
   async function search() {
+    if (query.trim().length < 3 || busy) return;
     setBusy(true);
     setError(null);
     try {
-      setFound(await api.searchAddress(query, city));
+      const result = await api.searchAddress(query, city);
+      setFound(result);
+      // Єдиний збіг — не змушуємо тицяти в нього: це і є адреса.
+      if (result.length === 1 && result[0]) pick(result[0]);
     } catch (e) {
       setError(errorText(e));
     } finally {
@@ -282,6 +299,8 @@ export function NewProperty({ onBack, onCreated }: { onBack: () => void; onCreat
     house_number: draft.house,
     apartment: draft.kind === "apartment" ? draft.apartment : null,
   });
+  const choosing = !draft.manual && !!found && found.length > 1;
+  const addressReady = draft.manual ? draft.street.trim().length >= 2 && !!draft.house.trim() : !!draft.address && !choosing;
 
   const steps: Step[] = [
     {
@@ -294,138 +313,147 @@ export function NewProperty({ onBack, onCreated }: { onBack: () => void; onCreat
             <li>{t("own_step1")}</li>
             <li>{t("prp_doc_order")}</li>
           </ol>
-          {doc ? (
-            <div className="doc-picked">
-              <span>📄 {doc.name}</span>
-              <button className="link" onClick={() => fileInput.current?.click()}>
-                {t("prp_doc_replace")}
-              </button>
-            </div>
-          ) : (
-            <button className="button secondary" onClick={() => fileInput.current?.click()}>
-              <Icon name="doc" size={20} />
-              {t("prp_doc_pick")}
-            </button>
-          )}
+          <button type="button" className={`file-field${doc ? " picked" : ""}`} onClick={() => fileInput.current?.click()}>
+            <span className="file-field-icon">
+              <Icon name={doc ? "check" : "upload"} size={22} />
+            </span>
+            <span className="file-field-body">
+              <span className="file-field-title">{doc ? doc.name : t("prp_doc_pick")}</span>
+              <span className="file-field-sub">
+                {doc ? t("prp_doc_replace") : t("own_file_limits", { mb: String(DOC_MAX_MB) })}
+              </span>
+            </span>
+          </button>
           <input ref={fileInput} type="file" accept="application/pdf,.pdf" hidden onChange={onFile} />
-          <p className="hint small">{t("own_file_limits", { mb: String(DOC_MAX_MB) })}</p>
-          <p className="hint small">{t("prp_doc_later")}</p>
         </section>
       ),
-      // Файлу ще немає — головна кнопка «Додам пізніше», а не сіра «Далі».
       action: doc
-        ? { label: t("next"), onClick: () => go(backToConfirm ? 4 : 1) }
-        : { label: t("prp_doc_skip"), secondary: true, onClick: () => go(backToConfirm ? 4 : 1) },
-    },
-    {
-      key: "kind",
-      title: t("prp_kind_question"),
-      content: (
-        <div className="choices">
-          {(["apartment", "house"] as const).map((k) => (
-            <button
-              key={k}
-              className={`choice-big${draft.kind === k && at > 1 ? " active" : ""}`}
-              onClick={() => {
-                set({ kind: k });
-                go(2);
-              }}
-            >
-              <span className="row-icon">
-                <Icon name={k === "apartment" ? "building" : "home"} />
-              </span>
-              {t(k === "apartment" ? "prp_kind_apartment_plain" : "prp_kind_house_plain")}
-            </button>
-          ))}
-        </div>
-      ),
+        ? { label: t("next"), onClick: afterDoc }
+        : { label: t("wiz_skip"), secondary: true, onClick: afterDoc },
     },
     {
       key: "address",
       title: t("prp_step_address_title"),
-      content: draft.manual ? (
-        <section className="card">
-          <p className="hint small">{t("prp_manual_hint")}</p>
-          <label className="field">
-            {t("prp_street")}
-            <input className="input" value={draft.street} maxLength={100} onChange={(e) => set({ street: e.target.value })} />
-          </label>
-          <label className="field">
-            {t("prp_house")}
-            <input className="input" value={draft.house} maxLength={20} onChange={(e) => set({ house: e.target.value })} />
-          </label>
-          <button className="link" onClick={() => set({ manual: false })}>
-            {t("prp_back_to_search")}
-          </button>
-        </section>
-      ) : (
-        <section className="card">
-          {cities.length > 1 && (
-            <div className="field">
-              {t("prp_city")}
-              <div className="chips">
-                {cities.map((c) => (
-                  <button
-                    key={c.code}
-                    className={`chip${c.code === city ? " active" : ""}`}
-                    aria-pressed={c.code === city}
-                    onClick={() => {
-                      setCity(c.code);
-                      setFound(null);
-                    }}
-                  >
-                    {c.name}
-                  </button>
-                ))}
+      content: (
+        <>
+          <div className="segmented" role="radiogroup" aria-label={t("prp_kind_question")}>
+            {(["apartment", "house"] as const).map((kind) => (
+              <button
+                key={kind}
+                type="button"
+                role="radio"
+                aria-checked={draft.kind === kind}
+                className={draft.kind === kind ? "active" : ""}
+                onClick={() => set({ kind })}
+              >
+                <Icon name={kind === "apartment" ? "building" : "home"} size={20} />
+                {t(kind === "apartment" ? "prp_kind_apartment_plain" : "prp_kind_house_plain")}
+              </button>
+            ))}
+          </div>
+
+          {draft.manual ? (
+            <section className="card">
+              <p className="hint small">{t("prp_manual_hint")}</p>
+              <label className="field">
+                {t("prp_street")}
+                <input className="input" value={draft.street} maxLength={100} onChange={(e) => set({ street: e.target.value, address: null })} />
+              </label>
+              <label className="field">
+                {t("prp_house")}
+                <input className="input" value={draft.house} maxLength={20} onChange={(e) => set({ house: e.target.value, address: null })} />
+              </label>
+              <button className="button ghost small" onClick={() => set({ manual: false })}>
+                <Icon name="search" size={18} />
+                {t("prp_back_to_search")}
+              </button>
+            </section>
+          ) : (
+            <section className="card">
+              {cities.length > 1 && (
+                <div className="field">
+                  {t("prp_city")}
+                  <div className="chips">
+                    {cities.map((c) => (
+                      <button
+                        key={c.code}
+                        className={`chip${c.code === city ? " active" : ""}`}
+                        aria-pressed={c.code === city}
+                        onClick={() => {
+                          setCity(c.code);
+                          setFound(null);
+                        }}
+                      >
+                        {c.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <label className="field" htmlFor="prp-search">
+                {t("prp_street_label")}
+              </label>
+              <div className={`search-field${found && found.length > 1 ? " open" : ""}`}>
+                <input
+                  id="prp-search"
+                  className="input"
+                  type="search"
+                  enterKeyHint="search"
+                  value={query}
+                  maxLength={120}
+                  placeholder={t("prp_street_placeholder")}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    setFound(null);
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && void search()}
+                />
+                <button
+                  type="button"
+                  className="search-go"
+                  aria-label={t("prp_search")}
+                  disabled={busy || query.trim().length < 3}
+                  onClick={() => void search()}
+                >
+                  {busy ? <span className="spinner" /> : <Icon name="search" size={20} />}
+                </button>
+                {found && found.length > 1 && (
+                  <div className="suggest" role="listbox" aria-label={t("prp_found_question")}>
+                    {found.map((a) => (
+                      <button
+                        key={`${a.street}|${a.house_number}|${a.place_id ?? ""}`}
+                        role="option"
+                        aria-selected={draft.address === a}
+                        className="suggest-item"
+                        onClick={() => pick(a)}
+                      >
+                        <span className="row-title">{formatAddress(a)}</span>
+                        {a.district && <span className="row-sub">{a.district}</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
+              {found && found.length > 1 && <p className="hint small">{t("prp_found_question")}</p>}
+              {found && found.length === 0 && <p className="hint">{t("prp_not_found")}</p>}
+              {draft.address && !found && (
+                <p className="picked-address">
+                  <Icon name="check" size={18} />
+                  {formatAddress(draft.address)}
+                </p>
+              )}
+              <button
+                className="button ghost small"
+                onClick={() => set({ manual: true, address: null, street: draft.address ? draft.street : "", house: draft.address ? draft.house : "" })}
+              >
+                <Icon name="pen" size={18} />
+                {t("prp_manual")}
+              </button>
+            </section>
           )}
-          <label className="field">
-            {t("prp_street_label")}
-            <input
-              className="input"
-              value={query}
-              maxLength={120}
-              placeholder={t("prp_street_placeholder")}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && query.trim().length >= 3 && void search()}
-            />
-          </label>
-          <button className="button" onClick={search} disabled={busy || query.trim().length < 3}>
-            {busy ? t("prp_searching") : t("prp_search")}
-          </button>
-          {found && found.length > 0 && <p className="small">{t("prp_found_question")}</p>}
-          {found?.map((a) => (
-            <button
-              key={`${a.street}|${a.house_number}|${a.place_id ?? ""}`}
-              className="row"
-              onClick={() => {
-                set({ address: a, manual: false, street: a.street, house: a.house_number });
-                go(3);
-              }}
-            >
-              <span className="row-title">{formatAddress(a)}</span>
-              {a.district && <span className="row-sub">{a.district}</span>}
-            </button>
-          ))}
-          {found && found.length === 0 && <p className="hint">{t("prp_not_found")}</p>}
-          {found && (
-            <button className="link" onClick={() => set({ manual: true })}>
-              {t("prp_manual")}
-            </button>
-          )}
-        </section>
+        </>
       ),
-      action: draft.manual
-        ? {
-            label: t("next"),
-            disabled: draft.street.trim().length < 2 || !draft.house.trim(),
-            onClick: () => {
-              set({ address: null });
-              go(3);
-            },
-          }
-        : undefined,
+      action: addressReady ? { label: t("next"), onClick: () => go(2) } : undefined,
     },
     {
       key: "details",
@@ -450,9 +478,16 @@ export function NewProperty({ onBack, onCreated }: { onBack: () => void; onCreat
             </label>
           </div>
           <p className="field">{t("prp_rooms")}</p>
-          <div className="chips">
+          <div className="segmented rooms" role="radiogroup" aria-label={t("prp_rooms")}>
             {[0, 1, 2, 3, 4, 5].map((n) => (
-              <button key={n} className={`chip${draft.rooms === n ? " active" : ""}`} onClick={() => set({ rooms: n })}>
+              <button
+                key={n}
+                type="button"
+                role="radio"
+                aria-checked={draft.rooms === n}
+                className={draft.rooms === n ? "active" : ""}
+                onClick={() => set({ rooms: n })}
+              >
                 {n === 0 ? t("rooms_studio") : n === 5 ? "5+" : n}
               </button>
             ))}
@@ -463,31 +498,40 @@ export function NewProperty({ onBack, onCreated }: { onBack: () => void; onCreat
           </label>
         </section>
       ),
-      action: { label: t("next"), disabled: draft.kind === "apartment" && !draft.apartment.trim(), onClick: () => go(4) },
+      action: { label: t("next"), disabled: draft.kind === "apartment" && !draft.apartment.trim(), onClick: () => go(LAST) },
     },
     {
       key: "confirm",
       title: t("prp_confirm_title"),
       content: (
         <section className="card">
-          <p className="row-title">
-            {draft.kind === "house" ? "🏡" : "🏢"} {summary}
+          <div className="summary-head">
+            <span className="row-icon">
+              <Icon name={draft.kind === "house" ? "home" : "building"} />
+            </span>
+            <div>
+              <p className="row-title">{summary}</p>
+              <p className="hint small">
+                {roomsText(draft.rooms)}
+                {draft.area && ` · ${t("sqm", { area: draft.area })}`}
+                {draft.entrance && ` · ${t("prp_entrance")} ${draft.entrance}`}
+                {draft.floor && ` · ${t("prp_floor")} ${draft.floor}`}
+              </p>
+            </div>
+          </div>
+          <p className={`summary-doc${doc ? " ok" : ""}`}>
+            <Icon name={doc ? "doc" : "alert"} size={18} />
+            <span>{doc ? t("prp_confirm_doc", { name: doc.name }) : t("prp_confirm_no_doc")}</span>
           </p>
-          <p className="hint">
-            {roomsText(draft.rooms)}
-            {draft.area && ` · ${t("sqm", { area: draft.area })}`}
-            {draft.entrance && ` · ${t("prp_entrance")} ${draft.entrance}`}
-            {draft.floor && ` · ${t("prp_floor")} ${draft.floor}`}
-          </p>
-          <p className="small">{doc ? t("prp_confirm_doc", { name: doc.name }) : t("prp_confirm_no_doc")}</p>
-          {!doc && (
+          {!doc && !created && (
             <button
-              className="link"
+              className="button ghost small"
               onClick={() => {
                 setBackToConfirm(true);
                 go(0);
               }}
             >
+              <Icon name="upload" size={18} />
               {t("prp_doc_add_now")}
             </button>
           )}
@@ -495,7 +539,7 @@ export function NewProperty({ onBack, onCreated }: { onBack: () => void; onCreat
       ),
       action: created
         ? { label: t("prp_open_property"), final: true, onClick: () => onCreated(created) }
-        : { label: busy ? t("saving") : t("prp_create"), final: true, disabled: busy, onClick: () => void create() },
+        : { label: busy ? t("saving") : t("prp_create"), final: true, icon: "check", disabled: busy, onClick: () => void create() },
     },
   ];
 
@@ -522,6 +566,7 @@ export function PropertyCard({
   onDeleted: () => void;
 }) {
   const [prop, setProp] = useState<Property | null>(null);
+  const [photos, setPhotos] = useState<Photo[] | null>(null);
   const [edit, setEdit] = useState(false);
   const [form, setForm] = useState({ entrance: "", floor: "", rooms: 1, area: "" });
   const [roomName, setRoomName] = useState("");
@@ -530,6 +575,10 @@ export function PropertyCard({
 
   useEffect(() => {
     api.property(id).then(setProp).catch((e: unknown) => setError(errorText(e)));
+    api
+      .photos(id)
+      .then(setPhotos)
+      .catch(() => setPhotos([]));
   }, [id]);
 
   async function run(action: () => Promise<Property | void>) {
@@ -575,6 +624,13 @@ export function PropertyCard({
 
   return (
     <Screen onBack={onBack}>
+      {photos && photos.length > 0 && <PhotoSlider photos={photos} source={{ kind: "property", id }} />}
+      {photos && photos.length === 0 && (
+        <button type="button" className="photo-empty" onClick={onProfile}>
+          <Icon name="photo" size={28} />
+          <span>{t("prp_card_add_photos")}</span>
+        </button>
+      )}
       <h1 className="left">{formatAddress(prop)}</h1>
       <p className="hint left">
         {roomsText(prop.rooms)}
@@ -603,6 +659,7 @@ export function PropertyCard({
           prop.ownership_status !== "verified" && <p className="hint small">{t("prp_card_verify_hint")}</p>
         )}
         <button className={prop.ownership_status === "verified" ? "button secondary" : "button"} onClick={onOwnership}>
+          <Icon name="shield" size={20} />
           {prop.ownership_status === "unverified" ? t("prp_card_verify") : t("prp_card_verify_status")}
         </button>
         {prop.ownership_status === "verified" && (
@@ -708,6 +765,7 @@ export function PropertyCard({
             })
           }
         >
+          <Icon name="plus" size={20} />
           {t("prp_add_room")}
         </button>
       </section>
@@ -821,7 +879,7 @@ export function OwnershipScreen({ id, webApp, onBack }: { id: string; webApp: We
             </ol>
             <p className="hint small">{t("own_extra")}</p>
             <button className="link" onClick={() => openLink(webApp, DIIA_URL)}>
-              {t("own_open_diia")}
+              <Icon name="link" size={18} /> {t("own_open_diia")}
             </button>
           </section>
 
@@ -829,7 +887,10 @@ export function OwnershipScreen({ id, webApp, onBack }: { id: string; webApp: We
             <h2>{t("own_files", { count: String(draftDocs.length), max: String(own.max_documents) })}</h2>
             {draftDocs.map((d) => (
               <p key={d.id} className="small unit">
-                📄 {d.filename}
+                <span className="with-icon">
+                  <Icon name="doc" size={18} />
+                  {d.filename}
+                </span>
                 <button className="link" disabled={busy} onClick={() => run(() => api.removeDocument(id, d.id))}>
                   {t("delete")}
                 </button>
@@ -841,11 +902,13 @@ export function OwnershipScreen({ id, webApp, onBack }: { id: string; webApp: We
               disabled={busy || draftDocs.length >= own.max_documents}
               onClick={() => fileInput.current?.click()}
             >
+              <Icon name="upload" size={20} />
               {busy ? t("own_uploading") : t("own_add_file")}
             </button>
             <p className="hint small">{t("own_file_limits", { mb: String(own.max_document_mb) })}</p>
             {draftDocs.length > 0 && (
               <button className="button" disabled={busy} onClick={() => run(() => api.submitOwnership(id))}>
+                <Icon name="send" size={20} />
                 {t("own_submit")}
               </button>
             )}

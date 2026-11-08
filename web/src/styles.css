@@ -631,6 +631,27 @@ p {
   border: 1.5px solid var(--line);
 }
 
+.button.ghost:active {
+  background: var(--brand-50);
+}
+
+/* Другорядна дія, яка все ж має бути помітною (напр. «Пропустити»). */
+.button.outline {
+  background: var(--surface);
+  color: var(--brand);
+  border: 1.5px solid var(--brand);
+}
+
+.button.outline:active {
+  background: var(--brand-50);
+}
+
+.button.small {
+  min-height: 44px;
+  padding: 10px 16px;
+  font-size: 15px;
+}
+
 .button.danger {
   background: var(--danger-50);
   color: var(--danger);
@@ -1895,11 +1916,6 @@ label.file-button {
 }
 
 /* ---- Покрокові дії (Stepper): слайдер як на вході, але з формами ---- */
-.stepper-top {
-  align-items: center;
-  justify-content: space-between;
-}
-
 .stepper .intro-track {
   align-items: flex-start;
 }
@@ -1928,18 +1944,6 @@ label.file-button {
   cursor: default;
 }
 
-.doc-picked {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--brand-50);
-  overflow-wrap: anywhere;
-}
-
 /* З нижнім меню (на відміну від входу) кнопка кроку має лишатися над ним. */
 .with-tabs .stepper {
   min-height: calc(100dvh - 156px - env(safe-area-inset-bottom));
@@ -1962,4 +1966,368 @@ label.file-button {
 /* Фокус у полі не має прокручувати слайдер убік (overflow: hidden це дозволяє, clip — ні). */
 .stepper .intro-viewport {
   overflow: clip;
+}
+
+/* Домовик визирає з-за кнопки кроку, щоразу з іншого боку — поруч із крапками, не над формою. */
+.stepper-action {
+  position: relative;
+}
+
+.stepper-action .button {
+  position: relative;
+  z-index: 1;
+}
+
+.peek {
+  position: absolute;
+  bottom: calc(100% - 24px);
+  z-index: 0;
+  width: 76px;
+  height: 76px;
+  pointer-events: none;
+  animation: peek-in 420ms cubic-bezier(0.2, 0.8, 0.3, 1.2) both;
+}
+
+.peek-1 {
+  left: 2%;
+  --peek-rot: -10deg;
+}
+
+.peek-2 {
+  right: 4%;
+  --peek-rot: 12deg;
+}
+
+.peek-3 {
+  left: 15%;
+  --peek-rot: 6deg;
+}
+
+.peek-4 {
+  right: 16%;
+  --peek-rot: -6deg;
+}
+
+@keyframes peek-in {
+  from {
+    transform: translateY(70%) rotate(0deg);
+  }
+  to {
+    transform: translateY(0) rotate(var(--peek-rot));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .peek {
+    animation: none;
+    transform: rotate(var(--peek-rot));
+  }
+}
+
+/* Поле вибору файлу: велике, з пунктиром, обмеження — всередині. */
+.file-field {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 16px;
+  border: 1.5px dashed var(--brand-500);
+  border-radius: var(--radius);
+  background: var(--brand-50);
+  color: var(--text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.file-field:active {
+  background: var(--brand-100);
+}
+
+.file-field.picked {
+  border-style: solid;
+  border-color: var(--brand);
+}
+
+.file-field-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--brand);
+}
+
+.file-field.picked .file-field-icon {
+  background: var(--brand);
+  color: #fff;
+}
+
+.file-field-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.file-field-title {
+  color: var(--brand);
+  font-weight: 700;
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+
+.file-field-sub {
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+/* Перемикач на кілька варіантів в один рядок (тип об'єкта, кількість кімнат). */
+.segmented {
+  display: grid;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  gap: 4px;
+  margin: 8px 0 14px;
+  padding: 4px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+
+.segmented button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 6px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-2);
+  font: 700 15px Manrope, sans-serif;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.segmented button.active {
+  background: var(--surface);
+  color: var(--brand);
+  box-shadow: 0 1px 3px rgb(23 33 28 / 12%);
+}
+
+/* «Студія» ширша за цифри. */
+.segmented.rooms {
+  grid-template-columns: 1.7fr repeat(5, 1fr);
+  grid-auto-flow: row;
+}
+
+.segmented.rooms button {
+  font-size: 14px;
+}
+
+/* Пошук адреси: лупа всередині поля, результати — випадним списком під ним. */
+.search-field {
+  position: relative;
+  margin: 6px 0 10px;
+}
+
+.search-field .input {
+  margin: 0;
+  padding-right: 54px;
+}
+
+.search-field .search-go {
+  height: calc(var(--tap) - 8px);
+}
+
+.search-field .input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.search-field.open .input {
+  border-color: var(--brand-500);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.search-go {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: calc(100% - 8px);
+  border: 0;
+  border-radius: 10px;
+  background: var(--brand);
+  color: #fff;
+  cursor: pointer;
+}
+
+.search-go:disabled {
+  background: var(--surface-2);
+  color: var(--text-3);
+  cursor: default;
+}
+
+/* У потоці, а не absolute: слайдер обрізає все, що виходить за крок. */
+.suggest {
+  max-height: 264px;
+  overflow-y: auto;
+  border: 1.5px solid var(--brand-500);
+  border-top: 0;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  background: var(--surface);
+  box-shadow: 0 10px 24px rgb(23 33 28 / 12%);
+}
+
+.suggest-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.suggest-item:first-child {
+  border-top: 0;
+}
+
+.suggest-item:active {
+  background: var(--brand-50);
+}
+
+.picked-address {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--brand);
+  font-weight: 700;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Підсумок кроку. */
+.summary-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.summary-head p {
+  margin: 0 0 4px;
+}
+
+.summary-doc {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--amber-100);
+  color: var(--amber-700);
+  font-size: 14px;
+}
+
+.summary-doc.ok {
+  background: var(--brand-50);
+  color: var(--brand);
+}
+
+.summary-doc .icon {
+  flex: none;
+  margin-top: 1px;
+}
+
+/* Іконка поруч із текстом у рядку (замість емодзі). */
+.with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.with-icon .icon {
+  flex: none;
+  color: var(--text-2);
+}
+
+.sig-accepted .icon {
+  color: var(--brand);
+}
+
+.sig-rejected .icon {
+  color: var(--danger);
+}
+
+.sig-review .icon {
+  color: var(--amber-700);
+}
+
+.match {
+  display: inline-flex;
+  vertical-align: -3px;
+}
+
+.match.ok {
+  color: var(--brand);
+}
+
+.match.bad {
+  color: var(--danger);
+}
+
+.chip-status .icon,
+.chip .icon {
+  vertical-align: -2px;
+}
+
+/* Картка об'єкта без фото: заглушка веде в анкету, де фото додаються. */
+.photo-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  aspect-ratio: 5 / 2;
+  margin: 8px 0 12px;
+  border: 1.5px dashed var(--brand-500);
+  border-radius: var(--radius);
+  background: var(--brand-50);
+  color: var(--brand);
+  font: 700 15px Manrope, sans-serif;
+  cursor: pointer;
+}
+
+.photo-empty:active {
+  background: var(--brand-100);
 }
