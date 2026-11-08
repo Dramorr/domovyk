@@ -1091,40 +1091,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/properties/{property_id}/rooms": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Add Room */
-        post: operations["add_room_api_v1_properties__property_id__rooms_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/properties/{property_id}/rooms/{unit_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Remove Room */
-        delete: operations["remove_room_api_v1_properties__property_id__rooms__unit_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/register": {
         parameters: {
             query?: never;
@@ -2502,13 +2468,6 @@ export interface components {
             approve: boolean;
             /** Reason */
             reason?: string | null;
-        };
-        /** RoomIn */
-        RoomIn: {
-            /** Area */
-            area?: number | string | null;
-            /** Name */
-            name: string;
         };
         /** SendFilesIn */
         SendFilesIn: {
@@ -5423,77 +5382,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PhotoOut"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    add_room_api_v1_properties__property_id__rooms_post: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path: {
-                property_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RoomIn"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PropertyOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    remove_room_api_v1_properties__property_id__rooms__unit_id__delete: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path: {
-                property_id: string;
-                unit_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PropertyOut"];
                 };
             };
             /** @description Validation Error */

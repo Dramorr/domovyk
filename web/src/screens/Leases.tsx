@@ -335,7 +335,6 @@ export function LeaseForm({
   const [taken, setTaken] = useState<LeaseSummary[]>([]);
   const set = (patch: Partial<Form>) => setF((s) => ({ ...s, ...patch }));
   const term = (patch: Partial<LeaseTerms>) => setF((s) => ({ ...s, terms: { ...s.terms, ...patch } }));
-  const rooms = property?.units.filter((u) => u.kind === "room") ?? [];
 
   useEffect(() => {
     if (!property || lease) return;
@@ -354,11 +353,8 @@ export function LeaseForm({
     setAt(i);
   };
 
-  // Весь об'єкт зайнятий будь-якою орендою; кімната — орендою всього об'єкта або цієї кімнати.
-  const unitName = (id: string | null) => (id ? rooms.find((r) => r.id === id)?.name : undefined);
-  const blocking = taken.find((l) =>
-    f.unitId === null ? true : l.unit_kind === "entire" || l.unit_name === unitName(f.unitId),
-  );
+  // Кімнати поки не здаємо (ADR 0013): будь-яка незавершена оренда займає об'єкт.
+  const blocking = taken[0];
 
   function body(): LeaseConditions {
     const rent = Number(f.rent);
@@ -437,9 +433,7 @@ export function LeaseForm({
           {blocking && (
             <section className="card notice">
               <p>
-                {t(blocking.unit_kind === "entire" || f.unitId === null ? "ls_busy_property" : "ls_busy_room", {
-                  status: k(`ls_status_${blocking.status}`).toLowerCase(),
-                })}
+                {t("ls_busy_property", { status: k(`ls_status_${blocking.status}`).toLowerCase() })}
               </p>
               {onOpenLease && (
                 <button className="button ghost small" onClick={() => onOpenLease(blocking.id)}>
@@ -449,21 +443,10 @@ export function LeaseForm({
               )}
             </section>
           )}
-          {/* Без кімнат вибору немає: зайнятий об'єкт — і заповнювати нічого. */}
-          {!(blocking && rooms.length === 0) && (
+          {/* Зайнятий об'єкт — заповнювати нічого. */}
+          {!blocking && (
           <section className="card">
             {property && <p className="row-title">{formatAddress(property)}</p>}
-            {rooms.length > 0 && (
-              <div className="field">
-                {t("ls_unit")}
-                <Chips<string>
-                  value={f.unitId ?? "entire"}
-                  options={["entire", ...rooms.map((r) => r.id)]}
-                  label={(v) => (v === "entire" ? t("ls_unit_entire") : (rooms.find((r) => r.id === v)?.name ?? ""))}
-                  onChange={(v) => set({ unitId: v === "entire" ? null : v })}
-                />
-              </div>
-            )}
             <label className="field">
               {t("ls_start")}
               <input className="input" type="date" value={f.start} onChange={(e) => set({ start: e.target.value })} />
@@ -675,10 +658,7 @@ export function LeaseForm({
               <span className="row-icon">
                 <Icon name={property.kind === "house" ? "home" : "building"} />
               </span>
-              <div>
-                <p className="row-title">{formatAddress(property)}</p>
-                <p className="hint small">{unitName(f.unitId) ?? t("ls_unit_entire")}</p>
-              </div>
+              <p className="row-title">{formatAddress(property)}</p>
             </div>
           )}
           <dl className="summary-list">
@@ -1070,7 +1050,6 @@ export function LeaseCard({
       </div>
       <h1 className="left">{leaseAddress(l)}</h1>
       <p className="hint left">
-        {l.unit_kind === "entire" ? t("ls_unit_entire") : l.unit_name} ·{" "}
         {t("ls_period", { from: formatDate(l.start_date), to: formatDate(l.end_date) })}
         {open && ` · ${t("ls_left", { n: String(l.months_left) })}`}
       </p>

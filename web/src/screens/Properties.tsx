@@ -569,7 +569,6 @@ export function PropertyCard({
   const [photos, setPhotos] = useState<Photo[] | null>(null);
   const [edit, setEdit] = useState(false);
   const [form, setForm] = useState({ entrance: "", floor: "", rooms: 1, area: "" });
-  const [roomName, setRoomName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -602,7 +601,6 @@ export function PropertyCard({
     );
   }
 
-  const rooms = prop.units.filter((u) => u.kind === "room");
   const startEdit = () => {
     setForm({
       entrance: prop.entrance ?? "",
@@ -729,45 +727,6 @@ export function PropertyCard({
             </button>
           </>
         )}
-      </section>
-
-      <section className="card">
-        <h2>{t("prp_units_title")}</h2>
-        <p className="hint small">{t("prp_units_hint")}</p>
-        <p className="small">• {t("prp_unit_entire")}</p>
-        {rooms.map((u) => (
-          <p key={u.id} className="small unit">
-            • {u.name}
-            {u.area && ` · ${t("sqm", { area: u.area })}`}
-            <button className="link" disabled={busy} onClick={() => run(() => api.removeRoom(id, u.id))}>
-              {t("delete")}
-            </button>
-          </p>
-        ))}
-        <label className="field">
-          {t("prp_room_name")}
-          <input
-            className="input"
-            value={roomName}
-            maxLength={60}
-            placeholder={t("prp_room_placeholder")}
-            onChange={(e) => setRoomName(e.target.value)}
-          />
-        </label>
-        <button
-          className="button secondary"
-          disabled={busy || !roomName.trim()}
-          onClick={() =>
-            run(async () => {
-              const updated = await api.addRoom(id, { name: roomName });
-              setRoomName("");
-              return updated;
-            })
-          }
-        >
-          <Icon name="plus" size={20} />
-          {t("prp_add_room")}
-        </button>
       </section>
 
       {error && <p className="error">{error}</p>}

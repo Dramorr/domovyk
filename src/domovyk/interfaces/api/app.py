@@ -86,7 +86,6 @@ from domovyk.modules.properties.service import (
     PropertyOut,
     PropertyUpdate,
     QueueItem,
-    RoomIn,
     VerificationCase,
 )
 from domovyk.modules.users.service import AppMode, ConsentInfo, TenantProfile, UserOut
@@ -352,14 +351,6 @@ def create_app(
         auth: Auth, property_id: uuid.UUID, body: PropertyDetails
     ) -> PropertyOut:
         return await svc.properties.update_profile(auth.user.id, property_id, body)
-
-    @app.post("/api/v1/properties/{property_id}/rooms", status_code=status.HTTP_201_CREATED)
-    async def add_room(auth: Auth, property_id: uuid.UUID, body: RoomIn) -> PropertyOut:
-        return await svc.properties.add_room(auth.user.id, property_id, body)
-
-    @app.delete("/api/v1/properties/{property_id}/rooms/{unit_id}")
-    async def remove_room(auth: Auth, property_id: uuid.UUID, unit_id: uuid.UUID) -> PropertyOut:
-        return await svc.properties.remove_room(auth.user.id, property_id, unit_id)
 
     # ------------------------------------------------- фото об'єкта (FR-PRP-10)
 

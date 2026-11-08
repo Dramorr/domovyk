@@ -64,8 +64,9 @@ async def test_property_lifecycle(client: httpx.AsyncClient, now: datetime) -> N
     )
     assert r.json()["rooms"] == 3
 
+    # Кімнати поки не здаємо (ADR 0013): ендпоїнта немає.
     r = await client.post(f"/api/v1/properties/{pid}/rooms", json={"name": "Мала"}, headers=h)
-    assert r.status_code == 201 and len(r.json()["units"]) == 2
+    assert r.status_code in (404, 405)
 
     assert len((await client.get("/api/v1/properties", headers=h)).json()) == 1
     r = await client.delete(f"/api/v1/properties/{pid}", headers=h)

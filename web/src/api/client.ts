@@ -172,9 +172,6 @@ export const api = {
   coverPhoto: (id: string, photoId: string) =>
     request<Photo[]>("POST", `${p(id)}/photos/${encodeURIComponent(photoId)}/cover`),
   photoFile: (path: string) => requestFile(path),
-  addRoom: (id: string, body: S["RoomIn"]) => request<Property>("POST", `${p(id)}/rooms`, body),
-  removeRoom: (id: string, unitId: string) =>
-    request<Property>("DELETE", `${p(id)}/rooms/${encodeURIComponent(unitId)}`),
 
   // Власність
   ownership: (id: string) => request<Ownership>("GET", `${p(id)}/ownership`),
