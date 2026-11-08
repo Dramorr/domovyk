@@ -276,7 +276,7 @@ export function App() {
       screen = <OwnershipScreen key={route.id} id={route.id} webApp={webApp} onBack={back} />;
       break;
     case "profile-form":
-      screen = <PropertyProfile key={route.id} id={route.id} onBack={back} />;
+      screen = <PropertyProfile key={route.id} id={route.id} webApp={webApp} onBack={back} />;
       break;
     case "moderation":
       screen = (

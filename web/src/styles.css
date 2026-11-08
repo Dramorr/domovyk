@@ -1677,3 +1677,219 @@ label.file-button {
   margin: 4px 0 12px;
   border-radius: var(--radius-sm);
 }
+
+/* ---- Фото об'єкта (FR-PRP-9) ---- */
+.photo-slider {
+  position: relative;
+  margin: 8px 0 12px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface-2);
+  box-shadow: var(--shadow);
+}
+
+.photo-track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.photo-track::-webkit-scrollbar {
+  display: none;
+}
+
+.photo-slide {
+  position: relative;
+  flex: 0 0 100%;
+  aspect-ratio: 4 / 3;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  background: var(--surface-2);
+  scroll-snap-align: center;
+  cursor: zoom-in;
+}
+
+.photo-slider.compact .photo-slide {
+  aspect-ratio: 16 / 9;
+}
+
+.photo-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+}
+
+.photo-img.contain {
+  object-fit: contain;
+}
+
+.photo-backdrop {
+  filter: blur(18px) brightness(0.85);
+  transform: scale(1.15);
+}
+
+.photo-ph {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, var(--surface-2) 30%, var(--line) 50%, var(--surface-2) 70%);
+  background-size: 200% 100%;
+  animation: photo-shine 1.4s linear infinite;
+}
+
+.photo-ph.failed {
+  animation: none;
+}
+
+@keyframes photo-shine {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.photo-dots {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  display: flex;
+  gap: 5px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.photo-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 55%);
+  box-shadow: 0 0 2px rgb(0 0 0 / 35%);
+}
+
+.photo-dots span.on {
+  background: #fff;
+}
+
+.photo-count {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 45%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.photo-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  background: #000;
+}
+
+.photo-viewer .photo-track {
+  width: 100%;
+  height: 100%;
+}
+
+.photo-viewer .photo-slide {
+  aspect-ratio: auto;
+  height: 100%;
+  background: #000;
+  cursor: default;
+}
+
+.photo-viewer .photo-dots {
+  bottom: calc(18px + env(safe-area-inset-bottom));
+}
+
+.photo-viewer .photo-count {
+  top: calc(16px + env(safe-area-inset-top));
+  right: auto;
+  left: 16px;
+}
+
+.photo-close {
+  position: absolute;
+  top: calc(10px + env(safe-area-inset-top));
+  right: 10px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 15%);
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.photo-tile {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.photo-badge {
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--amber);
+  color: #1e1e1e;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.photo-tile-actions {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  display: flex;
+  gap: 4px;
+}
+
+.photo-tile-actions button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 55%);
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.photo-add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1.5px dashed var(--line);
+  color: var(--brand);
+  font: 600 13px Manrope, sans-serif;
+  text-align: center;
+  cursor: pointer;
+}

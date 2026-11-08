@@ -86,7 +86,7 @@ from domovyk.modules.notifications.service import (
     NotificationsService,
     NotificationType,
 )
-from domovyk.modules.properties.service import PropertiesService, PropertyOut
+from domovyk.modules.properties.service import PhotoOut, PropertiesService, PropertyOut
 from domovyk.modules.users.service import UserOut, UsersService
 
 __all__ = [
@@ -993,6 +993,21 @@ class LeasesService:
         async with self._tx.begin() as tx:
             await self._ctx(tx, lease_id, user)
             return await self._notifications.set_lease_prefs(tx, user.id, lease_id, prefs)
+
+    # ------------------------------------------------- фото об'єкта (FR-PRP-9)
+
+    async def photos(self, telegram_uid: int, lease_id: uuid.UUID) -> list[PhotoOut]:
+        """Фото об'єкта бачать усі учасники оренди."""
+        user = await self._users.require_active(telegram_uid)
+        async with self._tx.begin() as tx:
+            ctx = await self._ctx(tx, lease_id, user)
+        return await self._properties.photos_of(ctx.prop.id)
+
+    async def photo(self, telegram_uid: int, lease_id: uuid.UUID, photo_id: uuid.UUID) -> bytes:
+        user = await self._users.require_active(telegram_uid)
+        async with self._tx.begin() as tx:
+            ctx = await self._ctx(tx, lease_id, user)
+        return await self._properties.photo_data(ctx.prop.id, photo_id)
 
     # --------------------------------------------------------------- службове
 

@@ -22,6 +22,7 @@ from domovyk.modules.properties.repository import (
     NewProperty,
     PendingRow,
     StoredDocument,
+    StoredPhoto,
 )
 from domovyk.modules.properties.schemas import (
     CityOut,
@@ -105,6 +106,7 @@ class PropDb:
     units: dict[uuid.UUID, _Unit] = field(default_factory=dict)
     verifications: dict[uuid.UUID, _Verification] = field(default_factory=dict)
     documents: dict[uuid.UUID, StoredDocument] = field(default_factory=dict)
+    photos: dict[uuid.UUID, StoredPhoto] = field(default_factory=dict)
     notifications: list[_Notification] = field(default_factory=list)
     prefs: dict[tuple[uuid.UUID, uuid.UUID, str], tuple[bool, dict[str, Any]]] = field(
         default_factory=dict
@@ -211,6 +213,8 @@ class FakePropertiesRepository:
             del self.db.verifications[v.id]
             for d in [d for d in self.db.documents.values() if d.verification_id == v.id]:
                 del self.db.documents[d.id]
+        for ph in [p for p in self.db.photos.values() if p.property_id == property_id]:
+            del self.db.photos[ph.id]
 
     async def property_id_of_unit(self, unit_id: uuid.UUID) -> uuid.UUID | None:
         u = self.db.units.get(unit_id)
@@ -380,6 +384,26 @@ class FakePropertiesRepository:
     async def all_documents_of_property(self, property_id: uuid.UUID) -> list[StoredDocument]:
         ids = {v.id for v in self.db.verifications.values() if v.property_id == property_id}
         return [d for d in self.db.documents.values() if d.verification_id in ids]
+
+    async def list_photos(self, property_id: uuid.UUID) -> list[StoredPhoto]:
+        mine = [p for p in self.db.photos.values() if p.property_id == property_id]
+        return sorted(mine, key=lambda p: p.position)
+
+    async def get_photo(self, photo_id: uuid.UUID) -> StoredPhoto | None:
+        return self.db.photos.get(photo_id)
+
+    async def add_photo(self, photo: StoredPhoto, phash: int | None) -> None:
+        self.db.photos[photo.id] = photo
+
+    async def delete_photo(self, photo_id: uuid.UUID) -> None:
+        self.db.photos.pop(photo_id, None)
+
+    async def set_photo_positions(self, order: list[uuid.UUID]) -> None:
+        for position, photo_id in enumerate(order):
+            ph = self.db.photos[photo_id]
+            self.db.photos[photo_id] = StoredPhoto(
+                ph.id, ph.property_id, ph.storage_key, position, ph.width, ph.height
+            )
 
 
 class FakeNotificationsRepository:

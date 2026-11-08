@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from domovyk.adapters.geocoder.base import Geocoder
 from domovyk.adapters.geocoder.manual import ManualGeocoder
 from domovyk.adapters.geocoder.nominatim import NominatimGeocoder
+from domovyk.adapters.images.pillow import PillowImageProcessor
 from domovyk.adapters.notifier.telegram import TelegramNotifier
 from domovyk.adapters.pdf.weasy import WeasyPrintRenderer
 from domovyk.adapters.signing.diia_portal import DiiaPortalVerifier
@@ -134,6 +135,7 @@ class Container:
             clock,
             properties_config(settings),
             notifier=self.notifier,
+            images=PillowImageProcessor(),
         )
         chat = ChatService(SqlChatRepository)
         leases = LeasesService(

@@ -18,6 +18,7 @@ from domovyk.modules.properties.models import (
     BuildingRow,
     CityRow,
     DistrictRow,
+    PropertyPhotoRow,
     PropertyRow,
     UnitRow,
     VerificationDocumentRow,
@@ -69,6 +70,16 @@ class StoredDocument:
     size_bytes: int
     uploaded_at: datetime
     deleted_at: datetime | None
+
+
+@dataclass(frozen=True)
+class StoredPhoto:
+    id: uuid.UUID
+    property_id: uuid.UUID
+    storage_key: str
+    position: int
+    width: int
+    height: int
 
 
 @dataclass(frozen=True)
@@ -146,6 +157,14 @@ class PropertiesRepository(Protocol):
     async def mark_document_deleted(self, document_id: uuid.UUID, at: datetime) -> None: ...
     async def documents_to_purge(self, decided_before: datetime) -> list[StoredDocument]: ...
     async def all_documents_of_property(self, property_id: uuid.UUID) -> list[StoredDocument]: ...
+
+    async def list_photos(self, property_id: uuid.UUID) -> list[StoredPhoto]: ...
+    async def get_photo(self, photo_id: uuid.UUID) -> StoredPhoto | None: ...
+    async def add_photo(self, photo: StoredPhoto, phash: int | None) -> None: ...
+    async def delete_photo(self, photo_id: uuid.UUID) -> None: ...
+    async def set_photo_positions(self, order: list[uuid.UUID]) -> None:
+        """Позиції 0..n-1 у порядку списку (0 — обкладинка)."""
+        ...
 
 
 _PROPERTY_COLUMNS: tuple[Any, ...] = (
@@ -624,3 +643,54 @@ class SqlPropertiesRepository:
             .where(VerificationRow.property_id == property_id)
         )
         return [self._doc(r) for r in rows]
+
+    # -------------------------------------------------------------- фото
+
+    @staticmethod
+    def _photo(row: PropertyPhotoRow) -> StoredPhoto:
+        return StoredPhoto(
+            id=row.id,
+            property_id=row.property_id,
+            storage_key=row.storage_key,
+            position=row.position,
+            width=row.width,
+            height=row.height,
+        )
+
+    async def list_photos(self, property_id: uuid.UUID) -> list[StoredPhoto]:
+        rows = await self._s.scalars(
+            select(PropertyPhotoRow)
+            .where(PropertyPhotoRow.property_id == property_id)
+            .order_by(PropertyPhotoRow.position, PropertyPhotoRow.created_at, PropertyPhotoRow.id)
+            .execution_options(populate_existing=True)
+        )
+        return [self._photo(r) for r in rows]
+
+    async def get_photo(self, photo_id: uuid.UUID) -> StoredPhoto | None:
+        row = await self._s.get(PropertyPhotoRow, photo_id, populate_existing=True)
+        return self._photo(row) if row else None
+
+    async def add_photo(self, photo: StoredPhoto, phash: int | None) -> None:
+        self._s.add(
+            PropertyPhotoRow(
+                id=photo.id,
+                property_id=photo.property_id,
+                storage_key=photo.storage_key,
+                position=photo.position,
+                width=photo.width,
+                height=photo.height,
+                phash=phash,
+            )
+        )
+        await self._s.flush()
+
+    async def delete_photo(self, photo_id: uuid.UUID) -> None:
+        await self._s.execute(delete(PropertyPhotoRow).where(PropertyPhotoRow.id == photo_id))
+
+    async def set_photo_positions(self, order: list[uuid.UUID]) -> None:
+        for position, photo_id in enumerate(order):
+            await self._s.execute(
+                update(PropertyPhotoRow)
+                .where(PropertyPhotoRow.id == photo_id)
+                .values(position=position)
+            )

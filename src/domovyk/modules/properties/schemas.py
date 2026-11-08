@@ -265,3 +265,12 @@ class VerificationCase(BaseModel):
     verification: VerificationOut
     property: PropertyOut
     owner: OwnerSummary
+
+
+class PhotoOut(BaseModel):
+    """Фото об'єкта (FR-PRP-9). Сам файл — окремим запитом."""
+
+    id: uuid.UUID
+    position: int  # 0 — обкладинка
+    width: int
+    height: int

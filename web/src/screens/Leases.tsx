@@ -13,6 +13,7 @@ import {
   type LeaseSummary,
   type LeaseTerms,
   type NotifyPrefs,
+  type Photo,
   type Property,
 } from "../api/client";
 import { botLink } from "../config";
@@ -21,6 +22,7 @@ import { Icon } from "../icons";
 import { AgreementBar, AgreementSheet } from "./AgreementBar";
 import { ContractBlock } from "./Contract";
 import { PaymentsBlock } from "./Payments";
+import { PhotoSlider } from "./Photos";
 import { confirm, openTelegramLink, type WebApp } from "../telegram";
 import { Chip, errorCode, errorField, errorText, formatAddress, formatDate, ListRow, MascotTip, Screen } from "../ui";
 
@@ -796,6 +798,7 @@ export function LeaseCard({
   onPropose: (lease: Lease) => void;
 }) {
   const [l, setL] = useState<Lease | null>(null);
+  const [photos, setPhotos] = useState<Photo[]>([]);
   const [contract, setContract] = useState<ContractState | null>(null);
   const [sheet, setSheet] = useState(false);
   const [changes, setChanges] = useState<string | null>(null);
@@ -804,6 +807,10 @@ export function LeaseCard({
 
   useEffect(() => {
     api.lease(id).then(setL).catch((e: unknown) => setError(errorText(e)));
+    api
+      .leasePhotos(id)
+      .then(setPhotos)
+      .catch(() => setPhotos([]));
   }, [id]);
 
   async function run(action: () => Promise<Lease | void>) {
@@ -841,6 +848,7 @@ export function LeaseCard({
 
   return (
     <Screen onBack={onBack}>
+      <PhotoSlider photos={photos} source={{ kind: "lease", id: l.id }} compact />
       <div className="stat" style={{ marginTop: 8 }}>
         <LeaseStatusChip status={l.status} />
         <span className="hint small">{k(`ls_role_${l.my_role}`)}</span>

@@ -14,6 +14,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domovyk.adapters.geocoder.manual import ManualGeocoder
+from domovyk.adapters.images.pillow import PillowImageProcessor
 from domovyk.adapters.signing.diia_portal import DiiaPortalVerifier
 from domovyk.container import Services, wire_contracts, wire_guards
 from domovyk.core.clock import FixedClock
@@ -118,6 +119,7 @@ def services(engine: AsyncEngine, it_clock: FixedClock) -> Services:
         it_clock,
         PropertiesConfig(),
         notifier=FakeNotifier(),
+        images=PillowImageProcessor(),
     )
     chat = ChatService(SqlChatRepository)
     leases = LeasesService(

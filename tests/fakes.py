@@ -11,6 +11,7 @@ from cryptography.fernet import Fernet
 
 from domovyk.adapters.geocoder.base import Geocoder
 from domovyk.adapters.geocoder.manual import ManualGeocoder
+from domovyk.adapters.images.pillow import PillowImageProcessor
 from domovyk.adapters.signing.diia_portal import DiiaPortalVerifier
 from domovyk.container import Services, wire_contracts, wire_guards
 from domovyk.core.clock import Clock, FixedClock
@@ -323,6 +324,7 @@ def make_fake_services(
         clock,
         properties_config or PropertiesConfig(),
         notifier=db.notifier,
+        images=PillowImageProcessor(),
     )
     chat = ChatService(lambda _: FakeChatRepository(db.lease))
     leases = LeasesService(

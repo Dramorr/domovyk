@@ -3,9 +3,11 @@
 
 import { useEffect, useState } from "react";
 
-import { api, type Property, type PropertyDetails } from "../api/client";
+import { api, type Photo, type Property, type PropertyDetails } from "../api/client";
 import { t, type TextKey } from "../i18n";
 import { PROFILE_SECTIONS, type FieldSpec } from "../profileSpec";
+import { PHOTO_MAX, PhotoManager, PhotoSlider } from "./Photos";
+import type { WebApp } from "../telegram";
 import { Chip, errorCode, errorField, errorText, formatAddress, ListRow, Ring, Screen } from "../ui";
 
 type Values = Record<string, unknown>;
@@ -172,8 +174,9 @@ function sameValue(a: unknown, b: unknown): boolean {
   return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 }
 
-export function PropertyProfile({ id, onBack }: { id: string; onBack: () => void }) {
+export function PropertyProfile({ id, webApp, onBack }: { id: string; webApp: WebApp | null; onBack: () => void }) {
   const [prop, setProp] = useState<Property | null>(null);
+  const [photos, setPhotos] = useState<Photo[]>([]);
   const [values, setValues] = useState<Values>({});
   const [open, setOpen] = useState<string | null>(null); // відкритий розділ
   const [busy, setBusy] = useState(false);
@@ -188,6 +191,10 @@ export function PropertyProfile({ id, onBack }: { id: string; onBack: () => void
         setValues({ ...(p.details ?? {}) });
       })
       .catch((e: unknown) => setError(errorText(e)));
+    api
+      .photos(id)
+      .then(setPhotos)
+      .catch(() => setPhotos([]));
   }, [id]);
 
   useEffect(() => {
@@ -241,6 +248,15 @@ export function PropertyProfile({ id, onBack }: { id: string; onBack: () => void
     </div>
   );
 
+  if (open === "photos") {
+    return (
+      <Screen onBack={() => setOpen(null)} title={t("pf_title")}>
+        <h2>{t("ph_title")}</h2>
+        <PhotoManager propertyId={id} photos={photos} onChange={setPhotos} webApp={webApp} />
+      </Screen>
+    );
+  }
+
   const section = open ? PROFILE_SECTIONS.find((s) => s.key === open) : undefined;
   if (section) {
     const done = section.fields.filter((f) => answered(values[f.key])).length;
@@ -267,11 +283,28 @@ export function PropertyProfile({ id, onBack }: { id: string; onBack: () => void
   return (
     <Screen onBack={onBack} title={t("pf_title")}>
       <p className="hint">{formatAddress(prop)}</p>
+      <PhotoSlider photos={photos} source={{ kind: "property", id }} />
       <section className="card">
         <CompletenessBar p={prop} />
         <PublishHint p={prop} />
         <p className="hint small">{t("pf_intro")}</p>
       </section>
+
+      <ListRow
+        title={t("ph_title")}
+        sub={
+          photos.length ? (
+            <span>{t("ph_count", { n: String(photos.length), max: String(PHOTO_MAX) })}</span>
+          ) : (
+            <Chip tone="warn">{t("ph_none")}</Chip>
+          )
+        }
+        icon={photos.length ? undefined : "plus"}
+        onClick={() => {
+          setOpen("photos");
+          setMessage(null);
+        }}
+      />
 
       {PROFILE_SECTIONS.map((s) => {
         const done = s.fields.filter((f) => answered(values[f.key])).length;

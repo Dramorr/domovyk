@@ -15,6 +15,7 @@ from datetime import timedelta
 from pathlib import PurePath
 
 from domovyk.adapters.geocoder.base import Geocoder, GeocoderError
+from domovyk.adapters.images.base import ImageProcessor, ImageRejected
 from domovyk.adapters.notifier.base import Notifier, NotifierError
 from domovyk.adapters.storage.base import FileStorage
 from domovyk.core.clock import Clock
@@ -63,6 +64,7 @@ from domovyk.modules.properties.repository import (
     NewBuilding,
     NewProperty,
     PropertiesRepository,
+    StoredPhoto,
 )
 from domovyk.modules.properties.schemas import (
     AddressCandidate,
@@ -70,6 +72,7 @@ from domovyk.modules.properties.schemas import (
     CompletenessOut,
     OwnershipOut,
     OwnerSummary,
+    PhotoOut,
     PropertyCreate,
     PropertyDetails,
     PropertyOut,
@@ -85,6 +88,7 @@ __all__ = [
     "AddressCandidate",
     "CityOut",
     "OwnershipOut",
+    "PhotoOut",
     "PropertiesConfig",
     "PropertiesService",
     "PropertyCreate",
@@ -118,6 +122,9 @@ class PropertiesConfig:
     listing_min_completeness: int = 40
     # Місто за замовчуванням, коли клієнт його не передав (ADR 0008).
     default_city: str = "lviv"
+    # Фото об'єкта (FR-PRP-9).
+    max_photos: int = 15
+    max_photo_bytes: int = 15 * 1024 * 1024
 
 
 class PropertiesService:
@@ -134,6 +141,7 @@ class PropertiesService:
         clock: Clock,
         config: PropertiesConfig,
         notifier: Notifier | None = None,
+        images: ImageProcessor | None = None,
     ) -> None:
         self._tx = tx
         self._repo = repo
@@ -146,6 +154,7 @@ class PropertiesService:
         self._clock = clock
         self._config = config
         self._notifier = notifier
+        self._images = images
         self._delete_guard: Callable[[PropertyOut], Awaitable[bool]] | None = None
 
     # ----------------------------------------------------------------- адреси
@@ -356,6 +365,7 @@ class PropertiesService:
         async with self._tx.begin() as tx:
             repo = self._repo(tx)
             docs = await repo.all_documents_of_property(property_id)
+            photos = await repo.list_photos(property_id)
             await repo.delete_property(property_id)
             await self._moderation.audit(
                 tx,
@@ -365,8 +375,8 @@ class PropertiesService:
                 str(property_id),
                 {"ownership_status": prop.ownership_status.value, "documents": len(docs)},
             )
-        for doc in docs:
-            await self._delete_file(doc.storage_key)
+        for key in [d.storage_key for d in docs] + [p.storage_key for p in photos]:
+            await self._delete_file(key)
 
     async def add_room(
         self, telegram_uid: int, property_id: uuid.UUID, data: RoomIn
@@ -754,6 +764,113 @@ class PropertiesService:
 
     # --------------------------------------------------------------- службове
 
+    # ------------------------------------------------------- фото (FR-PRP-9)
+
+    async def photos(self, telegram_uid: int, property_id: uuid.UUID) -> list[PhotoOut]:
+        user = await self._users.require_active(telegram_uid)
+        async with self._tx.begin() as tx:
+            repo = self._repo(tx)
+            await self._owned(repo, property_id, user.id)
+            return [_photo_out(p) for p in await repo.list_photos(property_id)]
+
+    async def add_photo(
+        self, telegram_uid: int, property_id: uuid.UUID, data: bytes
+    ) -> list[PhotoOut]:
+        """JPEG/PNG/WebP до 15 МБ; зберігаємо зменшений JPEG без EXIF. Нове фото — в кінець."""
+        user = await self._users.require_active(telegram_uid)
+        if self._images is None:
+            raise ServiceUnavailable("Обробка фото не налаштована")
+        if len(data) > self._config.max_photo_bytes:
+            raise InvalidInput("Фото завелике", field="file", reason="too_big")
+        async with self._tx.begin() as tx:
+            repo = self._repo(tx)
+            await self._owned(repo, property_id, user.id)
+            if len(await repo.list_photos(property_id)) >= self._config.max_photos:
+                raise InvalidInput("Забагато фото", field="file", reason="too_many")
+        try:
+            image = await self._images.prepare(data)
+        except ImageRejected as e:
+            raise InvalidInput(
+                "Це не фото або воно не підходить", field="file", reason=e.reason
+            ) from None
+
+        photo_id = uuid.uuid4()
+        key = f"photos/{property_id}/{photo_id}.jpg"
+        async with self._tx.begin() as tx:
+            repo = self._repo(tx)
+            await self._owned(repo, property_id, user.id)
+            current = await repo.list_photos(property_id)
+            if len(current) >= self._config.max_photos:
+                raise InvalidInput("Забагато фото", field="file", reason="too_many")
+            await self._storage.put(key, image.data)
+            try:
+                photo = StoredPhoto(
+                    photo_id, property_id, key, len(current), image.width, image.height
+                )
+                await repo.add_photo(photo, image.phash)
+                result = [_photo_out(p) for p in await repo.list_photos(property_id)]
+            except Exception:
+                await self._delete_file(key)
+                raise
+        return result
+
+    async def delete_photo(
+        self, telegram_uid: int, property_id: uuid.UUID, photo_id: uuid.UUID
+    ) -> list[PhotoOut]:
+        user = await self._users.require_active(telegram_uid)
+        async with self._tx.begin() as tx:
+            repo = self._repo(tx)
+            await self._owned(repo, property_id, user.id)
+            photo = await self._photo_of(repo, property_id, photo_id)
+            await repo.delete_photo(photo_id)
+            rest = [p.id for p in await repo.list_photos(property_id) if p.id != photo_id]
+            await repo.set_photo_positions(rest)
+            result = [_photo_out(p) for p in await repo.list_photos(property_id)]
+        await self._delete_file(photo.storage_key)
+        return result
+
+    async def make_cover(
+        self, telegram_uid: int, property_id: uuid.UUID, photo_id: uuid.UUID
+    ) -> list[PhotoOut]:
+        """Зробити фото першим (обкладинкою); порядок інших не змінюється."""
+        user = await self._users.require_active(telegram_uid)
+        async with self._tx.begin() as tx:
+            repo = self._repo(tx)
+            await self._owned(repo, property_id, user.id)
+            await self._photo_of(repo, property_id, photo_id)
+            order = [p.id for p in await repo.list_photos(property_id) if p.id != photo_id]
+            await repo.set_photo_positions([photo_id, *order])
+            return [_photo_out(p) for p in await repo.list_photos(property_id)]
+
+    async def photo_file(
+        self, telegram_uid: int, property_id: uuid.UUID, photo_id: uuid.UUID
+    ) -> bytes:
+        user = await self._users.require_active(telegram_uid)
+        async with self._tx.begin() as tx:
+            repo = self._repo(tx)
+            await self._owned(repo, property_id, user.id)
+            photo = await self._photo_of(repo, property_id, photo_id)
+        return await self._storage.get(photo.storage_key)
+
+    # Для інших модулів (оренди, далі оголошення): доступ перевіряє модуль, що викликає.
+
+    async def photos_of(self, property_id: uuid.UUID) -> list[PhotoOut]:
+        async with self._tx.begin() as tx:
+            return [_photo_out(p) for p in await self._repo(tx).list_photos(property_id)]
+
+    async def photo_data(self, property_id: uuid.UUID, photo_id: uuid.UUID) -> bytes:
+        async with self._tx.begin() as tx:
+            photo = await self._photo_of(self._repo(tx), property_id, photo_id)
+        return await self._storage.get(photo.storage_key)
+
+    async def _photo_of(
+        self, repo: PropertiesRepository, property_id: uuid.UUID, photo_id: uuid.UUID
+    ) -> StoredPhoto:
+        photo = await repo.get_photo(photo_id)
+        if photo is None or photo.property_id != property_id:
+            raise NotFound("Фото не знайдено")
+        return photo
+
     async def _must_get(self, repo: PropertiesRepository, property_id: uuid.UUID) -> PropertyOut:
         prop = await repo.get_property(property_id)
         if prop is None:
@@ -890,3 +1007,7 @@ def _address_payload(prop: PropertyOut) -> dict[str, str | None]:
         "house_number": prop.house_number,
         "apartment": prop.apartment,
     }
+
+
+def _photo_out(p: StoredPhoto) -> PhotoOut:
+    return PhotoOut(id=p.id, position=p.position, width=p.width, height=p.height)

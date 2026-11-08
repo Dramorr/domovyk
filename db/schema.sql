@@ -1,5 +1,5 @@
 -- =====================================================================
---  Домовик — цільова схема бази даних, v0.13
+--  Домовик — цільова схема бази даних, v0.14
 --  PostgreSQL 16 + PostGIS
 --
 --  Це ЦІЛЬОВА модель. Реальні зміни в базі робляться тільки
@@ -264,6 +264,19 @@ CREATE INDEX idx_verifications_queue ON user_verifications(submitted_at) WHERE s
 
 -- Файли до перевірки. Лежать у сховищі зашифрованими (Fernet); видаляються
 -- через OWNERSHIP_DOC_RETENTION_DAYS після рішення (deleted_at, рядок лишається).
+CREATE TABLE property_photos (                -- FR-PRP-9, ADR 0011
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    property_id     uuid NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
+    storage_key     text NOT NULL UNIQUE,         -- JPEG без EXIF
+    position        smallint NOT NULL DEFAULT 0 CHECK (position >= 0),  -- 0 = обкладинка
+    width           int NOT NULL CHECK (width > 0),
+    height          int NOT NULL CHECK (height > 0),
+    phash           bigint,                       -- однакові фото в різних оголошеннях (FR-LST-5)
+    created_at      timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_property_photos_property ON property_photos(property_id, position);
+CREATE INDEX idx_property_photos_phash ON property_photos(phash);
+
 CREATE TABLE verification_documents (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     verification_id uuid NOT NULL REFERENCES user_verifications(id) ON DELETE CASCADE,
@@ -320,17 +333,8 @@ CREATE TABLE listing_amenities (
 );
 CREATE INDEX idx_listing_amenities_amenity ON listing_amenities(amenity_id);
 
-CREATE TABLE listing_photos (
-    id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    listing_id          uuid NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
-    storage_key         text NOT NULL,
-    telegram_file_id    text,
-    position            smallint NOT NULL DEFAULT 0,
-    phash               bigint,
-    created_at          timestamptz NOT NULL DEFAULT now()
-);
-CREATE INDEX idx_listing_photos_listing ON listing_photos(listing_id, position);
-CREATE INDEX idx_listing_photos_phash   ON listing_photos(phash);
+-- Фото оголошення — це фото об'єкта (property_photos, розділ 2; ADR 0011).
+-- Окремої таблиці listing_photos немає.
 
 -- =====================================================================
 --  4. ПОШУК, ЗАЯВКИ, ПОКАЗИ

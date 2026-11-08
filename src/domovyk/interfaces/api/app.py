@@ -80,6 +80,7 @@ from domovyk.modules.properties.service import (
     AddressCandidate,
     CityOut,
     OwnershipOut,
+    PhotoOut,
     PropertyCreate,
     PropertyDetails,
     PropertyOut,
@@ -91,6 +92,8 @@ from domovyk.modules.properties.service import (
 from domovyk.modules.users.service import AppMode, ConsentInfo, TenantProfile, UserOut
 
 log = logging.getLogger(__name__)
+
+PHOTO_MAX_BYTES = 15 * 1024 * 1024  # як PropertiesConfig.max_photo_bytes
 _AUTH_SCHEME = "tma "
 
 # Порядок важливий: перший збіг isinstance визначає HTTP-статус.
@@ -358,6 +361,35 @@ def create_app(
     async def remove_room(auth: Auth, property_id: uuid.UUID, unit_id: uuid.UUID) -> PropertyOut:
         return await svc.properties.remove_room(auth.user.id, property_id, unit_id)
 
+    # ------------------------------------------------- фото об'єкта (FR-PRP-9)
+
+    @app.get("/api/v1/properties/{property_id}/photos")
+    async def property_photos(auth: Auth, property_id: uuid.UUID) -> list[PhotoOut]:
+        return await svc.properties.photos(auth.user.id, property_id)
+
+    @app.post("/api/v1/properties/{property_id}/photos", status_code=status.HTTP_201_CREATED)
+    async def add_property_photo(
+        auth: Auth, property_id: uuid.UUID, file: Annotated[UploadFile, File()]
+    ) -> list[PhotoOut]:
+        data = await file.read(PHOTO_MAX_BYTES + 1)  # завелике відхилить сервіс
+        return await svc.properties.add_photo(auth.user.id, property_id, data)
+
+    @app.get("/api/v1/properties/{property_id}/photos/{photo_id}")
+    async def property_photo(auth: Auth, property_id: uuid.UUID, photo_id: uuid.UUID) -> Response:
+        return _photo(await svc.properties.photo_file(auth.user.id, property_id, photo_id))
+
+    @app.delete("/api/v1/properties/{property_id}/photos/{photo_id}")
+    async def delete_property_photo(
+        auth: Auth, property_id: uuid.UUID, photo_id: uuid.UUID
+    ) -> list[PhotoOut]:
+        return await svc.properties.delete_photo(auth.user.id, property_id, photo_id)
+
+    @app.post("/api/v1/properties/{property_id}/photos/{photo_id}/cover")
+    async def property_photo_cover(
+        auth: Auth, property_id: uuid.UUID, photo_id: uuid.UUID
+    ) -> list[PhotoOut]:
+        return await svc.properties.make_cover(auth.user.id, property_id, photo_id)
+
     # ------------------------------------------ власність (FR-PRP-4, FR-PRP-5)
 
     @app.get("/api/v1/properties/{property_id}/ownership")
@@ -405,6 +437,14 @@ def create_app(
     @app.get("/api/v1/leases/{lease_id}")
     async def get_lease(auth: Auth, lease_id: uuid.UUID) -> LeaseOut:
         return await svc.leases.get(auth.user.id, lease_id)
+
+    @app.get("/api/v1/leases/{lease_id}/photos")
+    async def lease_photos(auth: Auth, lease_id: uuid.UUID) -> list[PhotoOut]:
+        return await svc.leases.photos(auth.user.id, lease_id)
+
+    @app.get("/api/v1/leases/{lease_id}/photos/{photo_id}")
+    async def lease_photo(auth: Auth, lease_id: uuid.UUID, photo_id: uuid.UUID) -> Response:
+        return _photo(await svc.leases.photo(auth.user.id, lease_id, photo_id))
 
     @app.put("/api/v1/leases/{lease_id}/conditions")
     async def update_lease_conditions(
@@ -669,6 +709,15 @@ def create_app(
         return _file(data, name, "application/zip")
 
     return app
+
+
+def _photo(data: bytes) -> Response:
+    """Фото за ID не змінюється: браузер може тримати його в кеші (лише свому)."""
+    return Response(
+        content=data,
+        media_type="image/jpeg",
+        headers={"Cache-Control": "private, max-age=86400, immutable"},
+    )
 
 
 def _file(data: bytes, filename: str, media_type: str) -> Response:

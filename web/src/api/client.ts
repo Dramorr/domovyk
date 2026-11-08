@@ -12,6 +12,7 @@ export type PropertyUpdate = S["PropertyUpdate"];
 export type PropertyDetails = S["PropertyDetails-Input"];
 export type Property = S["PropertyOut"];
 export type Unit = S["UnitOut"];
+export type Photo = S["PhotoOut"];
 export type Ownership = S["OwnershipOut"];
 export type Verification = S["VerificationOut"];
 export type QueueItem = S["QueueItem"];
@@ -160,6 +161,17 @@ export const api = {
   updateProperty: (id: string, body: PropertyUpdate) => request<Property>("PUT", p(id), body),
   deleteProperty: (id: string) => request<void>("DELETE", p(id)),
   updateProfile: (id: string, body: PropertyDetails) => request<Property>("PUT", `${p(id)}/details`, body),
+  photos: (id: string) => request<Photo[]>("GET", `${p(id)}/photos`),
+  addPhoto: (id: string, data: Blob) => {
+    const form = new FormData();
+    form.append("file", data, "photo");
+    return request<Photo[]>("POST", `${p(id)}/photos`, form);
+  },
+  deletePhoto: (id: string, photoId: string) =>
+    request<Photo[]>("DELETE", `${p(id)}/photos/${encodeURIComponent(photoId)}`),
+  coverPhoto: (id: string, photoId: string) =>
+    request<Photo[]>("POST", `${p(id)}/photos/${encodeURIComponent(photoId)}/cover`),
+  photoFile: (path: string) => requestFile(path),
   addRoom: (id: string, body: S["RoomIn"]) => request<Property>("POST", `${p(id)}/rooms`, body),
   removeRoom: (id: string, unitId: string) =>
     request<Property>("DELETE", `${p(id)}/rooms/${encodeURIComponent(unitId)}`),
@@ -232,6 +244,7 @@ export const api = {
   // Оренди (M3)
   leases: () => request<LeaseSummary[]>("GET", "/api/v1/leases"),
   lease: (id: string) => request<Lease>("GET", l(id)),
+  leasePhotos: (id: string) => request<Photo[]>("GET", `${l(id)}/photos`),
   createLease: (body: LeaseCreate) => request<S["LeaseCreatedOut"]>("POST", "/api/v1/leases", body),
   updateConditions: (id: string, body: LeaseConditions) => request<Lease>("PUT", `${l(id)}/conditions`, body),
   acceptTerms: (id: string) => request<Lease>("POST", `${l(id)}/accept-terms`),
