@@ -22,6 +22,7 @@ import {
   Screen,
 } from "../ui";
 import { CompletenessBar, PublishHint } from "./PropertyProfile";
+import { Stepper, type Step } from "./Stepper";
 
 const OWN_TONE = { unverified: "warn", pending: "info", verified: "ok", rejected: "bad" } as const;
 
@@ -156,13 +157,22 @@ const EMPTY: Draft = {
   area: "",
 };
 
+const DOC_MAX_MB = 10; // як OWNERSHIP_MAX_DOCUMENT_MB на бекенді
+
+type Doc = { blob: Blob; name: string };
+
+/** PRP-NEW: слайдер кроків. Довідку можна додати одразу (тоді перевірка йде сама) або пізніше. */
 export function NewProperty({ onBack, onCreated }: { onBack: () => void; onCreated: (p: Property) => void }) {
-  const [step, setStep] = useState<"kind" | "address" | "details" | "confirm">("kind");
+  const [at, setAt] = useState(0);
   const [draft, setDraft] = useState<Draft>(EMPTY);
+  const [doc, setDoc] = useState<Doc | null>(null);
   const [query, setQuery] = useState("");
   const [found, setFound] = useState<AddressCandidate[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [created, setCreated] = useState<Property | null>(null);
+  const [backToConfirm, setBackToConfirm] = useState(false); // прийшли по довідку з підтвердження
+  const fileInput = useRef<HTMLInputElement>(null);
   // ADR 0008: місто з довідника. Вибір показуємо, лише коли активних міст більше одного.
   const [cities, setCities] = useState<City[]>([]);
   const [city, setCity] = useState<string | undefined>(undefined);
@@ -178,7 +188,15 @@ export function NewProperty({ onBack, onCreated }: { onBack: () => void; onCreat
       .catch(() => undefined);
   }, []);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [at]);
+
   const set = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
+  const go = (i: number) => {
+    setError(null);
+    setAt(i);
+  };
 
   async function search() {
     setBusy(true);
@@ -192,26 +210,39 @@ export function NewProperty({ onBack, onCreated }: { onBack: () => void; onCreat
     }
   }
 
-  function pick(a: AddressCandidate) {
-    set({ address: a, manual: false, street: a.street, house: a.house_number });
-    setStep("details");
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setError(null);
+    if (file.size > DOC_MAX_MB * 1024 * 1024) return setError(t("own_bad_file", { mb: String(DOC_MAX_MB) }));
+    // Читаємо одразу: на телефонах Telegram дає файл через тимчасовий доступ.
+    let data: ArrayBuffer;
+    try {
+      data = await file.arrayBuffer();
+    } catch {
+      return setError(t("own_read_failed"));
+    }
+    if (data.byteLength === 0) return setError(t("own_read_failed"));
+    setDoc({ blob: new Blob([data], { type: "application/pdf" }), name: file.name || "document.pdf" });
   }
 
   function body(): PropertyCreate {
     const a = draft.address;
     return {
       kind: draft.kind,
-      address: draft.manual || !a
-        ? { city_code: city ?? null, street: draft.street, house_number: draft.house }
-        : {
-            city_code: a.city_code,
-            street: a.street,
-            house_number: a.house_number,
-            district: a.district ?? null,
-            lat: a.lat ?? null,
-            lon: a.lon ?? null,
-            place_id: a.place_id ?? null,
-          },
+      address:
+        draft.manual || !a
+          ? { city_code: city ?? null, street: draft.street, house_number: draft.house }
+          : {
+              city_code: a.city_code,
+              street: a.street,
+              house_number: a.house_number,
+              district: a.district ?? null,
+              lat: a.lat ?? null,
+              lon: a.lon ?? null,
+              place_id: a.place_id ?? null,
+            },
       apartment: draft.kind === "apartment" ? draft.apartment : null,
       entrance: draft.entrance || null,
       floor: numberOrNull(draft.floor),
@@ -223,52 +254,111 @@ export function NewProperty({ onBack, onCreated }: { onBack: () => void; onCreat
   async function create() {
     setBusy(true);
     setError(null);
+    let prop = created;
     try {
-      onCreated(await api.createProperty(body()));
+      prop ??= await api.createProperty(body());
+      setCreated(prop);
     } catch (e) {
       setError(propertyError(e));
       setBusy(false);
+      return;
     }
+    if (doc) {
+      try {
+        await api.uploadDocument(prop.id, doc.blob, doc.name);
+        await api.submitOwnership(prop.id);
+      } catch (e) {
+        // Об'єкт уже є — не створюємо вдруге; довідку можна додати в розділі «Власність».
+        setError(t("prp_doc_failed", { error: errorText(e) }));
+        setBusy(false);
+        return;
+      }
+    }
+    onCreated(prop);
   }
 
-  const back = () => {
-    setError(null);
-    if (step === "kind") onBack();
-    else if (step === "address") setStep("kind");
-    else if (step === "details") setStep("address");
-    else setStep("details");
-  };
+  const summary = formatAddress({
+    street: draft.street,
+    house_number: draft.house,
+    apartment: draft.kind === "apartment" ? draft.apartment : null,
+  });
 
-  return (
-    <Screen onBack={back}>
-      <h1>{t("prp_new_title")}</h1>
-
-      {step === "kind" && (
-        <>
-          <MascotTip>
-            <p>{t("prp_kind_question")}</p>
-          </MascotTip>
-          <div className="choices">
-            {(["apartment", "house"] as const).map((k) => (
-              <button
-                key={k}
-                className="choice-big"
-                onClick={() => {
-                  set({ kind: k });
-                  setStep("address");
-                }}
-              >
-                <span className="row-icon">
-                  <Icon name={k === "apartment" ? "building" : "home"} />
-                </span>
-                {t(k === "apartment" ? "prp_kind_apartment_plain" : "prp_kind_house_plain")}
+  const steps: Step[] = [
+    {
+      key: "doc",
+      title: t("prp_step_doc_title"),
+      text: t("prp_step_doc_text"),
+      content: (
+        <section className="card">
+          <ol className="steps">
+            <li>{t("own_step1")}</li>
+            <li>{t("prp_doc_order")}</li>
+          </ol>
+          {doc ? (
+            <div className="doc-picked">
+              <span>📄 {doc.name}</span>
+              <button className="link" onClick={() => fileInput.current?.click()}>
+                {t("prp_doc_replace")}
               </button>
-            ))}
-          </div>
-        </>
-      )}
-
-      {step === "address" && !draft.manual && (
+            </div>
+          ) : (
+            <button className="button secondary" onClick={() => fileInput.current?.click()}>
+              <Icon name="doc" size={20} />
+              {t("prp_doc_pick")}
+            </button>
+          )}
+          <input ref={fileInput} type="file" accept="application/pdf,.pdf" hidden onChange={onFile} />
+          <p className="hint small">{t("own_file_limits", { mb: String(DOC_MAX_MB) })}</p>
+          <p className="hint small">{t("prp_doc_later")}</p>
+        </section>
+      ),
+      // Файлу ще немає — головна кнопка «Додам пізніше», а не сіра «Далі».
+      action: doc
+        ? { label: t("next"), onClick: () => go(backToConfirm ? 4 : 1) }
+        : { label: t("prp_doc_skip"), secondary: true, onClick: () => go(backToConfirm ? 4 : 1) },
+    },
+    {
+      key: "kind",
+      title: t("prp_kind_question"),
+      content: (
+        <div className="choices">
+          {(["apartment", "house"] as const).map((k) => (
+            <button
+              key={k}
+              className={`choice-big${draft.kind === k && at > 1 ? " active" : ""}`}
+              onClick={() => {
+                set({ kind: k });
+                go(2);
+              }}
+            >
+              <span className="row-icon">
+                <Icon name={k === "apartment" ? "building" : "home"} />
+              </span>
+              {t(k === "apartment" ? "prp_kind_apartment_plain" : "prp_kind_house_plain")}
+            </button>
+          ))}
+        </div>
+      ),
+    },
+    {
+      key: "address",
+      title: t("prp_step_address_title"),
+      content: draft.manual ? (
+        <section className="card">
+          <p className="hint small">{t("prp_manual_hint")}</p>
+          <label className="field">
+            {t("prp_street")}
+            <input className="input" value={draft.street} maxLength={100} onChange={(e) => set({ street: e.target.value })} />
+          </label>
+          <label className="field">
+            {t("prp_house")}
+            <input className="input" value={draft.house} maxLength={20} onChange={(e) => set({ house: e.target.value })} />
+          </label>
+          <button className="link" onClick={() => set({ manual: false })}>
+            {t("prp_back_to_search")}
+          </button>
+        </section>
+      ) : (
         <section className="card">
           {cities.length > 1 && (
             <div className="field">
@@ -306,7 +396,14 @@ export function NewProperty({ onBack, onCreated }: { onBack: () => void; onCreat
           </button>
           {found && found.length > 0 && <p className="small">{t("prp_found_question")}</p>}
           {found?.map((a) => (
-            <button key={`${a.street}|${a.house_number}|${a.place_id ?? ""}`} className="row" onClick={() => pick(a)}>
+            <button
+              key={`${a.street}|${a.house_number}|${a.place_id ?? ""}`}
+              className="row"
+              onClick={() => {
+                set({ address: a, manual: false, street: a.street, house: a.house_number });
+                go(3);
+              }}
+            >
               <span className="row-title">{formatAddress(a)}</span>
               {a.district && <span className="row-sub">{a.district}</span>}
             </button>
@@ -318,33 +415,22 @@ export function NewProperty({ onBack, onCreated }: { onBack: () => void; onCreat
             </button>
           )}
         </section>
-      )}
-
-      {step === "address" && draft.manual && (
-        <section className="card">
-          <p className="hint small">{t("prp_manual_hint")}</p>
-          <label className="field">
-            {t("prp_street")}
-            <input className="input" value={draft.street} maxLength={100} onChange={(e) => set({ street: e.target.value })} />
-          </label>
-          <label className="field">
-            {t("prp_house")}
-            <input className="input" value={draft.house} maxLength={20} onChange={(e) => set({ house: e.target.value })} />
-          </label>
-          <button
-            className="button"
-            disabled={draft.street.trim().length < 2 || !draft.house.trim()}
-            onClick={() => {
+      ),
+      action: draft.manual
+        ? {
+            label: t("next"),
+            disabled: draft.street.trim().length < 2 || !draft.house.trim(),
+            onClick: () => {
               set({ address: null });
-              setStep("details");
-            }}
-          >
-            {t("next")}
-          </button>
-        </section>
-      )}
-
-      {step === "details" && (
+              go(3);
+            },
+          }
+        : undefined,
+    },
+    {
+      key: "details",
+      title: t("prp_step_details_title"),
+      content: (
         <section className="card">
           <p className="row-title">{formatAddress({ street: draft.street, house_number: draft.house })}</p>
           {draft.kind === "apartment" && (
@@ -375,26 +461,17 @@ export function NewProperty({ onBack, onCreated }: { onBack: () => void; onCreat
             {t("prp_area")} <span className="hint">({t("prp_optional")})</span>
             <input className="input" inputMode="decimal" value={draft.area} maxLength={7} onChange={(e) => set({ area: e.target.value })} />
           </label>
-          <button
-            className="button"
-            disabled={draft.kind === "apartment" && !draft.apartment.trim()}
-            onClick={() => setStep("confirm")}
-          >
-            {t("next")}
-          </button>
         </section>
-      )}
-
-      {step === "confirm" && (
+      ),
+      action: { label: t("next"), disabled: draft.kind === "apartment" && !draft.apartment.trim(), onClick: () => go(4) },
+    },
+    {
+      key: "confirm",
+      title: t("prp_confirm_title"),
+      content: (
         <section className="card">
-          <h2>{t("prp_confirm_title")}</h2>
           <p className="row-title">
-            {draft.kind === "house" ? "🏡" : "🏢"}{" "}
-            {formatAddress({
-              street: draft.street,
-              house_number: draft.house,
-              apartment: draft.kind === "apartment" ? draft.apartment : null,
-            })}
+            {draft.kind === "house" ? "🏡" : "🏢"} {summary}
           </p>
           <p className="hint">
             {roomsText(draft.rooms)}
@@ -402,18 +479,27 @@ export function NewProperty({ onBack, onCreated }: { onBack: () => void; onCreat
             {draft.entrance && ` · ${t("prp_entrance")} ${draft.entrance}`}
             {draft.floor && ` · ${t("prp_floor")} ${draft.floor}`}
           </p>
-          <button className="button" onClick={create} disabled={busy}>
-            {busy ? t("saving") : t("prp_create")}
-          </button>
-          <button className="link" onClick={() => setStep("details")}>
-            {t("edit")}
-          </button>
+          <p className="small">{doc ? t("prp_confirm_doc", { name: doc.name }) : t("prp_confirm_no_doc")}</p>
+          {!doc && (
+            <button
+              className="link"
+              onClick={() => {
+                setBackToConfirm(true);
+                go(0);
+              }}
+            >
+              {t("prp_doc_add_now")}
+            </button>
+          )}
         </section>
-      )}
+      ),
+      action: created
+        ? { label: t("prp_open_property"), final: true, onClick: () => onCreated(created) }
+        : { label: busy ? t("saving") : t("prp_create"), final: true, disabled: busy, onClick: () => void create() },
+    },
+  ];
 
-      {error && <p className="error">{error}</p>}
-    </Screen>
-  );
+  return <Stepper steps={steps} at={at} onGo={go} onExit={onBack} title={t("prp_new_title")} error={error} />;
 }
 
 // ------------------------------------------------------------------ PRP-CARD
@@ -511,7 +597,11 @@ export function PropertyCard({
           <h2 style={{ margin: 0, flex: 1 }}>{t("prp_card_ownership")}</h2>
           <OwnershipChip status={prop.ownership_status} />
         </div>
-        {prop.ownership_status !== "verified" && <p className="hint small">{t("prp_card_verify_hint")}</p>}
+        {prop.ownership_status === "pending" ? (
+          <p className="hint small">{t("prp_card_pending_hint")}</p>
+        ) : (
+          prop.ownership_status !== "verified" && <p className="hint small">{t("prp_card_verify_hint")}</p>
+        )}
         <button className={prop.ownership_status === "verified" ? "button secondary" : "button"} onClick={onOwnership}>
           {prop.ownership_status === "unverified" ? t("prp_card_verify") : t("prp_card_verify_status")}
         </button>
