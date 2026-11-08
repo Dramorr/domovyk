@@ -7,7 +7,7 @@ import { api, ApiFailure, type Charge, type PayInfo, type PaymentsOverview, type
 import { t, type TextKey } from "../i18n";
 import { Icon } from "../icons";
 import { confirm, openLink, type WebApp } from "../telegram";
-import { Chip, errorText, formatDate } from "../ui";
+import { Chip, errorText, formatDate, formatDateTime } from "../ui";
 import { PdfViewer } from "./PdfViewer";
 
 const k = (key: string) => t(key as TextKey);
@@ -260,6 +260,21 @@ function PaymentLine({
         <Chip tone={p.status === "confirmed" ? "ok" : p.status === "rejected" ? "bad" : "info"}>{k(`pay_p_${p.status}`)}</Chip>
       </div>
       {p.note && <p className="hint small">«{p.note}»</p>}
+      {p.status === "auto_accepted" && (
+        <p className="hint small">
+          {t("pay_auto_note", {
+            bank: p.receipt_bank ?? "",
+            date: p.dispute_deadline ? formatDateTime(p.dispute_deadline) : "",
+          })}
+        </p>
+      )}
+      {p.mismatches.length > 0 && p.status !== "confirmed" && (
+        <p className="hint small">
+          {p.mismatches.includes("unparsed")
+            ? t("pay_mm_unparsed")
+            : t("pay_mm_list", { list: p.mismatches.map((m) => k(`pay_mm_${m}`)).join(", ") })}
+        </p>
+      )}
       {p.dispute_reason && <p className="error small">{p.dispute_reason}</p>}
       <div className="pay-line-actions">
         {p.has_receipt && (
@@ -267,7 +282,7 @@ function PaymentLine({
             {t("pay_show_receipt")}
           </button>
         )}
-        {landlord && p.status === "pending_landlord" && (
+        {landlord && (p.status === "pending_landlord" || p.status === "auto_accepted") && (
           <>
             <button className="button" disabled={busy} onClick={() => onDecide(true)}>
               <Icon name="check" size={18} />
@@ -314,7 +329,10 @@ export function PaymentsBlock({ leaseId, address, webApp }: { leaseId: string; a
 
   const landlord = o.my_role === "landlord";
   const next = o.next_charge;
-  const pending = o.charges.flatMap((c) => c.payments.filter((p) => p.status === "pending_landlord").map((p) => ({ c, p })));
+  const waiting = (status: PaymentItem["status"]) =>
+    o.charges.flatMap((c) => c.payments.filter((p) => p.status === status).map((p) => ({ c, p })));
+  const pending = waiting("pending_landlord");
+  const auto = waiting("auto_accepted");
   const history = all ? o.charges : o.charges.slice(0, 4);
 
   return (
@@ -354,10 +372,15 @@ export function PaymentsBlock({ leaseId, address, webApp }: { leaseId: string; a
         <p className="hint">{o.charges.length ? t("pay_all_clear") : t("pay_nothing_yet")}</p>
       )}
 
-      {landlord && pending.length > 0 && (
-        <div className="pay-pending">
-          <h3>{t("pay_pending_title")}</h3>
-          {pending.map(({ c, p }) => (
+      {landlord &&
+        ([
+          ["pay_pending_title", pending],
+          ["pay_auto_title", auto],
+        ] as const).map(([title, list]) =>
+          list.length === 0 ? null : (
+        <div className="pay-pending" key={title}>
+          <h3>{t(title)}</h3>
+          {list.map(({ c, p }) => (
             <div key={p.id}>
               <p className="small">
                 <b>{periodLabel(c)}</b>
@@ -391,7 +414,8 @@ export function PaymentsBlock({ leaseId, address, webApp }: { leaseId: string; a
             </div>
           ))}
         </div>
-      )}
+          ),
+        )}
 
       {o.charges.length > 0 && (
         <div className="pay-history">

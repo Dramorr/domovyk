@@ -223,6 +223,17 @@ export function formatDate(iso: string | null | undefined): string {
   return new Date(iso).toLocaleDateString("uk-UA", { timeZone: "Europe/Kyiv" });
 }
 
+export function formatDateTime(iso: string | null | undefined): string {
+  if (!iso) return "";
+  return new Date(iso).toLocaleString("uk-UA", {
+    timeZone: "Europe/Kyiv",
+    day: "numeric",
+    month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 /** Код доменної помилки, якщо це вона. */
 export function errorCode(e: unknown): string | undefined {
   return e instanceof ApiFailure && e.kind === "domain" ? e.code : undefined;

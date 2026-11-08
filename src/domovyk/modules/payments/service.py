@@ -1,8 +1,9 @@
-"""Публічний інтерфейс модуля payments: нарахування й облік оплат (M5, частина 1).
+"""Публічний інтерфейс модуля payments: нарахування й облік оплат (M5).
 
 FR-PAY-1..6. Домовик гроші не проводить (правило 1): люди платять напряму, а тут —
 нарахування, позначки «оплатив» (готівка чи квитанція) і підтвердження власника.
-Розпізнавання квитанцій і автозарахування — частина 2.
+Квитанцію відомого банку звіряємо з орендою: усе збіглося — `auto_accepted` і вікно
+оскарження, далі `confirmed` без участі власника (ADR 0012).
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ from decimal import Decimal
 from typing import Any, Literal
 
 from domovyk.adapters.notifier.base import Notifier, NotifierError
+from domovyk.adapters.receipts.base import ParsedReceipt, ReceiptReader
 from domovyk.adapters.storage.base import FileStorage
 from domovyk.core.clock import Clock, to_kyiv
 from domovyk.core.errors import (
@@ -27,7 +29,7 @@ from domovyk.core.errors import (
 )
 from domovyk.core.tx import Tx, TxManager
 from domovyk.domain.contracts import sha256_hex
-from domovyk.domain.leases import LeaseStatus, PayMethod
+from domovyk.domain.leases import LeaseStatus, PayMethod, mask_card, mask_iban
 from domovyk.domain.payments import (
     IN_FLIGHT,
     PAYMENT,
@@ -35,10 +37,15 @@ from domovyk.domain.payments import (
     RECEIPT_TYPES,
     ChargeKind,
     ChargeStatus,
+    Mismatch,
     PaymentStatus,
+    card_matches,
     charge_status,
     clean_amount,
     clean_note,
+    iban_matches,
+    name_matches,
+    receipt_mismatches,
     reminder_offset,
     rent_periods,
     sniff_receipt,
@@ -87,6 +94,17 @@ class PaymentsConfig:
     # FR-PAY-4: власник не відповів на «оплатив» — нагадати через N днів.
     pending_reminder_days: int = 2
     receipt_max_bytes: int = RECEIPT_MAX_BYTES
+    # FR-PAY-3: операція з квитанції — не раніше ніж за N днів до дати оплати.
+    receipt_early_days: int = 31
+
+
+@dataclass(frozen=True)
+class _Receipt:
+    filename: str
+    data: bytes
+    mime: str
+    signed: bool  # PDF у підписаному контейнері (зберігаємо як .p7s)
+    parsed: ParsedReceipt | None
 
 
 class PaymentsService:
@@ -102,6 +120,7 @@ class PaymentsService:
         clock: Clock,
         config: PaymentsConfig,
         notifier: Notifier | None = None,
+        receipts: ReceiptReader | None = None,
     ) -> None:
         self._tx = tx
         self._repo = repo
@@ -113,6 +132,7 @@ class PaymentsService:
         self._clock = clock
         self._config = config
         self._notifier = notifier
+        self._receipts = receipts
 
     # -------------------------------------------------------------- читання
 
@@ -186,15 +206,26 @@ class PaymentsService:
         data: bytes,
         note: str | None = None,
     ) -> PaymentsOverview:
-        """FR-PAY-3: квитанція (PDF або фото). Поки без розпізнавання — власник підтверджує."""
+        """FR-PAY-3: квитанція (PDF, підписаний PDF банку або фото).
+
+        PDF відомого банку звіряємо з орендою (сума, отримувач, дата, підпис банку).
+        Фото й невідомі PDF — на ручне підтвердження власника.
+        """
         if not data or len(data) > self._config.receipt_max_bytes:
             raise InvalidInput("Квитанція — PDF або фото до 10 МБ", field="file", reason="too_big")
         mime = sniff_receipt(data)
+        document = None
+        if self._receipts is not None and mime in (None, "application/pdf"):
+            document = self._receipts.open(data)
+            if document is not None:
+                mime = "application/pdf"
         if mime is None:
             raise InvalidInput("Квитанція — PDF або фото до 10 МБ", field="file", reason="bad_type")
-        return await self._report(
-            telegram_uid, charge_id, None, amount, note, (filename, data, mime)
-        )
+        parsed = None
+        if document is not None and self._receipts is not None:
+            parsed = await self._receipts.parse(document)
+        receipt = _Receipt(filename, data, mime, document is not None and data[:1] == b"0", parsed)
+        return await self._report(telegram_uid, charge_id, None, amount, note, receipt)
 
     async def _report(
         self,
@@ -203,7 +234,7 @@ class PaymentsService:
         method: PayMethod | None,
         raw_amount: Decimal,
         raw_note: str | None,
-        receipt: tuple[str, bytes, str] | None,
+        receipt: _Receipt | None,
     ) -> PaymentsOverview:
         user = await self._users.require_active(telegram_uid)
         amount = clean_amount(raw_amount, MAX_AMOUNT)
@@ -213,16 +244,47 @@ class PaymentsService:
         if info.lease.my_role == "landlord":
             raise PermissionDenied("Оплату позначає орендар; власник — «Отримав»")
         self._check_payable(info, charge)
-        key = name = mime = sha = None
-        if receipt is not None:
-            name, data, mime = receipt
-            sha = sha256_hex(data)
-            async with self._tx.begin() as tx:
-                if await self._repo(tx).receipt_exists(sha):
-                    raise Conflict("Цю квитанцію вже надсилали", field="file", reason="duplicate")
-            key = f"receipts/{charge.lease_id}/{uuid.uuid4()}{RECEIPT_TYPES[mime]}"
-            await self._storage.put(key, data)
         now = self._clock.now()
+        key = name = mime = sha = reference = deadline = None
+        status = PaymentStatus.PENDING_LANDLORD
+        mismatches: list[str] = []
+        parsed: dict[str, Any] = {}
+        if receipt is not None:
+            name, mime = receipt.filename, receipt.mime
+            sha = sha256_hex(receipt.data)
+            mismatches = [Mismatch.UNPARSED.value]
+            async with self._tx.begin() as tx:
+                repo = self._repo(tx)
+                if await repo.receipt_exists(sha):
+                    raise Conflict("Цю квитанцію вже надсилали", field="file", reason="duplicate")
+                if receipt.parsed is not None:
+                    p = receipt.parsed
+                    reference = f"{p.bank}:{p.reference}"
+                    if await repo.reference_exists(reference):
+                        raise Conflict(
+                            "Цю квитанцію вже надсилали", field="file", reason="duplicate"
+                        )
+                    details = await self._leases.pay_requisites(tx, charge.lease_id)
+                    taken = _sum(
+                        await repo.payments([charge.id]), {PaymentStatus.CONFIRMED} | IN_FLIGHT
+                    )
+                    amount = clean_amount(p.amount, MAX_AMOUNT)  # сума з квитанції, не з форми
+                    mismatches = receipt_mismatches(
+                        amount=p.amount,
+                        remaining=charge.amount - taken,
+                        operated_on=to_kyiv(p.operated_at).date(),
+                        earliest=charge.due_date - timedelta(days=self._config.receipt_early_days),
+                        latest=to_kyiv(now).date(),
+                        recipient_ok=_recipient_ok(info.lease.pay.method, details, p),
+                        bank_signed=p.bank_signed,
+                    )
+                    parsed = _parsed_json(p)
+                    if not mismatches:
+                        status = PaymentStatus.AUTO_ACCEPTED
+                        deadline = now + timedelta(days=info.lease.terms.dispute_window_days)
+            ext = ".p7s" if receipt.signed else RECEIPT_TYPES[receipt.mime]
+            key = f"receipts/{charge.lease_id}/{uuid.uuid4()}{ext}"
+            await self._storage.put(key, receipt.data)
         async with self._tx.begin() as tx:
             repo = self._repo(tx)
             await repo.add_payment(
@@ -236,10 +298,12 @@ class PaymentsService:
                     receipt_filename=_safe_name(name) if name else None,
                     receipt_mime=mime,
                     receipt_sha256=sha,
-                    # Частина 2 розпізнаватиме PDF; поки — завжди на ручне підтвердження.
-                    mismatches=[] if receipt is None else ["unparsed"],
+                    mismatches=mismatches,
                     note=note,
-                    status=PaymentStatus.PENDING_LANDLORD,
+                    status=status,
+                    bank_reference=reference,
+                    parsed=parsed,
+                    dispute_deadline=deadline,
                 )
             )
             await self._recompute(repo, charge.id)
@@ -249,13 +313,19 @@ class PaymentsService:
                 SystemCode.PAYMENT_REPORTED,
                 {"name": user.display_name, "period": charge.period_month.isoformat()},
             )
+            auto = status is PaymentStatus.AUTO_ACCEPTED
             await self._notify(
                 tx,
                 info,
                 [info.landlord_user_id],
-                "payment_reported",
+                "payment_auto_accepted" if auto else "payment_reported",
                 charge,
-                {"name": user.display_name, "amount": _money(amount), "cash": receipt is None},
+                {
+                    "name": user.display_name,
+                    "amount": _money(amount),
+                    "cash": receipt is None,
+                    "days": info.lease.terms.dispute_window_days,
+                },
             )
         return await self.overview(telegram_uid, charge.lease_id)
 
@@ -313,7 +383,10 @@ class PaymentsService:
     async def decide(
         self, telegram_uid: int, payment_id: uuid.UUID, data: DecisionIn
     ) -> PaymentsOverview:
-        """PAY: власник «Отримав» або «Не отримав» (з причиною) — FR-PAY-4, FR-PAY-6."""
+        """PAY: власник «Отримав» або «Не отримав» (з причиною) — FR-PAY-4, FR-PAY-6.
+
+        «Не отримав» на автоматично зараховану квитанцію — оскарження (`disputed`).
+        """
         user = await self._users.require_active(telegram_uid)
         reason = " ".join((data.reason or "").split())[:500] or None
         if not data.accept and not reason:
@@ -326,7 +399,12 @@ class PaymentsService:
         info = await self._leases.for_contract(telegram_uid, charge.lease_id)
         if info.lease.my_role != "landlord":
             raise PermissionDenied("Оплату підтверджує власник")
-        status = PaymentStatus.CONFIRMED if data.accept else PaymentStatus.REJECTED
+        if data.accept:
+            status = PaymentStatus.CONFIRMED
+        elif payment.status is PaymentStatus.AUTO_ACCEPTED:
+            status = PaymentStatus.DISPUTED
+        else:
+            status = PaymentStatus.REJECTED
         PAYMENT.transition(payment.status, status)
         now = self._clock.now()
         async with self._tx.begin() as tx:
@@ -343,7 +421,10 @@ class PaymentsService:
                 code, event = SystemCode.PAYMENT_CONFIRMED, "payment_confirmed"
                 params: dict[str, Any] = {"amount": _money(payment.amount)}
             else:
-                code, event = SystemCode.PAYMENT_REJECTED, "payment_rejected"
+                code = SystemCode.PAYMENT_REJECTED
+                event = (
+                    "payment_disputed" if status is PaymentStatus.DISPUTED else "payment_rejected"
+                )
                 params = {"amount": _money(payment.amount), "reason": reason}
             await self._system(
                 tx,
@@ -363,11 +444,15 @@ class PaymentsService:
         charge = await self._charge(payment.charge_id)
         await self._leases.for_contract(telegram_uid, charge.lease_id)
         data = await self._storage.get(payment.receipt_storage_key)
-        return (
-            payment.receipt_filename or "kvytantsiia",
-            data,
-            payment.receipt_mime or "application/octet-stream",
-        )
+        name = payment.receipt_filename or "kvytantsiia"
+        if data[:1] == b"0" and self._receipts is not None:
+            # Підписаний контейнер банку: показуємо PDF зсередини, оригінал лишається в сховищі.
+            document = self._receipts.open(data)
+            if document is not None:
+                data = document.pdf
+                if not name.lower().endswith(".pdf"):
+                    name = f"{name}.pdf"
+        return (name, data, payment.receipt_mime or "application/octet-stream")
 
     async def send_receipt_to_chat(self, telegram_uid: int, payment_id: uuid.UUID) -> int:
         name, data, _ = await self.receipt(telegram_uid, payment_id)
@@ -438,6 +523,40 @@ class PaymentsService:
                     stamp=f"pending:{payment.id}",
                 )
         return stats
+
+    async def confirm_expired(self) -> int:
+        """FR-PAY-3: вікно оскарження минуло — автоматично зарахована оплата стає confirmed."""
+        now = self._clock.now()
+        async with self._tx.begin() as tx:
+            due = await self._repo(tx).auto_accepted_before(now)
+        done = 0
+        for candidate in due:
+            async with self._tx.begin() as tx:
+                repo = self._repo(tx)
+                payment = await repo.payment(candidate.id)
+                if payment is None or payment.status is not PaymentStatus.AUTO_ACCEPTED:
+                    continue  # власник встиг відповісти
+                charge = await repo.charge(payment.charge_id)
+                if charge is None:
+                    continue
+                PAYMENT.transition(payment.status, PaymentStatus.CONFIRMED)
+                await repo.update_payment(
+                    payment.id, status=PaymentStatus.CONFIRMED, decided_at=now
+                )
+                await self._recompute(repo, charge.id)
+                info = await self._leases.for_contract_by_id(tx, charge.lease_id)
+                params: dict[str, Any] = {"amount": _money(payment.amount)}
+                await self._system(
+                    tx,
+                    charge.lease_id,
+                    SystemCode.PAYMENT_CONFIRMED,
+                    {"period": charge.period_month.isoformat(), **params},
+                )
+                await self._notify(
+                    tx, info, [payment.payer_user_id], "payment_confirmed", charge, params
+                )
+                done += 1
+        return done
 
     async def _ensure_charges(
         self, repo: PaymentsRepository, info: LeaseForContract, today: date, horizon: date
@@ -535,6 +654,10 @@ class PaymentsService:
                     dispute_reason=p.dispute_reason,
                     created_at=p.created_at,
                     decided_at=p.decided_at,
+                    dispute_deadline=p.dispute_deadline,
+                    receipt_bank=p.parsed.get("bank"),
+                    receipt_reference=p.parsed.get("reference"),
+                    operated_at=p.parsed.get("operated_at"),
                 )
             )
         kind: Literal["rent", "deposit", "utilities", "other"] = (
@@ -590,6 +713,36 @@ class PaymentsService:
                 },
                 dedupe_key=f"pay:{info.lease.id}:{event}:{uid}:{mark}",
             )
+
+
+def _recipient_ok(method: PayMethod, details: dict[str, str], p: ParsedReceipt) -> bool:
+    """Отримувач у квитанції — той самий, що в реквізитах договору (FR-PAY-3, п. 4)."""
+    if method is PayMethod.CARD and details.get("card") and p.recipient_card:
+        holder = details.get("recipient_name") or ""
+        name_ok = bool(holder and p.recipient_name and name_matches(holder, p.recipient_name))
+        return card_matches(details["card"], p.recipient_card, name_ok)
+    if method is PayMethod.IBAN and details.get("iban") and p.recipient_iban:
+        return iban_matches(details["iban"], p.recipient_iban)
+    return False  # банка monobank: отримувача з квитанції не звірити — вручну
+
+
+def _parsed_json(p: ParsedReceipt) -> dict[str, Any]:
+    """Що зберігаємо з квитанції: без даних відправника й без повного номера картки."""
+    recipient = None
+    if p.recipient_card:
+        recipient = mask_card(p.recipient_card)
+    elif p.recipient_iban:
+        recipient = mask_iban(p.recipient_iban)
+    return {
+        "bank": p.bank,
+        "reference": p.reference,
+        "amount": str(p.amount),
+        "fee": str(p.fee) if p.fee is not None else None,
+        "operated_at": p.operated_at.isoformat(),
+        "recipient": recipient,
+        "recipient_name": p.recipient_name,
+        "bank_signed": p.bank_signed,
+    }
 
 
 def _sum(payments: list[PaymentRecord], statuses: set[PaymentStatus]) -> Decimal:

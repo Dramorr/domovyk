@@ -75,6 +75,18 @@ class FakePaymentsRepository:
     async def receipt_exists(self, sha256: str) -> bool:
         return any(p.receipt_sha256 == sha256 for p in self.db.payments.values())
 
+    async def reference_exists(self, reference: str) -> bool:
+        return any(p.bank_reference == reference for p in self.db.payments.values())
+
+    async def auto_accepted_before(self, before: datetime) -> list[PaymentRecord]:
+        return [
+            p
+            for p in self.db.payments.values()
+            if p.status is PaymentStatus.AUTO_ACCEPTED
+            and p.dispute_deadline is not None
+            and p.dispute_deadline <= before
+        ]
+
     async def pending_before(self, before: datetime) -> list[PaymentRecord]:
         return [
             p

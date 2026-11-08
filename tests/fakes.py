@@ -12,6 +12,7 @@ from cryptography.fernet import Fernet
 from domovyk.adapters.geocoder.base import Geocoder
 from domovyk.adapters.geocoder.manual import ManualGeocoder
 from domovyk.adapters.images.pillow import PillowImageProcessor
+from domovyk.adapters.receipts.pdf import PdfReceiptReader
 from domovyk.adapters.signing.diia_portal import DiiaPortalVerifier
 from domovyk.container import Services, wire_contracts, wire_guards
 from domovyk.core.clock import Clock, FixedClock
@@ -299,6 +300,7 @@ def make_fake_services(
     clock: Clock | None = None,
     *,
     properties_config: PropertiesConfig | None = None,
+    payments_config: PaymentsConfig | None = None,
     geocoder: Geocoder | None = None,
     contracts_config: ContractsConfig | None = None,
     **config: Any,
@@ -363,8 +365,9 @@ def make_fake_services(
         notifications,
         db.storage,
         clock,
-        PaymentsConfig(),
+        payments_config or PaymentsConfig(),
         notifier=db.notifier,
+        receipts=PdfReceiptReader(),
     )
     wire_guards(users, properties, leases)
     wire_contracts(leases, contracts)

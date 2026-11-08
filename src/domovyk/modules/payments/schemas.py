@@ -26,6 +26,11 @@ class PaymentOut(BaseModel):
     dispute_reason: str | None
     created_at: datetime
     decided_at: datetime | None
+    # Автозарахування за квитанцією (FR-PAY-3): до цього часу власник може оскаржити.
+    dispute_deadline: datetime | None = None
+    receipt_bank: str | None = None
+    receipt_reference: str | None = None
+    operated_at: str | None = None
 
 
 class ChargeOut(BaseModel):

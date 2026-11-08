@@ -24,6 +24,7 @@ dependencies = [
     "asn1crypto>=1.5",
     "pillow>=11",
     "imagehash>=4.3",
+    "pdfplumber>=0.11",
 ]
 
 [dependency-groups]
@@ -71,7 +72,7 @@ module = ["domovyk.domain.*", "domovyk.modules.*"]
 strict = true
 
 [[tool.mypy.overrides]]
-module = ["arq.*", "weasyprint.*", "asn1crypto.*", "imagehash.*"]
+module = ["arq.*", "weasyprint.*", "asn1crypto.*", "imagehash.*", "pdfplumber.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

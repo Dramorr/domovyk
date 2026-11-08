@@ -92,6 +92,7 @@ def make_renderer(base_url: str) -> Renderer:
                             str(p.get("period") or ""), str(p.get("kind") or "rent")
                         ),
                         how=uk.PAYMENT_HOW_CASH if p.get("cash") else uk.PAYMENT_HOW_RECEIPT,
+                        days=uk.days_label(int(p.get("days") or 0)),
                     ),
                     lease_button(p, uk.BTN_OPEN_PAYMENTS, "lease"),
                 )

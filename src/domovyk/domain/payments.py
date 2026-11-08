@@ -153,3 +153,69 @@ def sniff_receipt(data: bytes) -> str | None:
     if data[4:12] in (b"ftypheic", b"ftypheix", b"ftypmif1", b"ftyphevc"):
         return "image/heic"
     return None
+
+
+# --------------------------------------------------- звірка квитанції (FR-PAY-3)
+
+
+class Mismatch(StrEnum):
+    """Що не збіглося у квитанції — бачать обидві сторони (PaymentOut.mismatches)."""
+
+    UNPARSED = "unparsed"  # фото або PDF невідомого банку
+    AMOUNT = "amount"  # менше, ніж лишилось сплатити
+    RECIPIENT = "recipient"  # не картка / IBAN власника з договору
+    DATE = "date"  # операція завчасно до дати оплати або «з майбутнього»
+    UNSIGNED = "unsigned"  # немає підпису банку на файлі
+
+
+def digits(value: str) -> str:
+    return "".join(ch for ch in value if ch.isdigit())
+
+
+def card_matches(expected: str, got: str, name_ok: bool) -> bool:
+    """Повний номер — точний збіг. Замаскований (4111 11** **** 1111) — збіг видимих
+    цифр, але лише разом з ім'ям: самих 6+4 цифр замало."""
+    want = digits(expected)
+    got = got.replace(" ", "")
+    if "*" not in got:
+        return digits(got) == want
+    if len(got) != len(want) or not name_ok:
+        return False
+    visible = [(a, b) for a, b in zip(got, want, strict=True) if a != "*"]
+    return len(visible) >= 8 and all(a == b for a, b in visible)
+
+
+def iban_matches(expected: str, got: str) -> bool:
+    return expected.replace(" ", "").upper() == got.replace(" ", "").upper()
+
+
+def name_matches(expected_full: str, got: str) -> bool:
+    """«Ірина К.» проти «Ірина Коваль» або «Коваль Ірина Петрівна»: ім'я і перша літера прізвища."""
+    want = [w.strip(".").lower() for w in expected_full.split() if w.strip(".")]
+    parts = [w.strip(".").lower() for w in got.split() if w.strip(".")]
+    if len(parts) < 2 or len(want) < 2:
+        return False
+    first, initial = parts[0], parts[1][:1]
+    return any(first == w and any(o.startswith(initial) for o in want if o != w) for w in want)
+
+
+def receipt_mismatches(
+    *,
+    amount: Decimal,
+    remaining: Decimal,
+    operated_on: date,
+    earliest: date,
+    latest: date,
+    recipient_ok: bool,
+    bank_signed: bool,
+) -> list[str]:
+    out: list[str] = []
+    if amount < remaining:
+        out.append(Mismatch.AMOUNT.value)
+    if not recipient_ok:
+        out.append(Mismatch.RECIPIENT.value)
+    if not earliest <= operated_on <= latest:
+        out.append(Mismatch.DATE.value)
+    if not bank_signed:
+        out.append(Mismatch.UNSIGNED.value)
+    return out

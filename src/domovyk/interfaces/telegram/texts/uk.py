@@ -245,6 +245,11 @@ def period_label(period: str, kind: str) -> str:
     return f"{_MONTHS[month - 1]} {year}"
 
 
+def days_label(n: int) -> str:
+    """1 → «1 дня», 3 → «3 днів» (родовий: «протягом …»)."""
+    return f"{n} дня" if n % 10 == 1 and n % 100 != 11 else f"{n} днів"
+
+
 PAYMENT_EVENTS = {
     "rent_reminder_before": (
         "Нагадую: {due} — оплата за <b>{period}</b>, {address} · {amount} ₴. "
@@ -261,6 +266,15 @@ PAYMENT_EVENTS = {
     "payment_reported": (
         "💸 {name} позначає оплату за <b>{period}</b>: {amount} ₴ {how}. {address}. "
         "Підтверди, будь ласка, коли перевіриш."
+    ),
+    "payment_auto_accepted": (
+        "💸 {name} надсилає квитанцію за <b>{period}</b>: {amount} ₴, {address}. "
+        "Сума, отримувач і дата збіглися — оплату зараховано. Якщо гроші не прийшли, "
+        "натисни «Не отримав» протягом {days}, інакше вона підтвердиться сама."
+    ),
+    "payment_disputed": (
+        "Власник оскаржує оплату за <b>{period}</b> ({amount} ₴): {reason}. "
+        "Подробиці — у чаті й в оплатах."
     ),
     "payment_pending_reminder": (
         "Оплата за <b>{period}</b> ({amount} ₴) ще чекає твого підтвердження: {address}."

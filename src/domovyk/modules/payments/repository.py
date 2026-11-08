@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Protocol
@@ -59,6 +59,9 @@ class PaymentRecord:
     decided_at: datetime | None
     dispute_reason: str | None
     created_at: datetime
+    bank_reference: str | None = None
+    parsed: dict[str, Any] = field(default_factory=dict)
+    dispute_deadline: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -77,6 +80,9 @@ class NewPayment:
     status: PaymentStatus
     decided_by: uuid.UUID | None = None
     decided_at: datetime | None = None
+    bank_reference: str | None = None  # "monobank:XXXX-…" — унікальний (FR-PAY-3)
+    parsed: dict[str, Any] = field(default_factory=dict)
+    dispute_deadline: datetime | None = None
 
 
 class PaymentsRepository(Protocol):
@@ -89,6 +95,8 @@ class PaymentsRepository(Protocol):
     async def add_payment(self, data: NewPayment) -> uuid.UUID: ...
     async def update_payment(self, payment_id: uuid.UUID, **values: Any) -> None: ...
     async def receipt_exists(self, sha256: str) -> bool: ...
+    async def reference_exists(self, reference: str) -> bool: ...
+    async def auto_accepted_before(self, before: datetime) -> list[PaymentRecord]: ...
     async def pending_before(self, before: datetime) -> list[PaymentRecord]: ...
 
 
@@ -124,6 +132,9 @@ def _payment(r: PaymentRow) -> PaymentRecord:
         decided_at=r.decided_at,
         dispute_reason=r.dispute_reason,
         created_at=r.created_at,
+        bank_reference=r.bank_reference,
+        parsed=dict(r.parsed or {}),
+        dispute_deadline=r.dispute_deadline,
     )
 
 
@@ -199,6 +210,9 @@ class SqlPaymentsRepository:
             status=data.status,
             decided_by=data.decided_by,
             decided_at=data.decided_at,
+            bank_reference=data.bank_reference,
+            parsed=data.parsed,
+            dispute_deadline=data.dispute_deadline,
         )
         self._s.add(row)
         await self._s.flush()
@@ -214,6 +228,21 @@ class SqlPaymentsRepository:
             select(PaymentRow.id).where(PaymentRow.receipt_sha256 == sha256).limit(1)
         )
         return found is not None
+
+    async def reference_exists(self, reference: str) -> bool:
+        found = await self._s.scalar(
+            select(PaymentRow.id).where(PaymentRow.bank_reference == reference).limit(1)
+        )
+        return found is not None
+
+    async def auto_accepted_before(self, before: datetime) -> list[PaymentRecord]:
+        rows = await self._s.scalars(
+            select(PaymentRow).where(
+                PaymentRow.status == PaymentStatus.AUTO_ACCEPTED,
+                PaymentRow.dispute_deadline <= before,
+            )
+        )
+        return [_payment(r) for r in rows]
 
     async def pending_before(self, before: datetime) -> list[PaymentRecord]:
         rows = await self._s.scalars(

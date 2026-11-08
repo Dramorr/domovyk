@@ -2098,6 +2098,8 @@ export interface components {
             created_at: string;
             /** Decided At */
             decided_at: string | null;
+            /** Dispute Deadline */
+            dispute_deadline?: string | null;
             /** Dispute Reason */
             dispute_reason: string | null;
             /** Has Receipt */
@@ -2112,10 +2114,16 @@ export interface components {
             mismatches: string[];
             /** Note */
             note: string | null;
+            /** Operated At */
+            operated_at?: string | null;
             /** Payer Name */
             payer_name: string;
+            /** Receipt Bank */
+            receipt_bank?: string | null;
             /** Receipt Mime */
             receipt_mime: string | null;
+            /** Receipt Reference */
+            receipt_reference?: string | null;
             status: components["schemas"]["PaymentStatus"];
         };
         /**

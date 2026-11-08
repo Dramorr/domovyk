@@ -2389,6 +2389,18 @@
             ],
             "title": "Decided At"
           },
+          "dispute_deadline": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dispute Deadline"
+          },
           "dispute_reason": {
             "anyOf": [
               {
@@ -2430,9 +2442,31 @@
             ],
             "title": "Note"
           },
+          "operated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Operated At"
+          },
           "payer_name": {
             "title": "Payer Name",
             "type": "string"
+          },
+          "receipt_bank": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Receipt Bank"
           },
           "receipt_mime": {
             "anyOf": [
@@ -2444,6 +2478,17 @@
               }
             ],
             "title": "Receipt Mime"
+          },
+          "receipt_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Receipt Reference"
           },
           "status": {
             "$ref": "#/components/schemas/PaymentStatus"

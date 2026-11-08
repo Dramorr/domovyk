@@ -51,6 +51,14 @@ async def payments_daily(services: Services) -> int:
     return sum(stats.values())
 
 
+async def confirm_auto_payments(services: Services) -> int:
+    """FR-PAY-3: вікно оскарження минуло — автоматично зараховані оплати стають confirmed."""
+    done = await services.payments.confirm_expired()
+    if done:
+        log.info("Підтверджено оплат після вікна оскарження: %s", done)
+    return done
+
+
 async def remind_unsigned_contracts(services: Services) -> int:
     """CTR-SIGN: нагадування тим, хто ще не підписав договір (24 і 72 год)."""
     queued = await services.contracts.remind_unsigned()
@@ -73,6 +81,7 @@ async def dev_background_loop(services: Services, notifier: Notifier, mini_app_u
                 await remind_unsigned_contracts(services)
                 await finish_leases(services)
                 await payments_daily(services)
+                await confirm_auto_payments(services)
                 since_remind = 0
         except Exception:  # фонова петля не має падати через один збій
             log.exception("Помилка фонової задачі")

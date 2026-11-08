@@ -12,6 +12,7 @@ from domovyk.adapters.geocoder.nominatim import NominatimGeocoder
 from domovyk.adapters.images.pillow import PillowImageProcessor
 from domovyk.adapters.notifier.telegram import TelegramNotifier
 from domovyk.adapters.pdf.weasy import WeasyPrintRenderer
+from domovyk.adapters.receipts.pdf import PdfReceiptReader
 from domovyk.adapters.signing.diia_portal import DiiaPortalVerifier
 from domovyk.adapters.storage.encrypted import EncryptedFileStorage
 from domovyk.adapters.storage.local import LocalFileStorage
@@ -180,6 +181,7 @@ class Container:
             clock,
             PaymentsConfig(),
             notifier=self.notifier,
+            receipts=PdfReceiptReader(),
         )
         wire_guards(users, properties, leases)
         wire_contracts(leases, contracts)
