@@ -23,6 +23,7 @@ import { AgreementBar, AgreementSheet } from "./AgreementBar";
 import { ContractBlock } from "./Contract";
 import { PaymentsBlock } from "./Payments";
 import { PhotoSlider } from "./Photos";
+import { Stepper, type Step } from "./Stepper";
 import { confirm, openTelegramLink, type WebApp } from "../telegram";
 import { Chip, errorCode, errorField, errorText, formatAddress, formatDate, ListRow, MascotTip, Screen } from "../ui";
 
@@ -252,12 +253,49 @@ function Chips<T extends string | number | boolean>({
   );
 }
 
+/** Перемикач в один рядок для коротких варіантів (дні, місяці, так/ні). */
+function Segmented<T extends string | number | boolean>({
+  value,
+  options,
+  label,
+  onChange,
+  name,
+}: {
+  value: T;
+  options: T[];
+  label: (v: T) => string;
+  onChange: (v: T) => void;
+  name: string;
+}) {
+  return (
+    <div className="segmented" role="radiogroup" aria-label={name}>
+      {options.map((o) => (
+        <button
+          key={String(o)}
+          type="button"
+          role="radio"
+          aria-checked={value === o}
+          className={value === o ? "active" : ""}
+          onClick={() => onChange(o)}
+        >
+          {label(o)}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+const MONTHS = [6, 11, 12, 24, 35];
+const OPEN: Lease["status"][] = ["draft", "awaiting_tenant", "awaiting_signatures", "active", "ending"];
+
+/** LSE-NEW / умови оренди: слайдер кроків (як створення об'єкта). Той самий для зміни умов і пропозицій орендаря. */
 export function LeaseForm({
   property,
   lease,
   onBack,
   onCreated,
   onSaved,
+  onOpenLease,
   propose = false,
 }: {
   property?: Property;
@@ -265,6 +303,8 @@ export function LeaseForm({
   onBack: () => void;
   onCreated?: (lease: Lease, invite: Invite) => void;
   onSaved?: (lease: Lease) => void;
+  /** Об'єкт уже зайнятий — відкрити наявну оренду. */
+  onOpenLease?: (id: string) => void;
   /** Орендар пропонує зміни (FR-LSE-10): без реквізитів оплати. */
   propose?: boolean;
 }) {
@@ -287,11 +327,38 @@ export function LeaseForm({
           terms: DEFAULT_TERMS,
         },
   );
+  // Зміна умов відкривається з підсумку: олівцем — у потрібний розділ.
+  const [at, setAt] = useState(lease ? (propose ? 4 : 5) : 0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Незавершені оренди цього об'єкта: другу на те саме не створити (сервер відповість 409).
+  const [taken, setTaken] = useState<LeaseSummary[]>([]);
   const set = (patch: Partial<Form>) => setF((s) => ({ ...s, ...patch }));
   const term = (patch: Partial<LeaseTerms>) => setF((s) => ({ ...s, terms: { ...s.terms, ...patch } }));
   const rooms = property?.units.filter((u) => u.kind === "room") ?? [];
+
+  useEffect(() => {
+    if (!property || lease) return;
+    api
+      .leases()
+      .then((all) => setTaken(all.filter((l) => l.property_id === property.id && OPEN.includes(l.status))))
+      .catch(() => setTaken([]));
+  }, [property, lease]);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [at]);
+
+  const go = (i: number) => {
+    setError(null);
+    setAt(i);
+  };
+
+  // Весь об'єкт зайнятий будь-якою орендою; кімната — орендою всього об'єкта або цієї кімнати.
+  const unitName = (id: string | null) => (id ? rooms.find((r) => r.id === id)?.name : undefined);
+  const blocking = taken.find((l) =>
+    f.unitId === null ? true : l.unit_kind === "entire" || l.unit_name === unitName(f.unitId),
+  );
 
   function body(): LeaseConditions {
     const rent = Number(f.rent);
@@ -334,188 +401,336 @@ export function LeaseForm({
         onCreated?.(r.lease, r.invite);
       }
     } catch (e) {
+      setError(leaseError(e));
+      // Помилка в полі — повертаємо на крок, де це поле.
       const field = errorField(e);
-      setError(field ? t("prp_bad_field", { field: fieldLabel(field) }) : errorText(e));
+      const where = steps.findIndex((s) => s.fields?.includes(field ?? ""));
+      if (where >= 0) setAt(where);
       setBusy(false);
     }
   }
 
-  return (
-    <Screen onBack={onBack} title={propose ? t("ls_propose_title") : lease ? t("ls_edit_title") : t("ls_new_title")}>
-      {propose && (
-        <MascotTip>
-          <p>{t("ls_propose_hint")}</p>
-        </MascotTip>
-      )}
-      {property && <p className="hint">{formatAddress(property)}</p>}
-      {!lease && (
-        <MascotTip>
-          <p>{t("ls_new_hint")}</p>
-        </MascotTip>
-      )}
+  const payLine =
+    f.payMethod === "cash"
+      ? t("ls_pay_cash")
+      : `${k(`ls_pay_${f.payMethod}`)}${f.recipient ? ` · ${f.recipient}` : ""}`;
+  const rentOk = Number(f.rent) > 0;
+  const depositOk = f.depositMode !== "custom" || Number(f.deposit) > 0;
+  // Сервер вимагає реквізити й отримувача щоразу (зберігає їх лише зашифрованими) — перевіряємо до відправки.
+  const payOk =
+    f.payMethod === "cash" ||
+    (f.recipient.trim().length >= 3 &&
+      ((f.payMethod === "card" && digitsOnly(f.card).length >= 16) ||
+        (f.payMethod === "iban" && f.iban.replace(/\s/g, "").length >= 29) ||
+        (f.payMethod === "jar" && f.jar.trim().length > 10)));
+  const next = (i: number, disabled = false) => ({ label: t("next"), disabled, onClick: () => go(i + 1) });
 
-      {rooms.length > 0 && (
+  type LeaseStep = Step & { fields?: string[] };
+  const draft: LeaseStep[] = [
+    {
+      key: "dates",
+      title: t("ls_step_dates_title"),
+      text: lease ? undefined : t("ls_new_hint"),
+      fields: ["unit_id", "start_date", "months", "end_date"],
+      content: (
+        <>
+          {blocking && (
+            <section className="card notice">
+              <p>
+                {t(blocking.unit_kind === "entire" || f.unitId === null ? "ls_busy_property" : "ls_busy_room", {
+                  status: k(`ls_status_${blocking.status}`).toLowerCase(),
+                })}
+              </p>
+              {onOpenLease && (
+                <button className="button ghost small" onClick={() => onOpenLease(blocking.id)}>
+                  <Icon name="key" size={18} />
+                  {t("ls_open_existing")}
+                </button>
+              )}
+            </section>
+          )}
+          {/* Без кімнат вибору немає: зайнятий об'єкт — і заповнювати нічого. */}
+          {!(blocking && rooms.length === 0) && (
+          <section className="card">
+            {property && <p className="row-title">{formatAddress(property)}</p>}
+            {rooms.length > 0 && (
+              <div className="field">
+                {t("ls_unit")}
+                <Chips<string>
+                  value={f.unitId ?? "entire"}
+                  options={["entire", ...rooms.map((r) => r.id)]}
+                  label={(v) => (v === "entire" ? t("ls_unit_entire") : (rooms.find((r) => r.id === v)?.name ?? ""))}
+                  onChange={(v) => set({ unitId: v === "entire" ? null : v })}
+                />
+              </div>
+            )}
+            <label className="field">
+              {t("ls_start")}
+              <input className="input" type="date" value={f.start} onChange={(e) => set({ start: e.target.value })} />
+            </label>
+            <div className="chips">
+              <button type="button" className={`chip${f.start === firstOfNextMonth() ? " active" : ""}`} onClick={() => set({ start: firstOfNextMonth() })}>
+                {t("ls_start_next_month")}
+              </button>
+              <button type="button" className={`chip${f.start === isoDate(new Date()) ? " active" : ""}`} onClick={() => set({ start: isoDate(new Date()) })}>
+                {t("ls_start_today")}
+              </button>
+            </div>
+            <p className="field">{t("ls_months")}</p>
+            <Segmented<number> name={t("ls_months")} value={f.months} options={MONTHS} label={String} onChange={(n) => set({ months: n })} />
+            {!MONTHS.includes(f.months) && <p className="hint small">{t("ls_months_custom", { n: String(f.months) })}</p>}
+            <label className="field">
+              {t("ls_months_other")}
+              <input
+                className="input"
+                inputMode="numeric"
+                value={String(f.months)}
+                onChange={(e) => set({ months: Math.max(1, Math.min(35, Number(e.target.value.replace(/\D/g, "")) || 1)) })}
+              />
+            </label>
+            <p className="hint small">{t("ls_months_hint")}</p>
+          </section>
+          )}
+        </>
+      ),
+      action: next(0, !!blocking || !f.start),
+    },
+    {
+      key: "money",
+      title: t("ls_step_money_title"),
+      fields: ["rent_amount", "rent_due_day", "deposit_amount"],
+      content: (
         <section className="card">
-          <div className="field">
-            {t("ls_unit")}
-            <Chips<string>
-              value={f.unitId ?? "entire"}
-              options={["entire", ...rooms.map((r) => r.id)]}
-              label={(v) => (v === "entire" ? t("ls_unit_entire") : (rooms.find((r) => r.id === v)?.name ?? ""))}
-              onChange={(v) => set({ unitId: v === "entire" ? null : v })}
+          <label className="field">
+            {t("ls_rent")}
+            <input
+              className="input"
+              inputMode="numeric"
+              value={f.rent}
+              placeholder="15000"
+              onChange={(e) => set({ rent: e.target.value.replace(/\D/g, "") })}
             />
-          </div>
-        </section>
-      )}
-
-      <section className="card">
-        <h2>{t("ls_sec_dates")}</h2>
-        <label className="field">
-          {t("ls_start")}
-          <input className="input" type="date" value={f.start} onChange={(e) => set({ start: e.target.value })} />
-        </label>
-        <div className="chips">
-          <button type="button" className="chip" onClick={() => set({ start: firstOfNextMonth() })}>
-            {t("ls_start_next_month")}
-          </button>
-          <button type="button" className="chip" onClick={() => set({ start: isoDate(new Date()) })}>
-            {t("ls_start_today")}
-          </button>
-        </div>
-        <div className="field">
-          {t("ls_months")}
-          <Chips<number> value={f.months} options={[6, 11, 12, 24, 35]} label={(n) => t("ls_months_n", { n: String(n) })} onChange={(n) => set({ months: n })} />
-          <input
-            className="input"
-            inputMode="numeric"
-            value={String(f.months)}
-            onChange={(e) => set({ months: Math.max(1, Math.min(35, Number(e.target.value.replace(/\D/g, "")) || 1)) })}
-          />
-          <span className="hint small">{t("ls_months_hint")}</span>
-        </div>
-      </section>
-
-      <section className="card">
-        <h2>{t("ls_sec_money")}</h2>
-        <label className="field">
-          {t("ls_rent")}
-          <input className="input" inputMode="numeric" value={f.rent} onChange={(e) => set({ rent: e.target.value.replace(/\D/g, "") })} />
-        </label>
-        <div className="field">
-          {t("ls_due_day")}
-          <Chips<number> value={f.dueDay} options={[1, 5, 10, 15, 20, 25]} label={String} onChange={(n) => set({ dueDay: n })} />
-        </div>
-        <div className="field">
-          {t("ls_deposit")}
-          <Chips<Form["depositMode"]>
+          </label>
+          <p className="field">{t("ls_due_day")}</p>
+          <Segmented<number> name={t("ls_due_day")} value={f.dueDay} options={[1, 5, 10, 15, 20, 25]} label={String} onChange={(n) => set({ dueDay: n })} />
+          <p className="field">{t("ls_deposit")}</p>
+          <Segmented<Form["depositMode"]>
+            name={t("ls_deposit")}
             value={f.depositMode}
             options={["none", "month", "custom"]}
             label={(v) => k(`ls_deposit_${v}`)}
             onChange={(v) => set({ depositMode: v })}
           />
           {f.depositMode === "custom" && (
-            <input className="input" inputMode="numeric" value={f.deposit} onChange={(e) => set({ deposit: e.target.value.replace(/\D/g, "") })} />
-          )}
-        </div>
-      </section>
-
-      {!propose && (
-      <section className="card">
-        <h2>{t("ls_sec_pay")}</h2>
-        <Chips<Form["payMethod"]>
-          value={f.payMethod}
-          options={["card", "iban", "jar", "cash"]}
-          label={(v) => k(`ls_pay_${v}`)}
-          onChange={(v) => set({ payMethod: v })}
-        />
-        {f.payMethod === "card" && (
-          <label className="field">
-            {t("ls_card")}
-            <input className="input" inputMode="numeric" autoComplete="off" value={f.card} onChange={(e) => set({ card: e.target.value })} />
-          </label>
-        )}
-        {f.payMethod === "iban" && (
-          <label className="field">
-            {t("ls_iban")}
-            <input className="input" autoComplete="off" value={f.iban} onChange={(e) => set({ iban: e.target.value })} />
-          </label>
-        )}
-        {f.payMethod === "jar" && (
-          <label className="field">
-            {t("ls_jar")}
-            <input className="input" value={f.jar} placeholder="https://send.monobank.ua/jar/…" onChange={(e) => set({ jar: e.target.value })} />
-          </label>
-        )}
-        {f.payMethod !== "cash" && (
-          <>
             <label className="field">
-              {t("ls_recipient")}
-              <input className="input" value={f.recipient} onChange={(e) => set({ recipient: e.target.value })} />
+              {t("ls_deposit_sum")}
+              <input className="input" inputMode="numeric" value={f.deposit} onChange={(e) => set({ deposit: e.target.value.replace(/\D/g, "") })} />
             </label>
-            <p className="hint small">{t("ls_pay_hint")}</p>
-          </>
-        )}
-      </section>
-      )}
-
-      <section className="card">
-        <h2>{t("ls_sec_terms")}</h2>
-        <div className="field">
-          {t("ls_visits")}
-          <Chips<number> value={f.terms.visits_notice_hours} options={[12, 24, 48]} label={(n) => t("ls_hours_n", { n: String(n) })} onChange={(n) => term({ visits_notice_hours: n })} />
-        </div>
-        <div className="field">
-          {t("ls_minor")}
-          <Chips<LeaseTerms["minor_repairs"]> value={f.terms.minor_repairs} options={["tenant", "landlord"]} label={(v) => k(`ls_side_${v}`)} onChange={(v) => term({ minor_repairs: v })} />
-        </div>
-        <div className="field">
-          {t("ls_major")}
-          <Chips<LeaseTerms["major_repairs"]> value={f.terms.major_repairs} options={["landlord", "tenant"]} label={(v) => k(`ls_side_${v}`)} onChange={(v) => term({ major_repairs: v })} />
-        </div>
-        <div className="field">
-          {t("ls_utilities")}
-          <Chips<LeaseTerms["utilities_payer"]>
-            value={f.terms.utilities_payer}
-            options={["tenant_direct", "landlord", "included"]}
-            label={(v) => k(`ls_util_${v}`)}
-            onChange={(v) => term({ utilities_payer: v })}
+          )}
+        </section>
+      ),
+      action: next(1, !rentOk || !depositOk),
+    },
+    ...(propose
+      ? []
+      : [
+          {
+            key: "pay",
+            title: t("ls_sec_pay"),
+            text: t("ls_pay_hint"),
+            fields: ["card", "iban", "jar_url", "recipient_name", "pay_details"],
+            content: (
+              <section className="card">
+                <Segmented<Form["payMethod"]>
+                  name={t("ls_sec_pay")}
+                  value={f.payMethod}
+                  options={["card", "iban", "jar", "cash"]}
+                  label={(v) => k(`ls_pay_${v}_short`)}
+                  onChange={(v) => set({ payMethod: v })}
+                />
+                {f.payMethod === "card" && (
+                  <label className="field">
+                    {t("ls_card")}
+                    <input className="input" inputMode="numeric" autoComplete="off" value={f.card} placeholder="0000 0000 0000 0000" onChange={(e) => set({ card: e.target.value })} />
+                  </label>
+                )}
+                {f.payMethod === "iban" && (
+                  <label className="field">
+                    {t("ls_iban")}
+                    <input className="input" autoComplete="off" value={f.iban} placeholder="UA…" onChange={(e) => set({ iban: e.target.value })} />
+                  </label>
+                )}
+                {f.payMethod === "jar" && (
+                  <label className="field">
+                    {t("ls_jar")}
+                    <input className="input" value={f.jar} placeholder="https://send.monobank.ua/jar/…" onChange={(e) => set({ jar: e.target.value })} />
+                  </label>
+                )}
+                {f.payMethod !== "cash" ? (
+                  <label className="field">
+                    {t("ls_recipient")}
+                    <input className="input" value={f.recipient} onChange={(e) => set({ recipient: e.target.value })} />
+                  </label>
+                ) : (
+                  <p className="hint small">{t("ls_pay_cash_hint")}</p>
+                )}
+                {lease && f.payMethod !== "cash" && <p className="hint small">{t("ls_pay_keep_hint")}</p>}
+              </section>
+            ),
+          } as LeaseStep,
+        ]),
+    {
+      key: "home",
+      title: t("ls_step_home_title"),
+      fields: ["visits_notice_hours", "minor_repairs", "major_repairs", "utilities_payer"],
+      content: (
+        <section className="card">
+          <p className="field">{t("ls_visits")}</p>
+          <Segmented<number>
+            name={t("ls_visits")}
+            value={f.terms.visits_notice_hours}
+            options={[12, 24, 48]}
+            label={(n) => t("ls_hours_n", { n: String(n) })}
+            onChange={(n) => term({ visits_notice_hours: n })}
           />
-        </div>
-        <div className="field">
-          {t("ls_pets")}
-          <Chips<boolean> value={f.terms.pets_allowed} options={[true, false]} label={(b) => (b ? t("pf_yes") : t("pf_no"))} onChange={(b) => term({ pets_allowed: b })} />
-        </div>
-        <div className="field">
-          {t("ls_registration")}
-          <Chips<boolean> value={f.terms.residence_registration} options={[true, false]} label={(b) => (b ? t("pf_yes") : t("pf_no"))} onChange={(b) => term({ residence_registration: b })} />
-        </div>
-        <div className="field">
-          {t("ls_sublet")}
-          <Chips<boolean> value={f.terms.sublet_allowed} options={[false, true]} label={(b) => (b ? t("ls_sublet_yes") : t("ls_sublet_no"))} onChange={(b) => term({ sublet_allowed: b })} />
-        </div>
-        <div className="field">
-          {t("ls_early")}
-          <Chips<number> value={f.terms.early_termination_notice_days} options={[14, 30, 60]} label={(n) => t("ls_days_n", { n: String(n) })} onChange={(n) => term({ early_termination_notice_days: n })} />
-        </div>
-        <div className="field">
-          {t("ls_dispute")}
-          <Chips<LeaseTerms["dispute_window_days"]>
+          <p className="field">{t("ls_minor")}</p>
+          <Segmented<LeaseTerms["minor_repairs"]>
+            name={t("ls_minor")}
+            value={f.terms.minor_repairs}
+            options={["tenant", "landlord"]}
+            label={(v) => k(`ls_side_${v}`)}
+            onChange={(v) => term({ minor_repairs: v })}
+          />
+          <p className="field">{t("ls_major")}</p>
+          <Segmented<LeaseTerms["major_repairs"]>
+            name={t("ls_major")}
+            value={f.terms.major_repairs}
+            options={["landlord", "tenant"]}
+            label={(v) => k(`ls_side_${v}`)}
+            onChange={(v) => term({ major_repairs: v })}
+          />
+          <div className="field">
+            {t("ls_utilities")}
+            <Chips<LeaseTerms["utilities_payer"]>
+              value={f.terms.utilities_payer}
+              options={["tenant_direct", "landlord", "included"]}
+              label={(v) => k(`ls_util_${v}`)}
+              onChange={(v) => term({ utilities_payer: v })}
+            />
+          </div>
+        </section>
+      ),
+    },
+    {
+      key: "rules",
+      title: t("ls_step_rules_title"),
+      fields: ["pets_allowed", "residence_registration", "sublet_allowed", "early_termination_notice_days", "dispute_window_days"],
+      content: (
+        <section className="card">
+          <p className="field">{t("ls_pets")}</p>
+          <Segmented<boolean> name={t("ls_pets")} value={f.terms.pets_allowed} options={[true, false]} label={(b) => (b ? t("pf_yes") : t("pf_no"))} onChange={(b) => term({ pets_allowed: b })} />
+          <p className="field">{t("ls_registration")}</p>
+          <Segmented<boolean>
+            name={t("ls_registration")}
+            value={f.terms.residence_registration}
+            options={[true, false]}
+            label={(b) => (b ? t("pf_yes") : t("pf_no"))}
+            onChange={(b) => term({ residence_registration: b })}
+          />
+          <p className="field">{t("ls_sublet")}</p>
+          <Segmented<boolean>
+            name={t("ls_sublet")}
+            value={f.terms.sublet_allowed}
+            options={[false, true]}
+            label={(b) => (b ? t("ls_sublet_yes") : t("ls_sublet_no"))}
+            onChange={(b) => term({ sublet_allowed: b })}
+          />
+          <p className="field">{t("ls_early")}</p>
+          <Segmented<number>
+            name={t("ls_early")}
+            value={f.terms.early_termination_notice_days}
+            options={[14, 30, 60]}
+            label={(n) => t("ls_days_n", { n: String(n) })}
+            onChange={(n) => term({ early_termination_notice_days: n })}
+          />
+          <p className="field">{t("ls_dispute")}</p>
+          <Segmented<LeaseTerms["dispute_window_days"]>
+            name={t("ls_dispute")}
             value={f.terms.dispute_window_days}
             options={[1, 3, 5, 7]}
-            label={(n) => t("ls_days_n", { n: String(n) })}
+            label={(n) => t("ls_days_short", { n: String(n) })}
             onChange={(n) => term({ dispute_window_days: n })}
           />
-        </div>
-      </section>
+          <p className="hint small">{t("ls_dispute_hint")}</p>
+        </section>
+      ),
+    },
+    {
+      key: "confirm",
+      title: t(lease ? "ls_step_confirm_edit_title" : "ls_step_confirm_title"),
+      content: (
+        <section className="card">
+          {property && (
+            <div className="summary-head">
+              <span className="row-icon">
+                <Icon name={property.kind === "house" ? "home" : "building"} />
+              </span>
+              <div>
+                <p className="row-title">{formatAddress(property)}</p>
+                <p className="hint small">{unitName(f.unitId) ?? t("ls_unit_entire")}</p>
+              </div>
+            </div>
+          )}
+          <dl className="summary-list">
+            <SummaryRow label={t("ls_sec_dates")} value={t("ls_summary_dates", { from: formatDate(f.start), n: String(f.months) })} onEdit={() => go(0)} />
+            <SummaryRow
+              label={t("ls_sec_money")}
+              value={`${t("ls_rent_line", { rent: f.rent || "0", day: String(f.dueDay) })}${
+                f.depositMode === "none" ? "" : ` · ${t("ls_deposit_line", { sum: String(body().deposit_amount ?? 0) })}`
+              }`}
+              onEdit={() => go(1)}
+            />
+            {!propose && <SummaryRow label={t("ls_sec_pay")} value={payLine} onEdit={() => go(2)} />}
+            <SummaryRow label={t("ls_sec_terms")} value={t("ls_summary_terms")} onEdit={() => go(propose ? 2 : 3)} />
+          </dl>
+        </section>
+      ),
+      action: {
+        label: busy ? t("saving") : lease ? t(propose ? "ls_propose_send" : "ls_save") : t("ls_create"),
+        final: true,
+        icon: lease ? "check" : "send",
+        disabled: busy || !rentOk || !depositOk || (!propose && !payOk) || !!blocking,
+        onClick: () => void submit(),
+      },
+    },
+  ];
+  // Реквізити — окремий крок лише в «новій оренді» й зміні умов; кнопку «Далі» додаємо там, де її немає.
+  const steps = draft.map((s, i) => (s.action || i === draft.length - 1 ? s : { ...s, action: next(i, s.key === "pay" && !payOk) }));
 
-      <div className="sticky-actions">
-        {error && <p className="error">{error}</p>}
-        <button className="button" disabled={busy || !f.rent || !f.start} onClick={submit}>
-          {busy ? t("saving") : lease ? t("ls_save") : t("ls_create")}
-        </button>
-      </div>
-    </Screen>
+  const title = propose ? t("ls_propose_title") : lease ? t("ls_edit_title") : t("ls_new_title");
+  return <Stepper steps={steps} at={at} onGo={go} onExit={onBack} title={title} error={error} open={!!lease} />;
+}
+
+function SummaryRow({ label, value, onEdit }: { label: string; value: string; onEdit: () => void }) {
+  return (
+    <div className="summary-row">
+      <dt>{label}</dt>
+      <dd>{value}</dd>
+      <button type="button" className="icon-button" aria-label={t("edit")} onClick={onEdit}>
+        <Icon name="edit" size={18} />
+      </button>
+    </div>
   );
+}
+
+function digitsOnly(raw: string): string {
+  return raw.replace(/\D/g, "");
+}
+
+function leaseError(e: unknown): string {
+  const field = errorField(e);
+  if (errorCode(e) === "conflict" && field === "unit_id") return t("ls_err_unit_busy");
+  return field ? t("prp_bad_field", { field: fieldLabel(field) }) : errorText(e);
 }
 
 function fieldLabel(field: string): string {

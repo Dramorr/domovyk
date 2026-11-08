@@ -43,6 +43,7 @@ export function Stepper({
   onExit,
   title,
   error,
+  open = false,
 }: {
   steps: Step[];
   at: number;
@@ -50,12 +51,16 @@ export function Stepper({
   onExit: () => void;
   title?: string;
   error?: string | null;
+  /** Усі кроки вже заповнені (зміна наявного): крапками й свайпом можна йти куди завгодно. */
+  open?: boolean;
 }) {
   const touchX = useRef<number | null>(null);
-  const [reached, setReached] = useState(at);
+  const [reached, setReached] = useState(open ? steps.length - 1 : at);
   useEffect(() => setReached((r) => Math.max(r, at)), [at]);
   const step = steps[at];
-  const back = () => (at > 0 ? onGo(at - 1) : onExit());
+  const last = steps.length - 1;
+  // Зміна наявного: «Назад» з розділу — до підсумку, з підсумку — вихід.
+  const back = () => (open ? (at === last ? onExit() : onGo(last)) : at > 0 ? onGo(at - 1) : onExit());
 
   function onTouchStart(e: TouchEvent) {
     touchX.current = e.touches[0]?.clientX ?? null;

@@ -1988,24 +1988,25 @@ label.file-button {
   animation: peek-in 420ms cubic-bezier(0.2, 0.8, 0.3, 1.2) both;
 }
 
+/* Біля країв: крапок буває до шести, у середину не заходимо. */
 .peek-1 {
-  left: 2%;
-  --peek-rot: -10deg;
+  left: 0;
+  --peek-rot: -8deg;
 }
 
 .peek-2 {
-  right: 4%;
-  --peek-rot: 12deg;
+  right: 0;
+  --peek-rot: 10deg;
 }
 
 .peek-3 {
-  left: 15%;
-  --peek-rot: 6deg;
+  left: -14px;
+  --peek-rot: 16deg;
 }
 
 .peek-4 {
-  right: 16%;
-  --peek-rot: -6deg;
+  right: -14px;
+  --peek-rot: -16deg;
 }
 
 @keyframes peek-in {
@@ -2330,4 +2331,55 @@ label.file-button {
 
 .photo-empty:active {
   background: var(--brand-100);
+}
+
+/* Попередження всередині кроку (напр. об'єкт уже в оренді). */
+.card.notice {
+  border: 1.5px solid var(--amber);
+  background: var(--amber-100);
+  color: var(--amber-700);
+}
+
+.card.notice p {
+  margin: 0 0 4px;
+  color: var(--amber-700);
+}
+
+/* Підсумок кроків: рядок — підпис, значення, кнопка «змінити». */
+.summary-list {
+  margin: 12px 0 0;
+}
+
+.summary-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 2px 8px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+
+.summary-row dt {
+  grid-column: 1;
+  color: var(--text-3);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.summary-row dd {
+  grid-column: 1;
+  margin: 0;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.summary-row .icon-button {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  color: var(--brand);
+}
+
+.segmented button {
+  line-height: 1.2;
+  text-align: center;
 }

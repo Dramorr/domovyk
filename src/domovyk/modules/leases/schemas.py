@@ -138,6 +138,7 @@ class PendingInvite(BaseModel):
 
 class LeaseSummary(BaseModel):
     id: uuid.UUID
+    property_id: uuid.UUID
     status: LeaseStatus
     my_role: PartyRole
     street: str
@@ -152,7 +153,6 @@ class LeaseSummary(BaseModel):
 
 
 class LeaseOut(LeaseSummary):
-    property_id: uuid.UUID
     months_total: int
     months_left: int
     currency: str

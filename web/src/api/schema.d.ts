@@ -1786,6 +1786,11 @@ export interface components {
              * @enum {string}
              */
             my_role: "landlord" | "responsible" | "co_tenant";
+            /**
+             * Property Id
+             * Format: uuid
+             */
+            property_id: string;
             /** Rent Amount */
             rent_amount: number;
             /**

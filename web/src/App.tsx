@@ -318,6 +318,7 @@ export function App() {
         <LeaseFormLoader
           propertyId={route.propertyId}
           onBack={back}
+          onOpenLease={(id) => setStack([{ name: "leases" }, { name: "lease", id }])}
           onCreated={(lease, invite) =>
             setStack([{ name: "leases" }, { name: "lease", id: lease.id }, { name: "invite-share", leaseId: lease.id, invite }])
           }
@@ -452,6 +453,7 @@ function LeaseFormLoader({
   onBack,
   onCreated,
   onSaved,
+  onOpenLease,
   propose = false,
 }: {
   propertyId?: string;
@@ -459,6 +461,7 @@ function LeaseFormLoader({
   onBack: () => void;
   onCreated?: (lease: Lease, invite: Invite) => void;
   onSaved?: (lease: Lease) => void;
+  onOpenLease?: (id: string) => void;
   propose?: boolean;
 }) {
   const [property, setProperty] = useState<Property | null>(null);
@@ -479,6 +482,7 @@ function LeaseFormLoader({
       onBack={onBack}
       onCreated={onCreated}
       onSaved={onSaved}
+      onOpenLease={onOpenLease}
     />
   );
 }

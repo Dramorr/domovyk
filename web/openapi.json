@@ -1542,6 +1542,7 @@
         },
         "required": [
           "id",
+          "property_id",
           "status",
           "my_role",
           "street",
@@ -1553,7 +1554,6 @@
           "end_date",
           "rent_amount",
           "unread",
-          "property_id",
           "months_total",
           "months_left",
           "currency",
@@ -1622,6 +1622,11 @@
             "title": "My Role",
             "type": "string"
           },
+          "property_id": {
+            "format": "uuid",
+            "title": "Property Id",
+            "type": "string"
+          },
           "rent_amount": {
             "title": "Rent Amount",
             "type": "integer"
@@ -1652,6 +1657,7 @@
         },
         "required": [
           "id",
+          "property_id",
           "status",
           "my_role",
           "street",

@@ -89,7 +89,8 @@ async def test_lease_cycle(services: Services, engine: AsyncEngine) -> None:
 
     with pytest.raises(HasOpenLease):
         await s.users.delete_account(ROOMMATE)
-    assert len(await s.leases.list_mine(ROOMMATE)) == 1
+    (mine,) = await s.leases.list_mine(ROOMMATE)
+    assert mine.property_id == lease.property_id  # майстер оренди бачить, що об'єкт зайнятий
 
     async with engine.connect() as conn:
         stored = await conn.scalar(text("SELECT pay_details::text FROM leases"))
