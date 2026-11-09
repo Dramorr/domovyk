@@ -1,6 +1,6 @@
 // PROF-1 і PROF-TENANT (BOT_FLOWS §16, FR-USR-3, FR-USR-5).
-// Один екран, групи з підписами (Основне · Анкета орендаря · Акаунт) і одна кнопка
-// «Зберегти» внизу — з'являється, лише коли щось змінено.
+// Вкладки «Основне · Анкета · Акаунт» під шапкою і одна кнопка «Зберегти» внизу —
+// зберігає зміни з усіх вкладок разом; вкладка з незбереженим позначена крапкою.
 
 import { useEffect, useState } from "react";
 
@@ -12,6 +12,8 @@ import { Chip, errorCode, errorText, Screen } from "../ui";
 import { isValidName } from "./Onboarding";
 
 const HOUSEHOLD_MAX = 20;
+
+type ProfileTab = "main" | "tenant" | "account";
 
 /** Рядок-перемикач: підпис ліворуч, повзунок праворуч. */
 function SwitchRow({ label, value, onChange }: { label: string; value: boolean | null | undefined; onChange: (v: boolean) => void }) {
@@ -49,6 +51,7 @@ export function Profile({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [tab, setTab] = useState<ProfileTab>("main");
 
   useEffect(() => {
     if (!tenant) return;
@@ -109,6 +112,11 @@ export function Profile({
   }
 
   const household = profile.household_size ?? null;
+  const tabs: { key: ProfileTab; label: string; dirty: boolean }[] = [
+    { key: "main", label: t("prof_group_main"), dirty: nameChanged },
+    ...(tenant ? [{ key: "tenant" as const, label: t("prof_tab_tenant"), dirty: !!profileChanged }] : []),
+    { key: "account", label: t("prof_group_account"), dirty: false },
+  ];
   const initial = (name.trim() || user.display_name).charAt(0).toUpperCase();
 
   return (
@@ -130,8 +138,24 @@ export function Profile({
         </div>
       </section>
 
-      <h2 className="group-title">{t("prof_group_main")}</h2>
-      <section className="card group">
+      <div className="segmented profile-tabs" role="tablist" aria-label={t("prof_title")}>
+        {tabs.map((x) => (
+          <button
+            key={x.key}
+            type="button"
+            role="tab"
+            aria-selected={tab === x.key}
+            className={tab === x.key ? "active" : ""}
+            onClick={() => setTab(x.key)}
+          >
+            {x.label}
+            {x.dirty && <span className="tab-dot" aria-label={t("pf_unsaved")} />}
+          </button>
+        ))}
+      </div>
+
+      {tab === "main" && (
+      <section className="card group tab-panel" key="main">
         <label className="field">
           {t("prof_name")}
           <input
@@ -147,12 +171,12 @@ export function Profile({
         </label>
         <p className="hint small">{t("prof_name_hint")}</p>
       </section>
+      )}
 
-      {tenant && (
+      {tenant && tab === "tenant" && (
         <>
-          <h2 className="group-title">{t("prof_tenant_title")}</h2>
           <p className="hint small group-hint">{t("prof_tenant_hint")}</p>
-          <section className="card group">
+          <section className="card group tab-panel" key="tenant">
             {!loaded && !error && <div className="skeleton" />}
             {loaded && (
               <>
@@ -224,8 +248,8 @@ export function Profile({
         </>
       )}
 
-      <h2 className="group-title">{t("prof_group_account")}</h2>
-      <section className="card group">
+      {tab === "account" && (
+      <section className="card group tab-panel" key="account">
         <div className="info-row">
           <Icon name="user" size={20} />
           <span>{t("prof_phone_row")}</span>
@@ -236,6 +260,7 @@ export function Profile({
           <span>{t("prof_delete")}</span>
         </button>
       </section>
+      )}
 
       <p className="hint small center-text">{t("prof_beta_note")}</p>
 

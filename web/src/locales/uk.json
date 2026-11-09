@@ -847,5 +847,6 @@
   "prof_phone_row": "Номер телефону",
   "prof_phone_yes": "підтверджено",
   "prof_phone_no": "не підтверджено",
-  "prof_save_all": "Зберегти зміни"
+  "prof_save_all": "Зберегти зміни",
+  "prof_tab_tenant": "Анкета"
 }

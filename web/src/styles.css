@@ -2888,3 +2888,26 @@ button.info-row {
 .info-row.danger .icon {
   color: var(--danger);
 }
+
+/* Вкладки профілю: той самий перемикач, що «Квартира / Будинок». */
+.profile-tabs {
+  margin: 16px 0 12px;
+}
+
+.profile-tabs button {
+  position: relative;
+}
+
+.tab-dot {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--amber);
+}
+
+.tab-panel {
+  animation: rise-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
