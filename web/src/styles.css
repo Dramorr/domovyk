@@ -2383,3 +2383,13 @@ label.file-button {
   line-height: 1.2;
   text-align: center;
 }
+
+/* Заголовок розділу на головній під банером. */
+.section-title {
+  margin: 20px 0 8px;
+  font-size: 18px;
+}
+
+.button .count {
+  margin-left: 2px;
+}

@@ -3,9 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, setInitData, type Invite, type Lease, type Me, type Property, type User } from "./api/client";
 import { BOT_USERNAME } from "./config";
 import { t } from "./i18n";
-import { Icon } from "./icons";
 import { Chat } from "./screens/Chat";
-import { InviteAccept, InviteShare, LeaseCard, LeaseForm, LeaseList, LeaseNotifications } from "./screens/Leases";
+import { InviteAccept, InviteShare, LeaseCard, LeaseForm, LeaseNotifications, TenantHome } from "./screens/Leases";
 import { ModerationCase, ModerationQueue, SignatureReview } from "./screens/Moderation";
 import { ConsentAndName, ModeChoice, PhoneStep } from "./screens/Onboarding";
 import { Profile } from "./screens/Profile";
@@ -24,7 +23,6 @@ type Route =
   | { name: "home" }
   | { name: "search" }
   | { name: "profile" }
-  | { name: "properties" }
   | { name: "new-property" }
   | { name: "property"; id: string }
   | { name: "ownership"; id: string }
@@ -32,7 +30,6 @@ type Route =
   | { name: "moderation" }
   | { name: "mod-case"; vid: string }
   | { name: "mod-sig"; sid: string }
-  | { name: "leases" }
   | { name: "lease"; id: string }
   | { name: "lease-new"; propertyId: string }
   | { name: "lease-edit"; id: string }
@@ -48,21 +45,21 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 function routeFromStart(param: string | null, isStaff: boolean): Route[] {
   if (!param) return [];
   if (param === "mod" && isStaff) return [{ name: "moderation" }];
-  if (param.startsWith("inv_")) return [{ name: "leases" }, { name: "invite", token: param.slice(4) }];
+  if (param.startsWith("inv_")) return [{ name: "home" }, { name: "invite", token: param.slice(4) }];
   const leaseId = param.startsWith("lease_") ? param.slice(6) : param.startsWith("chat_") ? param.slice(5) : "";
   if (UUID_RE.test(leaseId)) {
-    const base: Route[] = [{ name: "leases" }, { name: "lease", id: leaseId }];
+    const base: Route[] = [{ name: "home" }, { name: "lease", id: leaseId }];
     return param.startsWith("chat_") ? [...base, { name: "chat", id: leaseId }] : base;
   }
   const id = param.startsWith("prop_") ? param.slice(5) : "";
-  if (UUID_RE.test(id)) return [{ name: "properties" }, { name: "property", id }];
+  if (UUID_RE.test(id)) return [{ name: "home" }, { name: "property", id }];
   return [];
 }
 
 function modeForRoute(routes: Route[]): Mode | null {
   const root = routes[0]?.name;
   if (routes.some((r) => r.name === "invite") || root === "search") return "tenant";
-  if (root === "properties" || root === "moderation") return "landlord";
+  if (routes.some((r) => r.name === "property") || root === "moderation") return "landlord";
   return null;
 }
 
@@ -72,7 +69,6 @@ export function App() {
   // Стек екранів усередині вкладки: «Назад» повертає на попередній.
   const [stack, setStack] = useState<Route[]>([{ name: "home" }]);
   const [modCount, setModCount] = useState<number | null>(null);
-  const [props, setProps] = useState<Property[] | null>(null);
 
   const route = stack[stack.length - 1];
   const push = (r: Route) => setStack((s) => [...s, r]);
@@ -108,7 +104,6 @@ export function App() {
 
   useEffect(() => {
     if (!ready || !atHome) return;
-    api.properties().then(setProps).catch(() => setProps(null));
     if (isStaff)
       api
         .moderationSummary()
@@ -118,15 +113,7 @@ export function App() {
 
   const activeTab: Tab | null = (() => {
     const root = stack[0]?.name;
-    if (
-      root === "home" ||
-      root === "search" ||
-      root === "properties" ||
-      root === "leases" ||
-      root === "moderation" ||
-      root === "profile"
-    )
-      return root;
+    if (root === "home" || root === "search" || root === "moderation" || root === "profile") return root;
     return null;
   })();
 
@@ -246,15 +233,6 @@ export function App() {
         </Screen>
       );
       break;
-    case "properties":
-      screen = (
-        <PropertyList
-          onBack={stack.length > 1 ? back : undefined}
-          onOpen={(id) => push({ name: "property", id })}
-          onNew={() => push({ name: "new-property" })}
-        />
-      );
-      break;
     case "new-property":
       screen = <NewProperty onBack={back} onCreated={(p) => replace({ name: "property", id: p.id })} />;
       break;
@@ -268,6 +246,8 @@ export function App() {
           onOwnership={() => push({ name: "ownership", id: route.id })}
           onProfile={() => push({ name: "profile-form", id: route.id })}
           onNewLease={(prop) => push({ name: "lease-new", propertyId: prop.id })}
+          onOpenLease={(id) => push({ name: "lease", id })}
+          onChat={(id) => push({ name: "chat", id })}
           onDeleted={back}
         />
       );
@@ -293,11 +273,6 @@ export function App() {
     case "mod-case":
       screen = <ModerationCase key={route.vid} vid={route.vid} onBack={back} />;
       break;
-    case "leases":
-      screen = (
-        <LeaseList webApp={webApp} onBack={stack.length > 1 ? back : undefined} onOpen={(id) => push({ name: "lease", id })} />
-      );
-      break;
     case "lease":
       screen = (
         <LeaseCard
@@ -318,9 +293,16 @@ export function App() {
         <LeaseFormLoader
           propertyId={route.propertyId}
           onBack={back}
-          onOpenLease={(id) => setStack([{ name: "leases" }, { name: "lease", id }])}
+          onOpenLease={(id) =>
+            setStack([{ name: "home" }, { name: "property", id: route.propertyId }, { name: "lease", id }])
+          }
           onCreated={(lease, invite) =>
-            setStack([{ name: "leases" }, { name: "lease", id: lease.id }, { name: "invite-share", leaseId: lease.id, invite }])
+            setStack([
+              { name: "home" },
+              { name: "property", id: lease.property_id },
+              { name: "lease", id: lease.id },
+              { name: "invite-share", leaseId: lease.id, invite },
+            ])
           }
         />
       );
@@ -339,7 +321,7 @@ export function App() {
         <InviteAccept
           token={route.token}
           onBack={back}
-          onJoined={(lease) => setStack([{ name: "leases" }, { name: "lease", id: lease.id }])}
+          onJoined={(lease) => setStack([{ name: "home" }, { name: "lease", id: lease.id }])}
         />
       );
       break;
@@ -350,99 +332,37 @@ export function App() {
       screen = <LeaseNotifications id={route.id} onBack={back} />;
       break;
     case "home":
-      screen = (
-        <Home
-          mode={mode}
-          user={user}
-          props={props}
-          modCount={isStaff ? modCount : null}
-          onTab={nav.go}
-          onNewProperty={() => setStack([{ name: "properties" }, { name: "new-property" }])}
-        />
-      );
+      // Головна = робочий екран режиму: власність (власник) або моя оренда (орендар).
+      screen =
+        mode === "landlord" ? (
+          <PropertyList
+            hero={<Hero user={user} />}
+            onOpen={(id) => push({ name: "property", id })}
+            onNew={() => push({ name: "new-property" })}
+          />
+        ) : (
+          <TenantHome
+            hero={<Hero user={user} />}
+            webApp={webApp}
+            onOpen={(id) => push({ name: "lease", id })}
+            onSearch={() => nav.go("search")}
+          />
+        );
       break;
   }
 
   return <NavContext.Provider value={nav}>{screen}</NavContext.Provider>;
 }
 
-function Home({
-  mode,
-  user,
-  props,
-  modCount,
-  onTab,
-  onNewProperty,
-}: {
-  mode: Mode;
-  user: User;
-  props: Property[] | null;
-  modCount: number | null;
-  onTab: (tab: Tab) => void;
-  onNewProperty: () => void;
-}) {
-  const count = props?.length ?? 0;
+function Hero({ user }: { user: User }) {
   const firstName = user.display_name.split(" ")[0];
   return (
-    <Screen>
-      <section className="hero">
-        {user.role !== "user" && <span className="role">{t(`role_${user.role}`)}</span>}
-        <h1>{t("home_hello", { name: firstName })}</h1>
-        <p>{t("home_tagline")}</p>
-        <img className="hero-mascot" src={`${import.meta.env.BASE_URL}../brand/mascot.svg`} alt="" />
-      </section>
-
-      {mode === "landlord" && props && count === 0 && (
-        <MascotTip>
-          <p>{t("home_tip_first")}</p>
-        </MascotTip>
-      )}
-      {mode === "tenant" && (
-        <MascotTip>
-          <p>{t("home_tenant_tip")}</p>
-        </MascotTip>
-      )}
-
-      <div className="quick">
-        {mode === "landlord" ? (
-          <button className="quick-item" onClick={() => (count ? onTab("properties") : onNewProperty())}>
-            <span className="row-icon">
-              <Icon name={count ? "building" : "plus"} />
-            </span>
-            <span className="quick-title">{count ? t("home_q_properties") : t("home_q_add")}</span>
-            <span className="quick-sub">{count ? t("home_q_properties_sub", { n: String(count) }) : t("home_q_add_sub")}</span>
-          </button>
-        ) : (
-          <button className="quick-item" onClick={() => onTab("search")}>
-            <span className="row-icon">
-              <Icon name="search" />
-            </span>
-            <span className="quick-title">{t("home_q_search")}</span>
-            <span className="quick-sub">{t("home_q_soon")}</span>
-          </button>
-        )}
-        <button className="quick-item" onClick={() => onTab("leases")}>
-          <span className="row-icon">
-            <Icon name="key" />
-          </span>
-          <span className="quick-title">{mode === "tenant" ? t("nav_my_lease") : t("nav_leases")}</span>
-          <span className="quick-sub">{t("home_q_my_lease_sub")}</span>
-        </button>
-        {modCount !== null && (
-          <button className="quick-item" onClick={() => onTab("moderation")}>
-            <span className="row-icon">
-              <Icon name="shield" />
-            </span>
-            <span className="quick-title">{t("home_moderation")}</span>
-            <span className="quick-sub">{t("home_q_mod_sub", { n: String(modCount) })}</span>
-          </button>
-        )}
-      </div>
-
-      <MascotTip tone="calm">
-        <p>{t("home_soon")}</p>
-      </MascotTip>
-    </Screen>
+    <section className="hero">
+      {user.role !== "user" && <span className="role">{t(`role_${user.role}`)}</span>}
+      <h1>{t("home_hello", { name: firstName })}</h1>
+      <p>{t("home_tagline")}</p>
+      <img className="hero-mascot" src={`${import.meta.env.BASE_URL}../brand/mascot.svg`} alt="" />
+    </section>
   );
 }
 

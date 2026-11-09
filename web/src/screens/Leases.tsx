@@ -1,6 +1,6 @@
 // Оренда (BOT_FLOWS §7, §9): список, нова оренда, запрошення, картка, умови, сповіщення.
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import {
   api,
@@ -98,64 +98,116 @@ function RowMenu({ label, danger, onPick }: { label: string; danger?: boolean; o
   );
 }
 
-export function LeaseList({
-  onBack,
+const OPEN_STATUSES: Lease["status"][] = ["draft", "awaiting_tenant", "awaiting_signatures", "active", "ending"];
+
+/** Незавершена оренда: займає квартиру, показуємо як поточну. */
+export function isOpenLease(status: Lease["status"]): boolean {
+  return OPEN_STATUSES.includes(status);
+}
+
+export function rentText(n: number): string {
+  return t("ls_rent_month", { rent: money(n) });
+}
+
+/** Рядки оренд. Завершені й скасовані можна прибрати зі списку (меню «⋯»). */
+export function LeaseRows({
+  items,
   onOpen,
   webApp,
+  onHidden,
+  showAddress = true,
 }: {
-  onBack?: () => void;
+  items: LeaseSummary[];
   onOpen: (id: string) => void;
   webApp: WebApp;
+  onHidden: (id: string) => void;
+  showAddress?: boolean;
+}) {
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <>
+      {error && <p className="error">{error}</p>}
+      {items.map((l) => {
+        const closed = !isOpenLease(l.status);
+        return (
+          <div key={l.id} className={closed ? "row-with-menu" : undefined}>
+            <ListRow
+              icon="key"
+              title={showAddress ? leaseAddress(l) : t("ls_period", { from: formatDate(l.start_date), to: formatDate(l.end_date) })}
+              sub={
+                <>
+                  <LeaseStatusChip status={l.status} />
+                  <span>{showAddress ? k(`ls_role_${l.my_role}`) : rentText(l.rent_amount)}</span>
+                </>
+              }
+              right={l.unread > 0 && <span className="count">{l.unread}</span>}
+              onClick={() => onOpen(l.id)}
+            />
+            {closed && (
+              <RowMenu
+                label={t("ls_delete")}
+                danger
+                onPick={async () => {
+                  const text = l.status === "ended" ? t("ls_hide_ended_confirm") : t("ls_delete_confirm");
+                  if (!(await confirm(webApp, text))) return;
+                  try {
+                    await api.hideLease(l.id);
+                    onHidden(l.id);
+                  } catch (e) {
+                    setError(errorText(e));
+                  }
+                }}
+              />
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+/** Головна орендаря: банер і мої оренди (де я орендар чи співмешканець). */
+export function TenantHome({
+  hero,
+  webApp,
+  onOpen,
+  onSearch,
+}: {
+  hero: ReactNode;
+  webApp: WebApp;
+  onOpen: (id: string) => void;
+  onSearch: () => void;
 }) {
   const [items, setItems] = useState<LeaseSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.leases().then(setItems).catch((e: unknown) => setError(errorText(e)));
+    api
+      .leases()
+      .then((all) => setItems(all.filter((l) => l.my_role !== "landlord")))
+      .catch((e: unknown) => setError(errorText(e)));
   }, []);
 
   return (
-    <Screen onBack={onBack}>
-      <h1>{t("ls_list_title")}</h1>
+    <Screen>
+      {hero}
       {error && <p className="error">{error}</p>}
       {!items && !error && <div className="skeleton" />}
+      {items && items.length > 0 && (
+        <>
+          <h2>{t("ls_my_title")}</h2>
+          <LeaseRows items={items} webApp={webApp} onOpen={onOpen} onHidden={(id) => setItems((xs) => xs?.filter((x) => x.id !== id) ?? null)} />
+        </>
+      )}
       {items && items.length === 0 && (
         <MascotTip>
-          <p>{t("ls_list_empty")}</p>
+          <p>{t("home_tenant_tip")}</p>
         </MascotTip>
       )}
-      {items?.map((l) => (
-        <div key={l.id} className={["cancelled", "ended"].includes(l.status) ? "row-with-menu" : undefined}>
-          <ListRow
-            icon="key"
-            title={leaseAddress(l)}
-            sub={
-              <>
-                <LeaseStatusChip status={l.status} />
-                <span>{k(`ls_role_${l.my_role}`)}</span>
-              </>
-            }
-            right={l.unread > 0 && <span className="count">{l.unread}</span>}
-            onClick={() => onOpen(l.id)}
-          />
-          {["cancelled", "ended"].includes(l.status) && (
-            <RowMenu
-              label={t("ls_delete")}
-              danger
-              onPick={async () => {
-                const text = l.status === "ended" ? t("ls_hide_ended_confirm") : t("ls_delete_confirm");
-                if (!(await confirm(webApp, text))) return;
-                try {
-                  await api.hideLease(l.id);
-                  setItems((xs) => xs?.filter((x) => x.id !== l.id) ?? null);
-                } catch (e) {
-                  setError(errorText(e));
-                }
-              }}
-            />
-          )}
-        </div>
-      ))}
+      <button className="button secondary" onClick={onSearch}>
+        <Icon name="search" size={20} />
+        {t("home_q_search")}
+      </button>
     </Screen>
   );
 }
@@ -286,7 +338,6 @@ function Segmented<T extends string | number | boolean>({
 }
 
 const MONTHS = [6, 11, 12, 24, 35];
-const OPEN: Lease["status"][] = ["draft", "awaiting_tenant", "awaiting_signatures", "active", "ending"];
 
 /** LSE-NEW / умови оренди: слайдер кроків (як створення об'єкта). Той самий для зміни умов і пропозицій орендаря. */
 export function LeaseForm({
@@ -340,7 +391,7 @@ export function LeaseForm({
     if (!property || lease) return;
     api
       .leases()
-      .then((all) => setTaken(all.filter((l) => l.property_id === property.id && OPEN.includes(l.status))))
+      .then((all) => setTaken(all.filter((l) => l.property_id === property.id && isOpenLease(l.status))))
       .catch(() => setTaken([]));
   }, [property, lease]);
 

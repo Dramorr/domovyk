@@ -1,8 +1,8 @@
 // Власник: об'єкти й власність (BOT_FLOWS §3: PRP-LIST, PRP-NEW, PRP-CARD, PRP-UNITS, PRP-OWN).
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
-import { api, ApiFailure, type AddressCandidate, type Ownership, type Photo, type Property, type PropertyCreate, type City } from "../api/client";
+import { api, ApiFailure, type AddressCandidate, type LeaseSummary, type Ownership, type Photo, type Property, type PropertyCreate, type City } from "../api/client";
 import { botLink, DIIA_URL } from "../config";
 import { t, type TextKey } from "../i18n";
 import { confirm, openLink, openTelegramLink, type WebApp } from "../telegram";
@@ -15,12 +15,12 @@ import {
   formatAddress,
   formatDate,
   ListRow,
-  Mascot,
   MascotTip,
   Ring,
   roomsText,
   Screen,
 } from "../ui";
+import { isOpenLease, LeaseRows, LeaseStatusChip, rentText } from "./Leases";
 import { PhotoSlider } from "./Photos";
 import { CompletenessBar, PublishHint } from "./PropertyProfile";
 import { Stepper, type Step } from "./Stepper";
@@ -70,25 +70,32 @@ function propertyError(e: unknown): string {
 
 // ------------------------------------------------------------------ PRP-LIST
 
+/** Головна власника: банер, «Моя власність» зі станом оренди кожної квартири, кнопка «Додати». */
 export function PropertyList({
-  onBack,
+  hero,
   onOpen,
   onNew,
 }: {
-  onBack?: () => void;
+  hero?: ReactNode;
   onOpen: (id: string) => void;
   onNew: () => void;
 }) {
   const [items, setItems] = useState<Property[] | null>(null);
+  const [leases, setLeases] = useState<LeaseSummary[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     api.properties().then(setItems).catch((e: unknown) => setError(errorText(e)));
+    api
+      .leases()
+      .then((all) => setLeases(all.filter((l) => l.my_role === "landlord" && isOpenLease(l.status))))
+      .catch(() => setLeases([]));
   }, []);
 
   return (
-    <Screen onBack={onBack}>
-      <h1>{t("prp_list_title")}</h1>
+    <Screen>
+      {hero}
+      <h2 className="section-title">{t("prp_list_title")}</h2>
       {error && <p className="error">{error}</p>}
       {!items && !error && (
         <>
@@ -97,31 +104,38 @@ export function PropertyList({
         </>
       )}
       {items && items.length === 0 && (
-        <>
-          <Mascot size="md" />
-          <MascotTip>
-            <p>{t("prp_list_empty")}</p>
-          </MascotTip>
-        </>
+        <MascotTip>
+          <p>{t("prp_list_empty")}</p>
+        </MascotTip>
       )}
-      {items?.map((p) => (
-        <ListRow
-          key={p.id}
-          icon={p.kind === "house" ? "home" : "building"}
-          title={formatAddress(p)}
-          sub={
-            <>
-              <OwnershipChip status={p.ownership_status} />
-              <span>
-                {roomsText(p.rooms)}
-                {p.area ? ` · ${t("sqm", { area: p.area })}` : ""}
-              </span>
-            </>
-          }
-          right={p.completeness && <Ring percent={p.completeness.percent} size={44} />}
-          onClick={() => onOpen(p.id)}
-        />
-      ))}
+      {items?.map((p) => {
+        const lease = leases.find((l) => l.property_id === p.id);
+        return (
+          <ListRow
+            key={p.id}
+            icon={p.kind === "house" ? "home" : "building"}
+            title={formatAddress(p)}
+            sub={
+              lease ? (
+                <>
+                  <LeaseStatusChip status={lease.status} />
+                  <span>{rentText(lease.rent_amount)}</span>
+                </>
+              ) : (
+                <>
+                  {p.ownership_status === "verified" ? <Chip tone="neutral">{t("prp_free")}</Chip> : <OwnershipChip status={p.ownership_status} />}
+                  <span>
+                    {roomsText(p.rooms)}
+                    {p.area ? ` · ${t("sqm", { area: p.area })}` : ""}
+                  </span>
+                </>
+              )
+            }
+            right={lease && lease.unread > 0 ? <span className="count">{lease.unread}</span> : p.completeness && <Ring percent={p.completeness.percent} size={44} />}
+            onClick={() => onOpen(p.id)}
+          />
+        );
+      })}
       <button className="button" onClick={onNew}>
         <Icon name="plus" size={20} />
         {t("prp_add_short")}
@@ -555,6 +569,8 @@ export function PropertyCard({
   onOwnership,
   onProfile,
   onNewLease,
+  onOpenLease,
+  onChat,
   onDeleted,
 }: {
   id: string;
@@ -563,9 +579,13 @@ export function PropertyCard({
   onOwnership: () => void;
   onProfile: () => void;
   onNewLease: (prop: Property) => void;
+  onOpenLease: (leaseId: string) => void;
+  onChat: (leaseId: string) => void;
   onDeleted: () => void;
 }) {
   const [prop, setProp] = useState<Property | null>(null);
+  // Оренди цієї квартири: поточна (незавершена) і історія.
+  const [leases, setLeases] = useState<LeaseSummary[] | null>(null);
   const [photos, setPhotos] = useState<Photo[] | null>(null);
   const [edit, setEdit] = useState(false);
   const [form, setForm] = useState({ entrance: "", floor: "", rooms: 1, area: "" });
@@ -578,6 +598,10 @@ export function PropertyCard({
       .photos(id)
       .then(setPhotos)
       .catch(() => setPhotos([]));
+    api
+      .leases()
+      .then((all) => setLeases(all.filter((l) => l.property_id === id && l.my_role === "landlord")))
+      .catch(() => setLeases([]));
   }, [id]);
 
   async function run(action: () => Promise<Property | void>) {
@@ -620,6 +644,9 @@ export function PropertyCard({
     });
   }
 
+  const current = leases?.find((l) => isOpenLease(l.status)) ?? null;
+  const history = leases?.filter((l) => !isOpenLease(l.status)) ?? [];
+
   return (
     <Screen onBack={onBack}>
       {photos && photos.length > 0 && <PhotoSlider photos={photos} source={{ kind: "property", id }} />}
@@ -635,6 +662,14 @@ export function PropertyCard({
         {prop.area && ` · ${t("sqm", { area: prop.area })}`}
         {prop.district && ` · ${prop.district}`}
       </p>
+
+      <LeaseBlock
+        prop={prop}
+        current={current}
+        onNew={() => onNewLease(prop)}
+        onOpen={onOpenLease}
+        onChat={onChat}
+      />
 
       <section className="card">
         <h2>{t("pf_title")}</h2>
@@ -660,13 +695,20 @@ export function PropertyCard({
           <Icon name="shield" size={20} />
           {prop.ownership_status === "unverified" ? t("prp_card_verify") : t("prp_card_verify_status")}
         </button>
-        {prop.ownership_status === "verified" && (
-          <button className="button" onClick={() => onNewLease(prop)}>
-            <Icon name="key" size={20} />
-            {t("ls_new_from_property")}
-          </button>
-        )}
       </section>
+
+      {history.length > 0 && (
+        <section className="card">
+          <h2>{t("prp_card_history")}</h2>
+          <LeaseRows
+            items={history}
+            webApp={webApp}
+            showAddress={false}
+            onOpen={onOpenLease}
+            onHidden={(lid) => setLeases((xs) => xs?.filter((x) => x.id !== lid) ?? null)}
+          />
+        </section>
+      )}
 
       <section className="card">
         <h2>{t("prp_details")}</h2>
@@ -734,6 +776,64 @@ export function PropertyCard({
         {t("prp_delete")}
       </button>
     </Screen>
+  );
+}
+
+/** Блок «Оренда» в картці квартири: поточна оренда або як здати. */
+function LeaseBlock({
+  prop,
+  current,
+  onNew,
+  onOpen,
+  onChat,
+}: {
+  prop: Property;
+  current: LeaseSummary | null;
+  onNew: () => void;
+  onOpen: (id: string) => void;
+  onChat: (id: string) => void;
+}) {
+  if (current) {
+    return (
+      <section className="card accent">
+        <div className="stat">
+          <h2 style={{ margin: 0, flex: 1 }}>{t("prp_card_lease")}</h2>
+          <LeaseStatusChip status={current.status} />
+        </div>
+        <p className="row-title">{rentText(current.rent_amount)}</p>
+        <p className="hint small">{t("ls_period", { from: formatDate(current.start_date), to: formatDate(current.end_date) })}</p>
+        <div className="buttons">
+          <button className="button" onClick={() => onOpen(current.id)}>
+            <Icon name="key" size={20} />
+            {t("prp_card_lease_open")}
+          </button>
+          <button className="button secondary" onClick={() => onChat(current.id)}>
+            <Icon name="send" size={20} />
+            {t("prp_card_lease_chat")}
+            {current.unread > 0 && <span className="count">{current.unread}</span>}
+          </button>
+        </div>
+      </section>
+    );
+  }
+  return (
+    <section className="card">
+      <div className="stat">
+        <h2 style={{ margin: 0, flex: 1 }}>{t("prp_card_lease")}</h2>
+        <Chip tone="neutral">{t("prp_free")}</Chip>
+      </div>
+      {prop.ownership_status === "verified" ? (
+        <>
+          <p className="hint small">{t("prp_card_free_hint")}</p>
+          <button className="button" onClick={onNew}>
+            <Icon name="key" size={20} />
+            {t("ls_new_from_property")}
+          </button>
+        </>
+      ) : (
+        <p className="hint small">{t("prp_card_lease_wait_own")}</p>
+      )}
+    </section>
   );
 }
 

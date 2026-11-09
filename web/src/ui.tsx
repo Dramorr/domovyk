@@ -8,7 +8,7 @@ export const BRAND = `${import.meta.env.BASE_URL}../brand/`;
 
 // ------------------------------------------------------------- навігація
 
-export type Tab = "home" | "search" | "properties" | "leases" | "moderation" | "profile";
+export type Tab = "home" | "search" | "moderation" | "profile";
 export type Mode = "tenant" | "landlord";
 
 type Nav = {
@@ -25,17 +25,15 @@ export const NavContext = createContext<Nav | null>(null);
 
 // Своя навігація для кожного режиму (ADR 0006); «Модерація» — лише модераторам.
 const TABS: Record<Mode, { tab: Tab; icon: IconName; label: TextKey; staff?: boolean }[]> = {
+  // Головна власника — його власність з орендами; головна орендаря — його оренда.
   tenant: [
     { tab: "home", icon: "home", label: "nav_home" },
     { tab: "search", icon: "search", label: "nav_search" },
-    { tab: "leases", icon: "key", label: "nav_my_lease" },
     { tab: "moderation", icon: "shield", label: "nav_moderation", staff: true },
     { tab: "profile", icon: "user", label: "nav_profile" },
   ],
   landlord: [
     { tab: "home", icon: "home", label: "nav_home" },
-    { tab: "properties", icon: "building", label: "nav_properties" },
-    { tab: "leases", icon: "key", label: "nav_leases" },
     { tab: "moderation", icon: "shield", label: "nav_moderation", staff: true },
     { tab: "profile", icon: "user", label: "nav_profile" },
   ],
