@@ -3136,118 +3136,66 @@ button.info-row {
 }
 
 /* ---- ONB-4 «Що тебе привело?»: картки ділять вільний простір, у кожній — жива сценка ---- */
-.mode-choice {
-  display: flex;
-  flex-direction: column;
-  min-height: calc(100dvh - 100px - env(safe-area-inset-bottom));
-}
-
-.mode-choice h1 {
-  margin-bottom: 4px;
-}
-
-.mode-scene-card {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-height: 200px;
-  margin-top: 14px;
-  padding: 0;
+/* «Що тебе привело?»: два рядки на всю ширину. Наведення, фокус чи тап — з-за нижнього
+   краю картки визирає маленький маскот свого режиму. */
+.mode-row {
+  position: relative;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
   overflow: hidden;
-  border: 1.5px solid var(--line);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  color: var(--text);
-  text-align: start;
-  cursor: pointer;
-  transition: transform 0.15s, border-color 0.2s;
+  padding-right: 64px;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.mode-scene-card:active {
-  transform: scale(0.985);
-}
-
-.mode-scene-card.tenant:hover,
-.mode-scene-card.tenant.picked {
-  border-color: #1e4d3b;
-}
-
-.mode-scene-card.landlord:hover,
-.mode-scene-card.landlord.picked {
-  border-color: #e2b45a;
-}
-
-.mode-scene {
-  display: block;
-  flex: 1;
-  width: 100%;
-  min-height: 120px;
-}
-
-.mode-scene-text {
+.mode-row-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 12px 16px 14px;
 }
 
-.mode-scene-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 700;
-  font-size: 17px;
-}
-
-.mode-scene-card.tenant .mode-scene-title .icon {
+.mode-row.tenant .row-icon {
+  background: #dcebe2;
   color: #1e4d3b;
 }
 
-.mode-scene-card.landlord .mode-scene-title .icon {
+.mode-row.landlord .row-icon {
+  background: #f5e7c6;
   color: #8b6522;
 }
 
-/* Картинка картки: звичайний маскот на м'якому тлі свого режиму. Вибір — маскот підстрибує. */
-.mode-art {
-  display: grid;
-  flex: 1;
-  place-items: center;
-  min-height: 120px;
-  padding: 12px 0 4px;
+.mode-peek {
+  position: absolute;
+  right: 14px;
+  bottom: -64px;
+  width: 64px;
+  height: 64px;
+  pointer-events: none;
+  transform: rotate(10deg);
+  transition: transform 0.35s cubic-bezier(0.3, 1.5, 0.5, 1);
 }
 
-.mode-scene-card.tenant .mode-art {
-  background: radial-gradient(circle at 50% 60%, #dcebe2 0, #eef5f0 55%, transparent 80%);
+.mode-row:hover .mode-peek,
+.mode-row:focus-visible .mode-peek,
+.mode-row:active .mode-peek,
+.mode-row.picked .mode-peek {
+  transform: translateY(-46px) rotate(-6deg);
 }
 
-.mode-scene-card.landlord .mode-art {
-  background: radial-gradient(circle at 50% 60%, #f5e7c6 0, #fbf5e7 55%, transparent 80%);
+.mode-row.tenant:hover,
+.mode-row.tenant:focus-visible,
+.mode-row.tenant.picked {
+  border-color: #1e4d3b;
 }
 
-.mode-art img {
-  width: auto;
-  height: min(140px, 100%);
-  max-height: 140px;
-  transition: transform 0.2s;
-}
-
-.mode-scene-card:hover .mode-art img {
-  transform: translateY(-3px);
-}
-
-.mode-scene-card.picked .mode-art img {
-  animation: mode-hop 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) both;
-}
-
-@keyframes mode-hop {
-  45% {
-    transform: translateY(-18px) rotate(-4deg);
-  }
+.mode-row.landlord:hover,
+.mode-row.landlord:focus-visible,
+.mode-row.landlord.picked {
+  border-color: #e2b45a;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mode-scene-card.picked .mode-art img {
-    animation: none;
+  .mode-peek {
+    transition: none;
   }
 }

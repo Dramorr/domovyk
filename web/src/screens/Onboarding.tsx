@@ -340,10 +340,10 @@ export function ModeChoice({ onDone }: { onDone: (user: User) => void }) {
   async function choose(mode: "tenant" | "landlord") {
     if (busy) return;
     setBusy(true);
-    setPicked(mode); // Домовик підстрибує — і лише тоді переходимо
+    setPicked(mode); // маскот визирає з картки — і лише тоді переходимо
     setError(null);
     try {
-      const [user] = await Promise.all([api.setMode(mode), new Promise((r) => window.setTimeout(r, 650))]);
+      const [user] = await Promise.all([api.setMode(mode), new Promise((r) => window.setTimeout(r, 450))]);
       onDone(user as User);
     } catch (e) {
       setError(errorText(e));
@@ -354,32 +354,37 @@ export function ModeChoice({ onDone }: { onDone: (user: User) => void }) {
 
   const card = (mode: "tenant" | "landlord") => (
     <button
-      className={`mode-scene-card ${mode}${picked === mode ? " picked" : ""}`}
+      className={`choice-big mode-row ${mode}${picked === mode ? " picked" : ""}`}
       disabled={busy}
       onClick={() => choose(mode)}
     >
-      <span className="mode-art" aria-hidden="true">
-        <img src={`${BRAND}${mode === "tenant" ? "mascot" : "mascot-landlord"}.svg`} alt="" draggable={false} />
+      <span className="row-icon">
+        <Icon name={mode === "tenant" ? "search" : "building"} />
       </span>
-      <span className="mode-scene-text">
-        <span className="mode-scene-title">
-          <Icon name={mode === "tenant" ? "search" : "building"} size={20} />
-          {t(mode === "tenant" ? "mode_tenant_title" : "mode_landlord_title")}
-        </span>
+      <span className="mode-row-text">
+        {t(mode === "tenant" ? "mode_tenant_title" : "mode_landlord_title")}
         <span className="quick-sub">{t(mode === "tenant" ? "mode_tenant_sub" : "mode_landlord_sub")}</span>
       </span>
+      <img
+        className="mode-peek"
+        src={`${BRAND}${mode === "tenant" ? "mascot" : "mascot-landlord"}.svg`}
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+      />
     </button>
   );
 
   return (
     <Screen>
-      <div className="mode-choice">
-        <h1 className="center-text">{t("mode_question")}</h1>
-        <p className="hint center-text">{t("mode_question_hint")}</p>
+      <Mascot size="md" />
+      <h1 className="center-text">{t("mode_question")}</h1>
+      <p className="hint center-text">{t("mode_question_hint")}</p>
+      <div className="mode-cards">
         {card("tenant")}
         {card("landlord")}
-        {error && <p className="error">{error}</p>}
       </div>
+      {error && <p className="error">{error}</p>}
     </Screen>
   );
 }
