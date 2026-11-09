@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { api, setInitData, type Invite, type Lease, type Me, type Property, type User } from "./api/client";
-import { BOT_USERNAME } from "./config";
+import { BOT_USERNAME, botLink } from "./config";
 import { t } from "./i18n";
 import { Chat } from "./screens/Chat";
 import { InviteAccept, InviteShare, LeaseCard, LeaseForm, LeaseNotifications, TenantHome } from "./screens/Leases";
@@ -10,7 +10,7 @@ import { ConsentAndName, ModeChoice, PhoneStep } from "./screens/Onboarding";
 import { Profile } from "./screens/Profile";
 import { PropertyProfile } from "./screens/PropertyProfile";
 import { NewProperty, OwnershipScreen, PropertyCard, PropertyList } from "./screens/Properties";
-import { getWebApp, startParam } from "./telegram";
+import { getWebApp, openLink, openTelegramLink, startParam } from "./telegram";
 import { errorText, Mascot, MascotTip, type Mode, NavContext, Screen, type Tab } from "./ui";
 
 type State =
@@ -111,9 +111,11 @@ export function App() {
         .catch(() => setModCount(null));
   }, [ready, isStaff, atHome]);
 
+  // Розділи меню відкриваються поверх головної: [головна, розділ, …].
   const activeTab: Tab | null = (() => {
-    const root = stack[0]?.name;
-    if (root === "home" || root === "search" || root === "moderation" || root === "profile") return root;
+    if (stack.length === 1 && stack[0]?.name === "home") return "home";
+    const section = stack[1]?.name ?? stack[0]?.name;
+    if (section === "search" || section === "moderation" || section === "profile") return section;
     return null;
   })();
 
@@ -135,10 +137,20 @@ export function App() {
       mode,
       isStaff,
       modCount,
-      go: (tab: Tab) => setStack([{ name: tab }]),
+      userName: user?.display_name ?? "",
+      // Будь-який розділ — поверх головної: «Назад» завжди веде туди.
+      go: (tab: Tab) => setStack(tab === "home" ? [{ name: "home" }] : [{ name: "home" }, { name: tab }]),
       switchMode,
+      openLink: (url: string) => openLink(webApp, url),
+      openTelegram: (url: string) => openTelegramLink(webApp, url),
+      links: {
+        terms: state.kind === "ready" ? state.me.consent.terms_url : "",
+        privacy: state.kind === "ready" ? state.me.consent.privacy_url : "",
+        about: new URL(`${import.meta.env.BASE_URL}../`, window.location.href).href,
+        bot: botLink(),
+      },
     }),
-    [activeTab, mode, isStaff, modCount, switchMode],
+    [activeTab, mode, isStaff, modCount, switchMode, user?.display_name, webApp, state],
   );
 
   if (!webApp) {

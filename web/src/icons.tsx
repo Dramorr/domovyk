@@ -24,7 +24,9 @@ type IconName =
   | "photo"
   | "pen"
   | "link"
-  | "upload";
+  | "upload"
+  | "menu"
+  | "info";
 
 const PATHS: Record<IconName, string> = {
   home: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z",
@@ -50,6 +52,8 @@ const PATHS: Record<IconName, string> = {
   pen: "M4 20l1-4L16 5l3 3L8 19zM14 7l3 3",
   link: "M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1",
   upload: "M12 16V4M7 9l5-5 5 5M5 20h14",
+  menu: "M4 7h16M4 12h16M4 17h16",
+  info: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5M12 8v.01",
   more: "M6.5 12a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zM13.5 12a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zM20.5 12a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z",
 };
 
