@@ -234,7 +234,6 @@ export function App() {
           onBack={stack.length > 1 ? back : undefined}
           onUserChange={setUser}
           onDeleted={() => setState({ kind: "deleted" })}
-          onSwitchMode={switchMode}
         />
       );
       break;
