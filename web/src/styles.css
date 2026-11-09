@@ -2912,25 +2912,25 @@ button.info-row {
   animation: rise-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-/* ---- Профіль: розділи «клавішами» збоку ---- */
+/* ---- Профіль: розділи «клавішами» збоку, прикріпленими до картки ---- */
 .piano {
   display: grid;
-  grid-template-columns: 74px 1fr;
+  grid-template-columns: 70px 1fr;
   align-items: start;
-  margin: 18px 0 0 -16px;
+  margin: 18px 0 0;
 }
 
 .piano-keys {
-  position: relative;
-  z-index: 1;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding-top: 10px;
+  padding-top: 12px;
 }
 
+/* Неактивні клавіші заходять правим боком під картку, натиснута висувається й зливається з нею. */
 .piano-key {
   position: relative;
+  z-index: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2939,14 +2939,14 @@ button.info-row {
   height: 78px;
   padding: 0 4px;
   border: 1px solid var(--line);
-  border-left: 0;
-  border-radius: 0 14px 14px 0;
+  border-right: 0;
+  border-radius: 14px 0 0 14px;
   background: var(--surface-2);
   color: var(--text-3);
   font: 700 11px Manrope, sans-serif;
   cursor: pointer;
-  transform: translateX(-8px);
-  box-shadow: inset -3px 0 6px rgb(23 33 28 / 6%);
+  transform: translateX(8px);
+  box-shadow: inset 3px 0 6px rgb(23 33 28 / 5%);
   transition:
     transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
     background 200ms,
@@ -2954,26 +2954,27 @@ button.info-row {
 }
 
 .piano-key:active {
-  transform: translateX(-4px);
+  transform: translateX(4px);
 }
 
-/* Натиснута клавіша висувається й зливається з карткою праворуч. */
 .piano-key.active {
+  z-index: 2;
   margin-right: -2px;
-  border-color: var(--line);
-  border-right-color: var(--surface);
   background: var(--surface);
   color: var(--brand-ink);
   transform: translateX(0);
-  box-shadow: -2px 4px 12px rgb(23 33 28 / 8%);
+  box-shadow: -4px 4px 12px rgb(23 33 28 / 8%);
 }
 
 .piano-key .tab-dot {
   top: 10px;
-  right: 10px;
+  left: 10px;
+  right: auto;
 }
 
 .piano-panel {
+  position: relative;
+  z-index: 1;
   min-width: 0;
 }
 
@@ -2984,4 +2985,9 @@ button.info-row {
 
 .piano-panel .group-hint {
   margin: 0 0 6px;
+}
+
+.piano-panel p {
+  text-align: start;
+  text-align-last: auto;
 }
