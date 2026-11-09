@@ -2393,3 +2393,52 @@ label.file-button {
 .button .count {
   margin-left: 2px;
 }
+
+/* Головна кнопка розділу — того ж кольору, що банер. */
+.button.accent {
+  background: linear-gradient(140deg, var(--brand) 0%, var(--brand-500) 100%);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Кнопка головної завжди внизу, над меню; під неї лишаємо місце в прокрутці. */
+.home-cta {
+  position: fixed;
+  right: 0;
+  bottom: calc(78px + env(safe-area-inset-bottom));
+  left: 0;
+  z-index: 10;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 8px 16px 10px;
+  background: linear-gradient(to top, var(--bg) 70%, rgb(246 244 238 / 0%));
+}
+
+.home-cta .button {
+  margin-top: 0;
+}
+
+.screen:has(.home-cta) {
+  padding-bottom: calc(170px + env(safe-area-inset-bottom));
+}
+
+/* Відкрита клавіатура (main.tsx): закріплене внизу не їде вгору, а ховається або стає на місце. */
+@media (pointer: coarse) {
+  .kb-open .tabbar,
+  .kb-open .home-cta,
+  .kb-open .peek {
+    display: none;
+  }
+
+  .kb-open .stepper .intro-bottom,
+  .kb-open .sticky-actions {
+    position: static;
+  }
+
+  .kb-open .with-tabs .screen {
+    padding-bottom: calc(28px + env(safe-area-inset-bottom));
+  }
+
+  .kb-open .with-tabs .stepper {
+    min-height: 0;
+  }
+}

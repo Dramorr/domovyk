@@ -136,10 +136,12 @@ export function PropertyList({
           />
         );
       })}
-      <button className="button" onClick={onNew}>
-        <Icon name="plus" size={20} />
-        {t("prp_add_short")}
-      </button>
+      <div className="home-cta">
+        <button className="button accent" onClick={onNew}>
+          <Icon name="plus" size={20} />
+          {t("prp_add_short")}
+        </button>
+      </div>
     </Screen>
   );
 }

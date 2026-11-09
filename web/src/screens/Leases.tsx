@@ -204,10 +204,12 @@ export function TenantHome({
           <p>{t("home_tenant_tip")}</p>
         </MascotTip>
       )}
-      <button className="button secondary" onClick={onSearch}>
-        <Icon name="search" size={20} />
-        {t("home_q_search")}
-      </button>
+      <div className="home-cta">
+        <button className="button accent" onClick={onSearch}>
+          <Icon name="search" size={20} />
+          {t("home_q_search")}
+        </button>
+      </div>
     </Screen>
   );
 }
