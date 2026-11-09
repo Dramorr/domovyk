@@ -1,0 +1,254 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <style>
+    .smoke circle { animation: l-smoke 4.5s ease-out infinite; transform-box: fill-box; transform-origin: 50% 50%; opacity: 0; }
+    .smoke .s2 { animation-delay: -1.5s; }
+    .smoke .s3 { animation-delay: -3s; }
+    .glow { animation: l-glow 3.2s ease-in-out infinite alternate; }
+    .glow.g2 { animation-delay: -1.1s; }
+    .glow.g3 { animation-delay: -2.2s; }
+    .lamp { animation: l-lamp 2.4s ease-in-out infinite alternate; }
+    .arm { animation: l-wave 1.1s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 8% 92%; }
+    .breathe { animation: l-breathe 3s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+    .fly { animation: l-fly 5s ease-in-out infinite alternate; }
+    .fly.f2 { animation-duration: 6.5s; animation-delay: -2s; }
+    .fly.f3 { animation-duration: 4.2s; animation-delay: -1s; }
+    .cloud { animation: l-drift 30s linear infinite alternate; }
+    @keyframes l-smoke { 0% { opacity: 0; transform: translate(0, 0) scale(0.6); } 20% { opacity: 0.85; } 100% { opacity: 0; transform: translate(26px, -110px) scale(1.8); } }
+    @keyframes l-glow { from { opacity: 0.8; } to { opacity: 1; } }
+    @keyframes l-lamp { from { opacity: 0.55; } to { opacity: 0.9; } }
+    @keyframes l-wave { from { transform: rotate(-14deg); } to { transform: rotate(16deg); } }
+    @keyframes l-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.012, 0.988); } }
+    @keyframes l-fly { 0% { transform: translate(0, 0); opacity: 0.3; } 50% { opacity: 1; } 100% { transform: translate(18px, -26px); opacity: 0.4; } }
+    @keyframes l-drift { to { transform: translateX(-50px); } }
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; } .smoke circle { opacity: 0.6; } }
+  </style>
+  <defs>
+    <filter id="lb1" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="1.2"/></filter>
+    <filter id="lb3" x="-20%" y="-10%" width="140%" height="120%"><feGaussianBlur stdDeviation="3"/></filter>
+    <filter id="lgrain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="3" stitchTiles="stitch"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.35  0 0 0 0 0.25  0 0 0 0 0.15  0 0 0 0.9 -0.3"/>
+    </filter>
+    <linearGradient id="lsky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E9C987"/>
+      <stop offset="0.5" stop-color="#F6E2B8"/>
+      <stop offset="0.75" stop-color="#FCF1DC"/>
+    </linearGradient>
+    <radialGradient id="lsun" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FFF6DE"/>
+      <stop offset="0.2" stop-color="#FFE0A0" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#FFE0A0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="lhill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#D2D7AE"/><stop offset="1" stop-color="#C3CE9D"/>
+    </linearGradient>
+    <linearGradient id="llawn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#B7C98F"/><stop offset="1" stop-color="#8FAE72"/>
+    </linearGradient>
+    <linearGradient id="lwall" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFF7E8"/><stop offset="1" stop-color="#F6E6C8"/>
+    </linearGradient>
+    <linearGradient id="lwallSide" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#EBD6B0"/><stop offset="1" stop-color="#E0C89C"/>
+    </linearGradient>
+    <linearGradient id="lroof" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#C96A43"/><stop offset="1" stop-color="#A9502F"/>
+    </linearGradient>
+    <linearGradient id="lwin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFE7A8"/><stop offset="1" stop-color="#F8C766"/>
+    </linearGradient>
+    <radialGradient id="lwinGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FFD780" stop-opacity="0.55"/><stop offset="1" stop-color="#FFD780" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ldoor" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7A4E26"/><stop offset="1" stop-color="#94622F"/>
+    </linearGradient>
+    <linearGradient id="lpath" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#E5D2AA"/><stop offset="1" stop-color="#F3E6C8"/>
+    </linearGradient>
+    <linearGradient id="lcoat" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#C49036"/><stop offset="0.5" stop-color="#E2B45A"/><stop offset="1" stop-color="#EDC77A"/>
+    </linearGradient>
+    <linearGradient id="lhat" x1="0" y1="0" x2="1" y2="0.2">
+      <stop offset="0" stop-color="#C8943A"/><stop offset="0.55" stop-color="#E2B45A"/><stop offset="1" stop-color="#F0CF86"/>
+    </linearGradient>
+    <linearGradient id="lbeard" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F1ECE0"/><stop offset="0.5" stop-color="#FFFFFF"/><stop offset="1" stop-color="#F4EFE4"/>
+    </linearGradient>
+    <radialGradient id="lpom" cx="0.38" cy="0.35" r="0.65">
+      <stop offset="0" stop-color="#3E8A66"/><stop offset="0.6" stop-color="#1E4D3B"/><stop offset="1" stop-color="#143628"/>
+    </radialGradient>
+    <radialGradient id="lnose" cx="0.4" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#F6B19C"/><stop offset="1" stop-color="#D9765F"/>
+    </radialGradient>
+    <linearGradient id="ltree" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7E9A5F"/><stop offset="1" stop-color="#9DB57A"/>
+    </linearGradient>
+    <linearGradient id="ltreeDark" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#4E6B3C"/><stop offset="1" stop-color="#6A8850"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 1. Небо: теплий вечір -->
+  <rect width="1280" height="720" fill="url(#lsky)"/>
+  <circle cx="230" cy="380" r="320" fill="url(#lsun)"/>
+  <g class="cloud" fill="#FFFFFF" opacity="0.5">
+    <ellipse cx="520" cy="120" rx="140" ry="14"/><ellipse cx="590" cy="104" rx="80" ry="12"/>
+    <ellipse cx="1040" cy="90" rx="120" ry="12"/>
+  </g>
+
+  <!-- 2. Дальні пагорби й дерева -->
+  <g filter="url(#lb1)">
+    <path d="M0 450 C180 420 360 436 540 444 C760 454 960 420 1280 432 V720 H0 Z" fill="url(#lhill)"/>
+    <g fill="#B4C08F">
+      <circle cx="60" cy="430" r="26"/><circle cx="96" cy="420" r="32"/><circle cx="136" cy="434" r="22"/>
+      <circle cx="1120" cy="420" r="28"/><circle cx="1160" cy="410" r="34"/><circle cx="1206" cy="424" r="26"/><circle cx="1250" cy="416" r="30"/>
+    </g>
+  </g>
+
+  <!-- 3. Дерева за будинком -->
+  <g>
+    <rect x="1008" y="380" width="12" height="90" rx="4" fill="#6B4B32"/>
+    <g fill="url(#ltree)"><circle cx="1014" cy="350" r="56"/><circle cx="980" cy="390" r="42"/><circle cx="1052" cy="392" r="44"/></g>
+    <g fill="#B2C78E" opacity="0.7"><circle cx="1030" cy="330" r="22"/><circle cx="1066" cy="378" r="16"/></g>
+    <rect x="452" y="400" width="10" height="70" rx="4" fill="#6B4B32"/>
+    <g fill="url(#ltree)"><circle cx="458" cy="378" r="44"/><circle cx="430" cy="410" r="30"/><circle cx="488" cy="408" r="32"/></g>
+  </g>
+
+  <!-- 4. Газон -->
+  <path d="M0 500 C220 476 460 470 680 476 C900 482 1100 470 1280 466 V720 H0 Z" fill="url(#llawn)"/>
+
+  <!-- 5. Будиночок -->
+  <g id="house">
+    <!-- бічна стіна -->
+    <path d="M900 300 L980 270 L980 480 L900 500 Z" fill="url(#lwallSide)"/>
+    <!-- фасад -->
+    <rect x="560" y="300" width="340" height="200" fill="url(#lwall)"/>
+    <path d="M560 300 L730 180 L900 300 Z" fill="url(#lwall)"/>
+    <!-- дах -->
+    <path d="M536 312 L730 160 L924 312 L904 318 L730 184 L556 318 Z" fill="#8E4A2A"/>
+    <path d="M730 160 L826 120 L1004 270 L924 312 Z" fill="url(#lroof)"/>
+    <g stroke="#9A4A2C" stroke-width="3" opacity="0.5" fill="none">
+      <path d="M770 160 L948 296"/><path d="M810 144 L978 282"/><path d="M752 196 L960 270"/>
+    </g>
+    <!-- комин і дим -->
+    <g class="smoke" fill="#FFFFFF">
+      <circle class="s1" cx="874" cy="104" r="14"/>
+      <circle class="s2" cx="874" cy="104" r="12"/>
+      <circle class="s3" cx="874" cy="104" r="16"/>
+    </g>
+    <rect x="858" y="110" width="32" height="64" fill="#B9583A"/><rect x="858" y="110" width="10" height="64" fill="#9C4A30"/>
+    <rect x="852" y="102" width="44" height="13" rx="3" fill="#8E4A2A"/>
+    <!-- кругле віконце в шпилі -->
+    <circle cx="730" cy="250" r="26" fill="#8B6522"/>
+    <circle class="glow g2" cx="730" cy="250" r="20" fill="url(#lwin)"/>
+    <path d="M730 230 V270 M710 250 H750" stroke="#8B6522" stroke-width="4"/>
+    <!-- вікна з віконницями й квітами -->
+    <g>
+      <circle cx="623" cy="380" r="70" fill="url(#lwinGlow)" class="glow"/>
+      <rect x="590" y="346" width="66" height="70" rx="6" fill="#8B6522"/>
+      <rect class="glow" x="597" y="353" width="52" height="56" rx="3" fill="url(#lwin)"/>
+      <path d="M623 353 V409 M597 381 H649" stroke="#8B6522" stroke-width="4"/>
+      <rect x="570" y="346" width="18" height="70" rx="3" fill="#E2B45A"/><rect x="658" y="346" width="18" height="70" rx="3" fill="#E2B45A"/>
+      <rect x="584" y="416" width="78" height="14" rx="4" fill="#9A6A34"/>
+      <g><circle cx="594" cy="412" r="7" fill="#E8907A"/><circle cx="608" cy="408" r="6" fill="#F4B8A8"/><circle cx="624" cy="412" r="7" fill="#E8907A"/><circle cx="640" cy="408" r="6" fill="#FFFFFF"/><circle cx="654" cy="412" r="6" fill="#E8907A"/></g>
+    </g>
+    <g>
+      <circle cx="837" cy="380" r="70" fill="url(#lwinGlow)" class="glow g3"/>
+      <rect x="804" y="346" width="66" height="70" rx="6" fill="#8B6522"/>
+      <rect class="glow g3" x="811" y="353" width="52" height="56" rx="3" fill="url(#lwin)"/>
+      <path d="M837 353 V409 M811 381 H863" stroke="#8B6522" stroke-width="4"/>
+      <rect x="784" y="346" width="18" height="70" rx="3" fill="#E2B45A"/><rect x="872" y="346" width="18" height="70" rx="3" fill="#E2B45A"/>
+      <rect x="798" y="416" width="78" height="14" rx="4" fill="#9A6A34"/>
+      <g><circle cx="808" cy="412" r="7" fill="#F4B8A8"/><circle cx="822" cy="408" r="6" fill="#E8907A"/><circle cx="838" cy="412" r="7" fill="#FFFFFF"/><circle cx="854" cy="408" r="6" fill="#E8907A"/><circle cx="868" cy="412" r="6" fill="#F4B8A8"/></g>
+    </g>
+    <!-- двері -->
+    <path d="M694 500 V392 Q730 352 766 392 V500 Z" fill="#6E4422"/>
+    <path d="M702 500 V396 Q730 364 758 396 V500 Z" fill="url(#ldoor)"/>
+    <path d="M730 372 V500" stroke="#6E4422" stroke-width="3"/>
+    <circle cx="746" cy="446" r="4" fill="#F2C266"/>
+    <rect x="684" y="496" width="92" height="10" rx="3" fill="#C9B48E"/>
+    <!-- ліхтарик біля дверей -->
+    <circle class="lamp" cx="786" cy="400" r="34" fill="url(#lwinGlow)"/>
+    <path d="M778 384 H794 L790 412 H782 Z" fill="#FFE29A" class="lamp"/>
+    <path d="M776 380 H796 L792 386 H780 Z M780 412 H792 V416 H780 Z" fill="#5A3E26"/>
+    <path d="M786 372 V380" stroke="#5A3E26" stroke-width="3"/>
+  </g>
+
+  <!-- 6. Доріжка до дверей і паркан -->
+  <path d="M690 506 L770 506 C800 580 860 650 900 720 L520 720 C580 650 650 580 690 506 Z" fill="url(#lpath)"/>
+  <g fill="#E8D7B2" opacity="0.8">
+    <ellipse cx="730" cy="540" rx="26" ry="7"/><ellipse cx="716" cy="590" rx="34" ry="9"/><ellipse cx="744" cy="650" rx="42" ry="11"/>
+  </g>
+  <g fill="#FFF8EA" stroke="#E2CFA6" stroke-width="2">
+    <rect x="300" y="520" width="380" height="10" rx="3"/>
+    <rect x="300" y="554" width="380" height="10" rx="3"/>
+    <rect x="790" y="520" width="380" height="10" rx="3"/>
+    <rect x="790" y="554" width="380" height="10" rx="3"/>
+  </g>
+  <g fill="#FFF8EA" stroke="#E2CFA6" stroke-width="2">
+    <path d="M318 590 V512 L330 498 L342 512 V590 Z"/><path d="M378 590 V512 L390 498 L402 512 V590 Z"/>
+    <path d="M438 590 V512 L450 498 L462 512 V590 Z"/><path d="M498 590 V512 L510 498 L522 512 V590 Z"/>
+    <path d="M558 590 V512 L570 498 L582 512 V590 Z"/><path d="M618 590 V512 L630 498 L642 512 V590 Z"/>
+    <path d="M818 590 V512 L830 498 L842 512 V590 Z"/><path d="M878 590 V512 L890 498 L902 512 V590 Z"/>
+    <path d="M938 590 V512 L950 498 L962 512 V590 Z"/><path d="M998 590 V512 L1010 498 L1022 512 V590 Z"/>
+    <path d="M1058 590 V512 L1070 498 L1082 512 V590 Z"/><path d="M1118 590 V512 L1130 498 L1142 512 V590 Z"/>
+  </g>
+  <!-- кущики з квітами біля паркану -->
+  <g fill="#7F9E5E"><circle cx="560" cy="596" r="30"/><circle cx="600" cy="590" r="36"/><circle cx="640" cy="600" r="26"/>
+    <circle cx="880" cy="600" r="28"/><circle cx="918" cy="592" r="34"/><circle cx="956" cy="602" r="26"/></g>
+  <g fill="#9DB97C"><circle cx="590" cy="578" r="16"/><circle cx="910" cy="576" r="16"/></g>
+  <g><circle cx="572" cy="584" r="5" fill="#E8907A"/><circle cx="604" cy="572" r="5" fill="#FFFFFF"/><circle cx="626" cy="590" r="5" fill="#F2A93B"/>
+    <circle cx="892" cy="584" r="5" fill="#FFFFFF"/><circle cx="924" cy="574" r="5" fill="#E8907A"/><circle cx="946" cy="592" r="5" fill="#F2A93B"/></g>
+
+  <!-- 7. Домовик-господар махає гостю -->
+  <g transform="translate(250 380) scale(1.35)">
+    <ellipse cx="100" cy="230" rx="66" ry="9" fill="#6E8A52" opacity="0.35"/>
+    <g class="breathe">
+      <!-- кожушок -->
+      <path d="M60 160 C52 200 54 218 66 226 Q100 234 134 226 C146 218 148 200 140 160 Z" fill="url(#lcoat)"/>
+      <path d="M58 200 Q100 210 142 200 L143 212 Q100 222 57 212 Z" fill="#8B6522"/>
+      <rect x="90" y="200" width="20" height="14" rx="3" fill="none" stroke="#1E4D3B" stroke-width="3.5"/>
+      <!-- друга рука вздовж тіла -->
+      <path d="M62 170 C54 184 52 196 56 206" stroke="#C99A42" stroke-width="15" stroke-linecap="round" fill="none"/>
+      <circle cx="57" cy="210" r="9" fill="#F2C9A0"/>
+      <!-- чоботи -->
+      <ellipse cx="80" cy="230" rx="16" ry="8" fill="#3B2A20"/>
+      <ellipse cx="120" cy="230" rx="16" ry="8" fill="#3B2A20"/>
+      <!-- борода -->
+      <path d="M48 104 C42 160 70 192 100 200 C130 192 158 160 152 104 Z" fill="url(#lbeard)" stroke="#E5D7B4" stroke-width="2"/>
+      <path d="M82 140 C84 164 92 180 100 188 M118 140 C116 164 108 180 100 188" fill="none" stroke="#ECE4D2" stroke-width="3" stroke-linecap="round"/>
+      <!-- рука, що махає -->
+      <g class="arm">
+        <path d="M140 172 C150 160 160 146 166 128" stroke="#D6A44C" stroke-width="16" stroke-linecap="round" fill="none"/>
+        <circle cx="168" cy="120" r="11" fill="#F2C9A0"/>
+        <path d="M156 112 C152 108 152 102 156 100" fill="none" stroke="#F2C9A0" stroke-width="6" stroke-linecap="round"/>
+      </g>
+      <!-- ковпак -->
+      <path d="M44 108 C52 66 76 32 116 14 C130 8 142 16 134 24 C120 36 120 62 156 108 Z" fill="url(#lhat)"/>
+      <path d="M118 30 C114 54 126 82 146 104" fill="none" stroke="#F4D894" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+      <circle cx="136" cy="18" r="11" fill="url(#lpom)"/>
+      <circle cx="132" cy="14" r="3" fill="#7FC2A0" opacity="0.6"/>
+      <rect x="40" y="96" width="120" height="20" rx="10" fill="#8B6522"/>
+      <rect x="46" y="99" width="108" height="4" rx="2" fill="#A97E34" opacity="0.8"/>
+      <!-- обличчя -->
+      <ellipse cx="76" cy="124" rx="8" ry="5" fill="#F4B8A8"/>
+      <ellipse cx="124" cy="124" rx="8" ry="5" fill="#F4B8A8"/>
+      <circle cx="100" cy="126" r="14" fill="url(#lnose)"/>
+      <circle cx="95" cy="121" r="4" fill="#FFFFFF" opacity="0.45"/>
+    </g>
+  </g>
+
+  <!-- 8. Світлячки -->
+  <g fill="#FFE9A8">
+    <circle class="fly" cx="420" cy="470" r="4"/><circle class="fly f2" cx="980" cy="500" r="3.5"/>
+    <circle class="fly f3" cx="1120" cy="440" r="3"/><circle class="fly f2" cx="200" cy="520" r="3"/>
+  </g>
+
+  <!-- 9. Передній план (розмитий) -->
+  <g filter="url(#lb3)">
+    <g fill="url(#ltreeDark)"><circle cx="40" cy="660" r="90"/><circle cx="140" cy="700" r="70"/><circle cx="1230" cy="650" r="100"/><circle cx="1140" cy="710" r="60"/></g>
+    <g><circle cx="70" cy="620" r="8" fill="#F4B8A8"/><circle cx="130" cy="660" r="7" fill="#FFFFFF"/><circle cx="1200" cy="610" r="8" fill="#F2A93B"/><circle cx="1250" cy="660" r="7" fill="#FFFFFF"/></g>
+  </g>
+  <rect width="1280" height="720" filter="url(#lgrain)" opacity="0.22"/>
+</svg>

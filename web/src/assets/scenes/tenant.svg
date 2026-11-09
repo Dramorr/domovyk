@@ -1,0 +1,255 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <style>
+    .cloud { animation: t-drift 26s linear infinite alternate; }
+    .cloud.c2 { animation-duration: 34s; animation-direction: alternate-reverse; }
+    .rays { animation: t-rays 6s ease-in-out infinite alternate; transform-box: view-box; transform-origin: 960px 330px; }
+    .walk { animation: t-bob 0.9s ease-in-out infinite; }
+    .boot-b { animation: t-step 0.9s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+    .boot-f { animation: t-step 0.9s ease-in-out -0.45s infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+    .bindle { animation: t-swing 0.9s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 100% 92%; }
+    .sway { animation: t-sway 4s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 50% 100%; }
+    @keyframes t-drift { to { transform: translateX(60px); } }
+    @keyframes t-rays { from { opacity: 0.1; transform: rotate(-1.5deg); } to { opacity: 0.2; transform: rotate(1.5deg); } }
+    @keyframes t-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+    @keyframes t-step { 0%, 100% { transform: translateX(-6px) rotate(-6deg); } 50% { transform: translateX(8px) rotate(4deg); } }
+    @keyframes t-swing { from { transform: rotate(-4deg); } to { transform: rotate(5deg); } }
+    @keyframes t-sway { from { transform: skewX(-3deg); } to { transform: skewX(3deg); } }
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+  </style>
+  <defs>
+    <filter id="blur1" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="1.1"/></filter>
+    <filter id="blur3" x="-20%" y="-10%" width="140%" height="120%"><feGaussianBlur stdDeviation="3"/></filter>
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="7" stitchTiles="stitch"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.3  0 0 0 0 0.25  0 0 0 0 0.2  0 0 0 0.9 -0.3"/>
+    </filter>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#A9CDB9"/>
+      <stop offset="0.45" stop-color="#E4E6CC"/>
+      <stop offset="0.7" stop-color="#FBE6C2"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FFF4D6" stop-opacity="1"/>
+      <stop offset="0.18" stop-color="#FFE3A3" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#FFE3A3" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="hillFar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#B9D2BF"/><stop offset="1" stop-color="#CFE0CC"/>
+    </linearGradient>
+    <linearGradient id="hillMid" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8DB79A"/><stop offset="1" stop-color="#A9CBA8"/>
+    </linearGradient>
+    <linearGradient id="meadow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9CC395"/><stop offset="1" stop-color="#6E9F72"/>
+    </linearGradient>
+    <linearGradient id="path" x1="0" y1="1" x2="0.6" y2="0">
+      <stop offset="0" stop-color="#E9D3A6"/><stop offset="1" stop-color="#F6E9CB"/>
+    </linearGradient>
+    <linearGradient id="coat" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#143628"/><stop offset="0.55" stop-color="#1E4D3B"/><stop offset="1" stop-color="#2B6A50"/>
+    </linearGradient>
+    <linearGradient id="hat" x1="0" y1="0" x2="1" y2="0.3">
+      <stop offset="0" stop-color="#173F30"/><stop offset="0.6" stop-color="#1E4D3B"/><stop offset="1" stop-color="#2F7356"/>
+    </linearGradient>
+    <linearGradient id="beard" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#E3ECE6"/><stop offset="0.5" stop-color="#FFFFFF"/><stop offset="1" stop-color="#F3F6F2"/>
+    </linearGradient>
+    <radialGradient id="pom" cx="0.38" cy="0.35" r="0.65">
+      <stop offset="0" stop-color="#FFD58A"/><stop offset="0.6" stop-color="#F2A93B"/><stop offset="1" stop-color="#C9822A"/>
+    </radialGradient>
+    <radialGradient id="nose" cx="0.4" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#F6B19C"/><stop offset="1" stop-color="#D9765F"/>
+    </radialGradient>
+    <radialGradient id="bundle" cx="0.4" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#DD6E55"/><stop offset="1" stop-color="#A9412F"/>
+    </radialGradient>
+    <linearGradient id="pineDark" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1B4535"/><stop offset="0.6" stop-color="#245A44"/><stop offset="1" stop-color="#2F6E53"/>
+    </linearGradient>
+    <linearGradient id="pineMid" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#4F8466"/><stop offset="0.6" stop-color="#5F957A"/><stop offset="1" stop-color="#7BAE8E"/>
+    </linearGradient>
+    <linearGradient id="pineFar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8AB49B"/><stop offset="1" stop-color="#A3C6AE"/>
+    </linearGradient>
+    <linearGradient id="haze" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FBEBD0" stop-opacity="0"/>
+      <stop offset="1" stop-color="#FBEBD0" stop-opacity="0.75"/>
+    </linearGradient>
+    <symbol id="pine" viewBox="0 0 100 200" overflow="visible">
+      <rect x="45" y="170" width="10" height="30" rx="3" fill="#5A4030"/>
+      <path d="M50 0 C56 18 70 40 84 58 C74 60 66 58 60 56 C72 76 86 94 98 112 C84 116 72 114 64 110 C76 130 88 148 100 172 C70 180 30 180 0 172 C12 148 24 130 36 110 C28 114 16 116 2 112 C14 94 28 76 40 56 C34 58 26 60 16 58 C30 40 44 18 50 0 Z"/>
+    </symbol>
+  </defs>
+
+  <!-- 1. Небо й сонце -->
+  <g id="sky">
+    <rect width="1280" height="720" fill="url(#sky)"/>
+    <circle cx="960" cy="330" r="300" fill="url(#sun)"/>
+    <g fill="#FFFFFF" opacity="0.55" class="cloud">
+      <ellipse cx="300" cy="150" rx="150" ry="16"/>
+      <ellipse cx="380" cy="132" rx="90" ry="14"/>
+      </g><g fill="#FFFFFF" opacity="0.5" class="cloud c2"><ellipse cx="760" cy="110" rx="120" ry="12"/>
+      <ellipse cx="1140" cy="180" rx="110" ry="12"/>
+    </g>
+  </g>
+
+  <g id="rays" class="rays" fill="#FFF6DD" opacity="0.16">
+    <path d="M960 330 L700 0 L780 0 Z"/><path d="M960 330 L880 0 L940 0 Z"/><path d="M960 330 L1080 0 L1160 0 Z"/><path d="M960 330 L1280 60 L1280 150 Z"/>
+  </g>
+
+  <!-- 2. Місто на обрії (силует у серпанку) -->
+  <g id="city" fill="#9DBBAA" filter="url(#blur1)">
+    <rect x="780" y="380" width="46" height="70" rx="2"/>
+    <path d="M770 384 L803 356 L836 384 Z"/>
+    <rect x="836" y="350" width="40" height="100"/>
+    <path d="M832 352 L856 330 L880 352 Z"/>
+    <!-- ратуша -->
+    <rect x="890" y="300" width="44" height="150"/>
+    <rect x="896" y="262" width="32" height="44"/>
+    <path d="M892 266 Q912 236 932 266 Z"/>
+    <rect x="909" y="214" width="6" height="34"/>
+    <circle cx="912" cy="212" r="5"/>
+    <rect x="934" y="372" width="64" height="78"/>
+    <path d="M930 376 L966 344 L1002 376 Z"/>
+    <!-- церква з банею -->
+    <rect x="1004" y="352" width="70" height="98"/>
+    <path d="M1010 354 Q1039 290 1068 354 Z"/>
+    <rect x="1035" y="282" width="8" height="22"/>
+    <path d="M1031 290 Q1039 268 1047 290 Z"/>
+    <rect x="1074" y="390" width="54" height="60"/>
+    <path d="M1070 394 L1101 368 L1132 394 Z"/>
+    <rect x="1128" y="402" width="70" height="48"/>
+    <rect x="1150" y="378" width="10" height="24"/>
+    <g fill="#FFF0C8" opacity="0.9">
+      <rect x="792" y="400" width="8" height="10" rx="1"/><rect x="808" y="400" width="8" height="10" rx="1"/>
+      <rect x="848" y="372" width="7" height="10" rx="1"/><rect x="860" y="398" width="7" height="10" rx="1"/>
+      <circle cx="912" cy="284" r="7" fill="#F6F0DC"/>
+      <rect x="902" y="330" width="7" height="12" rx="1"/><rect x="917" y="330" width="7" height="12" rx="1"/>
+      <rect x="948" y="392" width="8" height="10" rx="1"/><rect x="972" y="392" width="8" height="10" rx="1"/>
+      <path d="M1030 400 Q1039 384 1048 400 V420 H1030 Z"/>
+      <rect x="1088" y="408" width="8" height="10" rx="1"/><rect x="1140" y="418" width="8" height="10" rx="1"/>
+    </g>
+  </g>
+
+  <!-- 3. Дальні пагорби з лісом -->
+  <g id="hills-far" filter="url(#blur1)">
+    <path d="M0 448 C160 410 330 428 520 446 C700 462 860 432 1040 438 C1150 442 1220 432 1280 428 V720 H0 Z" fill="url(#hillFar)"/>
+    <g fill="url(#pineFar)">
+      <use href="#pine" x="20" y="392" width="28" height="56"/>
+      <use href="#pine" x="44" y="400" width="24" height="48"/>
+      <use href="#pine" x="100" y="388" width="30" height="60"/>
+      <use href="#pine" x="160" y="396" width="24" height="48"/>
+      <use href="#pine" x="210" y="384" width="32" height="64"/>
+      <use href="#pine" x="300" y="400" width="26" height="52"/>
+      <use href="#pine" x="350" y="394" width="30" height="60"/>
+      <use href="#pine" x="420" y="404" width="24" height="48"/>
+      <use href="#pine" x="600" y="410" width="26" height="52"/>
+      <use href="#pine" x="650" y="404" width="30" height="60"/>
+    </g>
+    <rect y="380" width="1280" height="120" fill="url(#haze)"/>
+  </g>
+
+  <!-- 4. Середній план: пагорб і ліс -->
+  <g id="forest-mid">
+    <path d="M0 520 C120 470 260 474 380 492 C520 512 600 500 720 488 C860 474 1000 490 1120 480 C1200 474 1250 470 1280 470 V720 H0 Z" fill="url(#hillMid)"/>
+    <g fill="url(#pineMid)">
+      <use href="#pine" x="-10" y="370" width="70" height="140"/>
+      <use href="#pine" x="40" y="400" width="56" height="112"/>
+      <use href="#pine" x="96" y="360" width="76" height="152"/>
+      <use href="#pine" x="160" y="404" width="54" height="108"/>
+      <use href="#pine" x="208" y="384" width="62" height="124"/>
+      <use href="#pine" x="560" y="410" width="48" height="96"/>
+      <use href="#pine" x="604" y="392" width="56" height="112"/>
+      <use href="#pine" x="1180" y="380" width="60" height="120"/>
+      <use href="#pine" x="1228" y="400" width="52" height="104"/>
+    </g>
+  </g>
+
+  <!-- 5. Ближній план: галявина й стежка до міста -->
+  <g id="meadow">
+    <path d="M0 560 C200 530 420 540 640 548 C860 556 1060 530 1280 520 V720 H0 Z" fill="url(#meadow)"/>
+    <path d="M150 720 C260 650 420 600 560 568 C680 540 790 500 860 470 L884 472 C830 506 760 552 690 590 C600 640 560 690 560 720 Z" fill="url(#path)"/>
+    <path d="M560 720 C560 690 600 640 690 590 C760 552 830 506 884 472 L874 471 C820 504 744 548 670 590 C590 636 540 690 536 720 Z" fill="#D8BF8C" opacity="0.6"/>
+    <g fill="#F9F0DA" opacity="0.8">
+      <ellipse cx="420" cy="650" rx="22" ry="5"/>
+      <ellipse cx="560" cy="600" rx="16" ry="4"/>
+      <ellipse cx="700" cy="545" rx="12" ry="3"/>
+    </g>
+  </g>
+
+  <g id="bushes">
+    <g fill="#5E9470"><circle cx="980" cy="560" r="34"/><circle cx="1020" cy="548" r="42"/><circle cx="1064" cy="562" r="30"/></g>
+    <g fill="#79AD86"><circle cx="1000" cy="546" r="20"/><circle cx="1036" cy="534" r="22"/></g>
+    <g fill="#5E9470"><circle cx="760" cy="600" r="22"/><circle cx="786" cy="592" r="28"/><circle cx="812" cy="604" r="20"/></g>
+    <g fill="#79AD86"><circle cx="780" cy="584" r="13"/></g>
+    <g fill="#F4B8A8"><circle cx="1010" cy="540" r="4"/><circle cx="1046" cy="552" r="4"/><circle cx="790" cy="590" r="3.5"/></g>
+  </g>
+
+  <!-- 6. Домовик іде з клунком -->
+  <g id="gnome" transform="translate(350 380) scale(0.95)">
+    <ellipse cx="128" cy="292" rx="76" ry="10" fill="#2E5A44" opacity="0.25"/>
+    <g class="walk">
+    <g class="bindle">
+    <!-- палиця з клунком за спиною -->
+    <path d="M206 186 L18 108" stroke="#7A5436" stroke-width="7" stroke-linecap="round"/>
+    <path d="M28 112 C30 100 46 98 50 112" fill="none" stroke="#A9412F" stroke-width="6" stroke-linecap="round"/>
+    <path d="M14 128 C-6 140 -4 178 22 186 C46 194 70 178 66 150 C64 132 50 122 36 120 Z" fill="url(#bundle)"/>
+    <g fill="#F6E7D7" opacity="0.9">
+      <circle cx="22" cy="150" r="4"/><circle cx="44" cy="140" r="3.5"/><circle cx="50" cy="168" r="4"/><circle cx="28" cy="174" r="3"/>
+    </g>
+    <path d="M30 122 L38 112 L46 124" fill="#A9412F"/>
+    </g>
+    <!-- задній чобіт -->
+    <path class="boot-b" d="M78 270 C70 270 62 280 66 288 L110 290 C114 280 106 270 96 268 Z" fill="#3B2A20"/>
+    <!-- кожушок -->
+    <path d="M78 168 C64 210 60 250 72 282 Q122 290 172 282 C184 250 182 212 166 168 Z" fill="url(#coat)"/>
+    <path d="M78 248 C110 256 140 256 174 246 L176 262 C142 272 108 272 74 262 Z" fill="#163A2C"/>
+    <rect x="118" y="248" width="22" height="18" rx="4" fill="none" stroke="#F2A93B" stroke-width="4"/>
+    <!-- передній чобіт (крок) -->
+    <path class="boot-f" d="M144 274 C140 284 146 292 156 292 L196 292 C202 286 198 276 186 272 L170 270 Z" fill="#4A3427"/>
+    <!-- борода -->
+    <path d="M86 128 C80 176 108 222 164 232 C186 220 198 180 192 128 Z" fill="url(#beard)" stroke="#D3DED7" stroke-width="2"/>
+    <path d="M120 170 C126 196 140 212 158 220" fill="none" stroke="#DCE5DF" stroke-width="3" stroke-linecap="round"/>
+    <path d="M150 158 C156 182 168 198 180 206" fill="none" stroke="#DCE5DF" stroke-width="3" stroke-linecap="round"/>
+    <!-- рука тримає палицю -->
+    <path d="M150 196 C166 196 182 192 198 184" stroke="#1A4434" stroke-width="20" stroke-linecap="round" fill="none"/>
+    <circle cx="204" cy="184" r="11" fill="#F2C9A0"/>
+    <!-- ковпак: кінчик відкинутий назад -->
+    <path d="M78 126 C84 96 92 74 100 58 C88 50 68 52 50 64 C62 38 94 14 126 20 C154 28 184 84 202 126 Z" fill="url(#hat)"/>
+    <path d="M122 30 C146 46 170 90 186 120" fill="none" stroke="#3A8564" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+    <path d="M100 58 C108 50 112 40 112 30" fill="none" stroke="#123326" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+    <circle cx="48" cy="66" r="15" fill="url(#pom)"/>
+    <circle cx="43" cy="61" r="4" fill="#FFF3D6" opacity="0.6"/>
+    <rect x="74" y="114" width="130" height="24" rx="12" fill="#163A2C"/>
+    <rect x="80" y="117" width="118" height="5" rx="2.5" fill="#2B5E48" opacity="0.7"/>
+    <!-- рум'янець і ніс -->
+    <ellipse cx="164" cy="146" rx="11" ry="6" fill="#F4B8A8"/>
+    <circle cx="196" cy="148" r="15" fill="url(#nose)"/>
+    <circle cx="191" cy="143" r="4" fill="#FFFFFF" opacity="0.45"/>
+    </g>
+  </g>
+
+  <!-- 7. Передній план: трава, папороть, гриби -->
+  <g id="foreground">
+    <g fill="#2F6046" class="sway" filter="url(#blur3)">
+      <path d="M0 720 C10 660 30 630 40 600 C44 640 50 680 60 720 Z"/>
+      <path d="M30 720 C46 670 70 640 92 624 C84 660 82 690 90 720 Z"/>
+      <path d="M70 720 C80 690 100 666 128 652 C116 680 112 700 116 720 Z"/>
+      <path d="M1180 720 C1190 680 1210 650 1240 632 C1232 670 1232 696 1236 720 Z"/>
+      <path d="M1220 720 C1226 690 1246 664 1280 650 V720 Z"/>
+    </g>
+    <g filter="url(#blur3)"><use href="#pine" x="-80" y="200" width="220" height="440" fill="url(#pineDark)"/>
+    <use href="#pine" x="1120" y="230" width="200" height="400" fill="url(#pineDark)"/></g>
+    <!-- гриби -->
+    <rect x="236" y="676" width="12" height="22" rx="5" fill="#F6EEDC"/>
+    <path d="M222 680 C222 660 262 660 262 680 Z" fill="#C9553F"/>
+    <circle cx="236" cy="670" r="3" fill="#FFF"/><circle cx="250" cy="672" r="2.5" fill="#FFF"/>
+    <rect x="266" y="688" width="8" height="14" rx="4" fill="#F6EEDC"/>
+    <path d="M258 690 C258 678 282 678 282 690 Z" fill="#C9553F"/>
+    <!-- квіточки -->
+    <g fill="#F2A93B"><circle cx="980" cy="640" r="5"/><circle cx="1010" cy="660" r="4"/><circle cx="940" cy="668" r="4"/></g>
+    <g fill="#FFFFFF"><circle cx="360" cy="690" r="4"/><circle cx="1060" cy="690" r="4.5"/><circle cx="1090" cy="650" r="3.5"/></g>
+  </g>
+  <rect width="1280" height="720" filter="url(#grain)" opacity="0.22"/>
+</svg>

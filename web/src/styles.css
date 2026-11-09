@@ -3208,168 +3208,22 @@ button.info-row {
   color: #8b6522;
 }
 
-/* Анімації сценок: трансформації рахуємо від самої фігури. */
-.mode-scene g,
-.mode-scene circle,
-.mode-scene ellipse {
-  transform-box: fill-box;
+/* Сценки — SVG-ілюстрації з власними анімаціями всередині (assets/scenes). Вибір:
+   кадр трохи «наближається», ніби заходимо в сценку. */
+.mode-scene {
+  object-fit: cover;
+  /* На високих картках обрізаємо краї так, щоб Домовик лишався в кадрі. */
+  object-position: 30% 50%;
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.6s;
 }
 
-.scene-walk .forest {
-  animation: forest 9s linear infinite;
+.mode-scene-card.picked .mode-scene {
+  transform: scale(1.08);
+  filter: brightness(1.06) saturate(1.1);
 }
 
-.scene-walk .bob {
-  animation: walk-bob 0.7s ease-in-out infinite;
-}
-
-.scene-walk .foot-l {
-  animation: step 0.7s ease-in-out infinite;
-}
-
-.scene-walk .foot-r {
-  animation: step 0.7s ease-in-out infinite reverse;
-}
-
-.scene-walk .bindle {
-  transform-origin: 30% 0%;
-  animation: swing 1.4s ease-in-out infinite;
-}
-
-.scene-home .smoke .puff {
-  animation: smoke 3.6s ease-out infinite;
-}
-
-.scene-home .smoke .p2 {
-  animation-delay: 1.2s;
-}
-
-.scene-home .smoke .p3 {
-  animation-delay: 2.4s;
-}
-
-.scene-home .win {
-  fill: #f5e7c6;
-  animation: window-glow 4s ease-in-out infinite;
-}
-
-.scene-home .w2 {
-  animation-delay: 2s;
-}
-
-.scene-home .wave-arm {
-  transform-origin: 0% 100%;
-  animation: wave 1.6s ease-in-out infinite;
-}
-
-.scene-home .wave-line {
-  animation: wave-line 1.6s ease-in-out infinite;
-}
-
-.scene-home .bob {
-  animation: idle-bob 2.4s ease-in-out infinite;
-}
-
-/* Вибір: Домовик підстрибує. */
-.mode-scene-card.picked .bob {
-  animation: hop 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) both;
-}
-
-.mode-scene-card.picked .win {
-  fill: #ffd46b;
-  animation: none;
-}
-
-@keyframes forest {
-  to {
-    transform: translateX(-170px);
-  }
-}
-
-@keyframes walk-bob {
-  50% {
-    transform: translateY(-6px);
-  }
-}
-
-@keyframes step {
-  50% {
-    transform: translateY(-5px);
-  }
-}
-
-@keyframes swing {
-  0%,
-  100% {
-    transform: rotate(-8deg);
-  }
-  50% {
-    transform: rotate(8deg);
-  }
-}
-
-@keyframes smoke {
-  0% {
-    opacity: 0;
-    transform: translate(0, 0) scale(0.6);
-  }
-  20% {
-    opacity: 0.85;
-  }
-  100% {
-    opacity: 0;
-    transform: translate(14px, -30px) scale(1.8);
-  }
-}
-
-@keyframes window-glow {
-  0%,
-  35% {
-    fill: #f5e7c6;
-  }
-  50%,
-  85% {
-    fill: #ffd46b;
-  }
-  100% {
-    fill: #f5e7c6;
-  }
-}
-
-@keyframes wave {
-  0%,
-  100% {
-    transform: rotate(0deg);
-  }
-  50% {
-    transform: rotate(-14deg);
-  }
-}
-
-@keyframes wave-line {
-  0%,
-  100% {
-    opacity: 0.2;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-@keyframes idle-bob {
-  50% {
-    transform: translateY(-3px);
-  }
-}
-
-@keyframes hop {
-  0% {
-    transform: translateY(0);
-  }
-  45% {
-    transform: translateY(-26px) rotate(-4deg);
-  }
-  100% {
-    transform: translateY(0);
+@media (prefers-reduced-motion: reduce) {
+  .mode-scene {
+    transition: none;
   }
 }
