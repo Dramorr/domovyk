@@ -643,6 +643,24 @@ export interface paths {
         patch: operations["update_me_api_v1_me_patch"];
         trace?: never;
     };
+    "/api/v1/me/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Avatar */
+        put: operations["put_avatar_api_v1_me_avatar_put"];
+        post?: never;
+        /** Delete Avatar */
+        delete: operations["delete_avatar_api_v1_me_avatar_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/mode": {
         parameters: {
             query?: never;
@@ -653,6 +671,24 @@ export interface paths {
         get?: never;
         /** Set Mode */
         put: operations["set_mode_api_v1_me_mode_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/personal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Personal */
+        get: operations["get_personal_api_v1_me_personal_get"];
+        /** Put Personal */
+        put: operations["put_personal_api_v1_me_personal_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1108,6 +1144,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/users/{user_id}/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** User Avatar */
+        get: operations["user_avatar_api_v1_users__user_id__avatar_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -1238,6 +1291,11 @@ export interface components {
         };
         /** Body_contract_signature_api_v1_contracts__contract_id__signature_post */
         Body_contract_signature_api_v1_contracts__contract_id__signature_post: {
+            /** File */
+            file: string;
+        };
+        /** Body_put_avatar_api_v1_me_avatar_put */
+        Body_put_avatar_api_v1_me_avatar_put: {
             /** File */
             file: string;
         };
@@ -2134,6 +2192,29 @@ export interface components {
             role: components["schemas"]["MemberRole"];
         };
         /**
+         * PersonalIn
+         * @description Персональні дані, які людина вносить сама (ADR 0016). Бачить лише вона.
+         */
+        PersonalIn: {
+            /** Birth Date */
+            birth_date?: string | null;
+            /** City Code */
+            city_code?: string | null;
+            /** Legal Name */
+            legal_name?: string | null;
+        };
+        /** PersonalOut */
+        PersonalOut: {
+            /** Birth Date */
+            birth_date?: string | null;
+            /** City Code */
+            city_code?: string | null;
+            /** Legal Name */
+            legal_name?: string | null;
+            /** Phone */
+            phone?: string | null;
+        };
+        /**
          * PetsPolicy
          * @description Детальніше за «так/ні» (як на OLX): власник одразу каже, кого можна.
          * @enum {string}
@@ -2687,6 +2768,8 @@ export interface components {
         };
         /** UserOut */
         UserOut: {
+            /** Avatar Version */
+            avatar_version?: string | null;
             /**
              * Created At
              * Format: date-time
@@ -4309,6 +4392,72 @@ export interface operations {
             };
         };
     };
+    put_avatar_api_v1_me_avatar_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_put_avatar_api_v1_me_avatar_put"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_avatar_api_v1_me_avatar_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     set_mode_api_v1_me_mode_put: {
         parameters: {
             query?: never;
@@ -4331,6 +4480,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_personal_api_v1_me_personal_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonalOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_personal_api_v1_me_personal_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PersonalIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonalOut"];
                 };
             };
             /** @description Validation Error */
@@ -5417,6 +5632,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    user_avatar_api_v1_users__user_id__avatar_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

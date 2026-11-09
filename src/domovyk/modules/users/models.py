@@ -44,7 +44,11 @@ class UserRow(Base):
         UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
     )
     display_name: Mapped[str] = mapped_column(Text)
+    legal_name: Mapped[str | None] = mapped_column(Text)
     birth_date: Mapped[date | None] = mapped_column(Date)
+    city_code: Mapped[str | None] = mapped_column(Text)
+    avatar_key: Mapped[str | None] = mapped_column(Text)
+    avatar_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     role: Mapped[UserRole] = mapped_column(
         _pg_enum(UserRole, "user_role"), server_default=UserRole.USER.value
     )

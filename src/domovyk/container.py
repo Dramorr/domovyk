@@ -62,6 +62,7 @@ def users_config(settings: Settings) -> UsersConfig:
         privacy_version=settings.privacy_version,
         terms_url=settings.terms_url,
         privacy_url=settings.privacy_url,
+        min_age=settings.user_min_age,
     )
 
 
@@ -120,8 +121,16 @@ class Container:
 
         analytics = AnalyticsService(SqlEventsRepository)
         moderation = ModerationService(SqlModerationRepository, clock)
+        images = PillowImageProcessor()
         users = UsersService(
-            tx, SqlUsersRepository, moderation, analytics, clock, users_config(settings)
+            tx,
+            SqlUsersRepository,
+            moderation,
+            analytics,
+            clock,
+            users_config(settings),
+            storage=storage,
+            images=images,
         )
         notifications = NotificationsService(tx, SqlNotificationsRepository, users, clock)
         properties = PropertiesService(
@@ -136,8 +145,9 @@ class Container:
             clock,
             properties_config(settings),
             notifier=self.notifier,
-            images=PillowImageProcessor(),
+            images=images,
         )
+        users.set_city_check(properties.has_city)
         chat = ChatService(SqlChatRepository)
         leases = LeasesService(
             tx,

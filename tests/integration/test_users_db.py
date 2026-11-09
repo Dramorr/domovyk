@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
@@ -9,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domovyk.core.errors import Banned, Conflict
 from domovyk.domain.users import UserRole, UserStatus
-from domovyk.modules.users.schemas import TenantProfile
+from domovyk.modules.users.schemas import PersonalIn, TenantProfile
 from domovyk.modules.users.service import UsersService
 from tests.fakes import ADMIN_TG, PRIVACY_V, TERMS_V
 
@@ -115,3 +117,37 @@ async def test_app_mode_db(users: UsersService, engine: AsyncEngine) -> None:
     async with engine.connect() as conn:
         with pytest.raises(IntegrityError):
             await conn.execute(text("UPDATE users SET app_mode = 'agent'"))
+
+
+async def test_personal_data_and_avatar_columns(users: UsersService, engine: AsyncEngine) -> None:
+    """ADR 0016: ПІБ, дата народження, місто (FK на cities), аватар — і їх очищення."""
+    await _register(users, 42)
+    await users.add_phone(42, PHONE)
+    out = await users.update_personal(
+        42, PersonalIn(legal_name="Шевченко Тарас", birth_date=date(1990, 3, 9), city_code="lviv")
+    )
+    assert (out.legal_name, out.city_code, out.phone) == ("Шевченко Тарас", "lviv", PHONE)
+    assert (await users.personal(42)).birth_date == date(1990, 3, 9)
+
+    async with engine.connect() as conn:
+        with pytest.raises(IntegrityError):  # місто лише з довідника
+            await conn.execute(text("UPDATE users SET city_code = 'atlantis'"))
+        await conn.rollback()
+        with pytest.raises(IntegrityError):
+            await conn.execute(text("UPDATE users SET birth_date = DATE '1850-01-01'"))
+        await conn.rollback()
+        await conn.execute(
+            text("UPDATE users SET avatar_key = 'avatars/x.jpg', avatar_updated_at = now()")
+        )
+        await conn.commit()
+    user = await users.find_by_telegram(42)
+    assert user is not None and user.avatar_version is not None
+
+    await users.delete_account(42)
+    async with engine.connect() as conn:
+        row = (
+            await conn.execute(
+                text("SELECT legal_name, birth_date, city_code, avatar_key FROM users")
+            )
+        ).one()
+    assert tuple(row) == (None, None, None, None)

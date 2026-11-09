@@ -5,6 +5,8 @@ export type Me = S["MeOut"];
 export type User = S["UserOut"];
 export type Mode = S["AppMode"];
 export type TenantProfile = S["TenantProfile"];
+export type Personal = S["PersonalOut"];
+export type PersonalIn = S["PersonalIn"];
 export type AddressCandidate = S["AddressCandidate"];
 export type City = S["CityOut"];
 export type PropertyCreate = S["PropertyCreate"];
@@ -144,6 +146,17 @@ export const api = {
   rename: (display_name: string) => request<User>("PATCH", "/api/v1/me", { display_name }),
   setMode: (mode: Mode) => request<User>("PUT", "/api/v1/me/mode", { mode }),
   deleteAccount: () => request<void>("DELETE", "/api/v1/me"),
+  personal: () => request<Personal>("GET", "/api/v1/me/personal"),
+  savePersonal: (body: PersonalIn) => request<Personal>("PUT", "/api/v1/me/personal", body),
+  uploadAvatar: (data: Blob) => {
+    const form = new FormData();
+    form.append("file", data, "avatar.jpg");
+    return request<User>("PUT", "/api/v1/me/avatar", form);
+  },
+  removeAvatar: () => request<User>("DELETE", "/api/v1/me/avatar"),
+  /** Аватар будь-кого: шлях з версією, щоб нове фото не бралось із кешу. */
+  avatarFile: (userId: string, version: string) =>
+    requestFile(`/api/v1/users/${encodeURIComponent(userId)}/avatar?v=${encodeURIComponent(version)}`),
   tenantProfile: () => request<TenantProfile>("GET", "/api/v1/me/tenant-profile"),
   saveTenantProfile: (body: TenantProfile) =>
     request<TenantProfile>("PUT", "/api/v1/me/tenant-profile", body),

@@ -17,7 +17,7 @@ from domovyk.modules.users.models import (
     UserConsentRow,
     UserRow,
 )
-from domovyk.modules.users.schemas import TenantProfile, UserOut
+from domovyk.modules.users.schemas import PersonalIn, TenantProfile, UserOut
 
 
 class UsersRepository(Protocol):
@@ -50,6 +50,12 @@ class UsersRepository(Protocol):
     async def upsert_tenant_profile(self, user_id: uuid.UUID, profile: TenantProfile) -> None: ...
     async def delete_tenant_profile(self, user_id: uuid.UUID) -> None: ...
     async def list_staff_ids(self) -> list[uuid.UUID]: ...
+    async def get_personal(self, user_id: uuid.UUID) -> PersonalIn: ...
+    async def set_personal(self, user_id: uuid.UUID, data: PersonalIn) -> None: ...
+    async def avatar_key(self, user_id: uuid.UUID) -> str | None: ...
+    async def set_avatar(
+        self, user_id: uuid.UUID, key: str | None, at: datetime | None
+    ) -> None: ...
 
 
 class SqlUsersRepository:
@@ -77,6 +83,7 @@ class SqlUsersRepository:
             has_phone=has_phone,
             created_at=row.created_at,
             mode=AppMode(row.app_mode) if row.app_mode else None,
+            avatar_version=_version(row.avatar_updated_at) if row.avatar_key else None,
         )
 
     async def get(self, user_id: uuid.UUID) -> UserOut | None:
@@ -187,6 +194,33 @@ class SqlUsersRepository:
     async def delete_tenant_profile(self, user_id: uuid.UUID) -> None:
         await self._s.execute(delete(TenantProfileRow).where(TenantProfileRow.user_id == user_id))
 
+    async def get_personal(self, user_id: uuid.UUID) -> PersonalIn:
+        row = await self._s.get(UserRow, user_id, populate_existing=True)
+        if row is None:
+            return PersonalIn()
+        return PersonalIn(
+            legal_name=row.legal_name, birth_date=row.birth_date, city_code=row.city_code
+        )
+
+    async def set_personal(self, user_id: uuid.UUID, data: PersonalIn) -> None:
+        await self._s.execute(
+            update(UserRow)
+            .where(UserRow.id == user_id)
+            .values(
+                legal_name=data.legal_name, birth_date=data.birth_date, city_code=data.city_code
+            )
+        )
+
+    async def avatar_key(self, user_id: uuid.UUID) -> str | None:
+        return await self._s.scalar(select(UserRow.avatar_key).where(UserRow.id == user_id))
+
+    async def set_avatar(self, user_id: uuid.UUID, key: str | None, at: datetime | None) -> None:
+        await self._s.execute(
+            update(UserRow)
+            .where(UserRow.id == user_id)
+            .values(avatar_key=key, avatar_updated_at=at)
+        )
+
     async def list_staff_ids(self) -> list[uuid.UUID]:
         rows = await self._s.scalars(
             select(UserRow.id).where(
@@ -195,3 +229,7 @@ class SqlUsersRepository:
             )
         )
         return list(rows)
+
+
+def _version(at: datetime | None) -> str | None:
+    return str(int(at.timestamp())) if at else None

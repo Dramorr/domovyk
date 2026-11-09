@@ -88,7 +88,14 @@ from domovyk.modules.properties.service import (
     QueueItem,
     VerificationCase,
 )
-from domovyk.modules.users.service import AppMode, ConsentInfo, TenantProfile, UserOut
+from domovyk.modules.users.service import (
+    AppMode,
+    ConsentInfo,
+    PersonalIn,
+    PersonalOut,
+    TenantProfile,
+    UserOut,
+)
 
 log = logging.getLogger(__name__)
 
@@ -308,6 +315,30 @@ def create_app(
     @app.put("/api/v1/me/tenant-profile")
     async def put_tenant_profile(auth: Auth, body: TenantProfile) -> TenantProfile:
         return await svc.users.update_tenant_profile(auth.user.id, body)
+
+    # ------------------------------------- персональні дані й аватар (ADR 0016)
+
+    @app.get("/api/v1/me/personal")
+    async def get_personal(auth: Auth) -> PersonalOut:
+        return await svc.users.personal(auth.user.id)
+
+    @app.put("/api/v1/me/personal")
+    async def put_personal(auth: Auth, body: PersonalIn) -> PersonalOut:
+        return await svc.users.update_personal(auth.user.id, body)
+
+    @app.put("/api/v1/me/avatar")
+    async def put_avatar(auth: Auth, file: Annotated[UploadFile, File()]) -> UserOut:
+        data = await file.read(PHOTO_MAX_BYTES + 1)  # завелике відхилить сервіс
+        return await svc.users.set_avatar(auth.user.id, data)
+
+    @app.delete("/api/v1/me/avatar")
+    async def delete_avatar(auth: Auth) -> UserOut:
+        return await svc.users.remove_avatar(auth.user.id)
+
+    @app.get("/api/v1/users/{user_id}/avatar")
+    async def user_avatar(auth: Auth, user_id: uuid.UUID) -> Response:
+        # Нова версія — новий ключ і ?v=… у посиланні, тож кеш не застаріє.
+        return _photo(await svc.users.avatar(auth.user.id, user_id))
 
     # ------------------------------------------------ об'єкти (M2, FR-PRP-1..3)
 

@@ -163,6 +163,10 @@ class PropertiesService:
         async with self._tx.begin() as tx:
             return await self._repo(tx).list_cities()
 
+    async def has_city(self, code: str) -> bool:
+        """Чи є місто в довіднику (для міста в профілі користувача)."""
+        return any(c.code == code for c in await self.cities())
+
     async def _active_city(self, code: str | None) -> CityOut:
         code = validate_city_code(code or self._config.default_city)
         async with self._tx.begin() as tx:

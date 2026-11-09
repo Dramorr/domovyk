@@ -1097,8 +1097,8 @@ ul.plain li {
 }
 
 .mode-chip.tenant {
-  background: var(--info-50);
-  color: var(--info-700);
+  background: var(--brand-100);
+  color: var(--brand-ink);
 }
 
 .mode-chip.landlord {
@@ -2668,14 +2668,15 @@ label.file-button {
 
 /* ---- Свій акцент для кожного режиму: орендар — зелений (бренд), власник — жовтий ---- */
 :root[data-mode="landlord"] {
-  /* Власник — теплий жовтий. Заливки жовті, текст на них темний, написи — вохра. */
-  --brand: #e9aa1c;
-  --brand-700: #c88b0b;
-  --brand-500: #f4c04a;
-  --brand-100: #fbe8b8;
-  --brand-50: #fdf5e0;
-  --brand-ink: #7a5208;
-  --on-brand: #2e2206;
+  /* Власник — м'який медовий: приглушений, не «кислотний». Заливки жовті, текст на них
+     темний, написи — вохра. */
+  --brand: #e2b45a;
+  --brand-700: #c99a40;
+  --brand-500: #ecc87e;
+  --brand-100: #f5e7c6;
+  --brand-50: #fbf5e7;
+  --brand-ink: #7b5a1e;
+  --on-brand: #3a2a0c;
 }
 
 /* Кнопка меню — більша ціль для пальця. */
@@ -2697,6 +2698,7 @@ label.file-button {
   display: grid;
   flex: none;
   place-items: center;
+  overflow: hidden;
   width: 60px;
   height: 60px;
   border-radius: 50%;
@@ -2915,9 +2917,9 @@ button.info-row {
 /* ---- Профіль: розділи «клавішами» збоку, прикріпленими до картки ---- */
 .piano {
   display: grid;
-  grid-template-columns: 80px 1fr;
+  grid-template-columns: 84px 1fr;
   align-items: start;
-  margin: 18px 0 0;
+  margin: 16px 0 0;
 }
 
 .piano-keys {
@@ -2936,9 +2938,11 @@ button.info-row {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 44px;
+  min-height: 56px;
   /* Справа клавіша на 8px заходить під картку — текст центруємо у видимій частині. */
-  padding: 0 12px 0 4px;
+  padding: 10px 11px 10px 3px;
+  line-height: 1.2;
+  text-align: center;
   border: 1px solid var(--line);
   border-right: 0;
   border-radius: 12px 0 0 12px;
@@ -2982,8 +2986,14 @@ button.info-row {
 }
 
 /* Картка завжди вища за стовпчик клавіш разом зі скругленням знизу. */
+/* Картка тягнеться до низу екрана (і завжди вища за стовпчик клавіш). */
 .piano-panel .card.group {
-  min-height: calc(2 * var(--radius-lg) + 3 * 44px + 2 * 6px + 8px);
+  display: flex;
+  flex-direction: column;
+  min-height: max(
+    calc(2 * var(--radius-lg) + 3 * 56px + 2 * 6px + 8px),
+    calc(100dvh - 210px - env(safe-area-inset-bottom))
+  );
   margin: 0;
 }
 
@@ -2994,4 +3004,133 @@ button.info-row {
 .piano-panel p {
   text-align: start;
   text-align-last: auto;
+}
+
+/* ---- Аватар у профілі: тап — підказка, другий тап — вибір фото; значок ролі в кутку ---- */
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-wrap {
+  position: relative;
+  flex: none;
+}
+
+.avatar-button {
+  position: relative;
+  display: block;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+
+.avatar-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgb(23 33 28 / 50%);
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.avatar-button.armed .avatar-overlay,
+.avatar-button.uploading .avatar-overlay,
+.avatar-button:focus-visible .avatar-overlay {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .avatar-button:hover .avatar-overlay {
+    opacity: 1;
+  }
+}
+
+.role-badge {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 3px solid var(--bg);
+  border-radius: 50%;
+  background: var(--amber);
+  color: #3a2a0c;
+}
+
+.profile-head-text {
+  min-width: 0;
+}
+
+.profile-head-text .hint {
+  margin: 0;
+}
+
+/* ---- Телефон у персональних даних: номер і позначка підтвердження ---- */
+.phone-row {
+  margin-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.phone-row .info-label {
+  color: var(--text-2);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.phone-value {
+  margin-left: auto;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.phone-ok,
+.phone-bad {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+}
+
+.phone-ok {
+  background: #dcebe2;
+  color: #1e4d3b;
+}
+
+.phone-bad {
+  background: var(--danger-50);
+  color: var(--danger);
+}
+
+/* «Видалити акаунт» — унизу картки. */
+.account-panel .account-delete {
+  margin-top: auto;
+  border-top: 1px solid var(--line);
+  border-bottom: 0;
+}
+
+/* Меню: ім'я й чип режиму на одній лінії. */
+.menu-head {
+  align-items: center;
+}
+
+.menu-head h2 {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu-head .mode-chip {
+  flex: none;
 }

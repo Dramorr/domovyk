@@ -34,7 +34,7 @@ from domovyk.modules.moderation.service import ModerationService
 from domovyk.modules.notifications.service import NotificationsService
 from domovyk.modules.payments.service import PaymentsConfig, PaymentsService
 from domovyk.modules.properties.service import PropertiesConfig, PropertiesService
-from domovyk.modules.users.schemas import TenantProfile, UserOut
+from domovyk.modules.users.schemas import PersonalIn, TenantProfile, UserOut
 from domovyk.modules.users.service import UsersConfig, UsersService
 from tests.fakes_contracts import ContractDb, FakeContractsRepository, FakePdfRenderer
 from tests.fakes_leases import FakeChatRepository, FakeLeasesRepository, LeaseDb
@@ -62,6 +62,9 @@ class _User:
     created_at: datetime = field(default_factory=lambda: datetime(2026, 11, 4, tzinfo=UTC))
     deleted_at: datetime | None = None
     mode: AppMode | None = None
+    personal: PersonalIn = field(default_factory=PersonalIn)
+    avatar_key: str | None = None
+    avatar_at: datetime | None = None
 
 
 @dataclass
@@ -110,7 +113,24 @@ class FakeUsersRepository:
             has_phone=self._uid(u.id, IdentityProvider.PHONE) is not None,
             created_at=u.created_at,
             mode=u.mode,
+            avatar_version=str(int(u.avatar_at.timestamp()))
+            if u.avatar_key and u.avatar_at
+            else None,
         )
+
+    async def get_personal(self, user_id: uuid.UUID) -> PersonalIn:
+        return self.db.users[user_id].personal.model_copy()
+
+    async def set_personal(self, user_id: uuid.UUID, data: PersonalIn) -> None:
+        self.db.users[user_id].personal = data.model_copy()
+
+    async def avatar_key(self, user_id: uuid.UUID) -> str | None:
+        u = self.db.users.get(user_id)
+        return u.avatar_key if u else None
+
+    async def set_avatar(self, user_id: uuid.UUID, key: str | None, at: datetime | None) -> None:
+        u = self.db.users[user_id]
+        u.avatar_key, u.avatar_at = key, at
 
     def _uid(self, user_id: uuid.UUID, provider: IdentityProvider) -> str | None:
         for (p, uid), owner in self.db.identities.items():
@@ -290,7 +310,14 @@ def make_services(
     moderation = ModerationService(mod_repo, clock)
     analytics = AnalyticsService(events_repo)
     users = UsersService(
-        NullTxManager(), users_repo, moderation, analytics, clock, fake_config(**config)
+        NullTxManager(),
+        users_repo,
+        moderation,
+        analytics,
+        clock,
+        fake_config(**config),
+        storage=db.storage,
+        images=PillowImageProcessor(),
     )
     return users, db
 
@@ -328,6 +355,7 @@ def make_fake_services(
         notifier=db.notifier,
         images=PillowImageProcessor(),
     )
+    users.set_city_check(properties.has_city)
     chat = ChatService(lambda _: FakeChatRepository(db.lease))
     leases = LeasesService(
         NullTxManager(),

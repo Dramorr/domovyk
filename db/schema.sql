@@ -1,5 +1,5 @@
 -- =====================================================================
---  Домовик — цільова схема бази даних, v0.15
+--  Домовик — цільова схема бази даних, v0.16
 --  PostgreSQL 16 + PostGIS
 --
 --  Це ЦІЛЬОВА модель. Реальні зміни в базі робляться тільки
@@ -92,7 +92,11 @@ END $$;
 CREATE TABLE users (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     display_name    text        NOT NULL,
-    birth_date      date,
+    legal_name      text CHECK (legal_name IS NULL OR length(legal_name) BETWEEN 3 AND 150),  -- ПІБ як у документах (для договору)
+    birth_date      date CONSTRAINT ck_users_birth_date CHECK (birth_date IS NULL OR birth_date >= DATE '1900-01-01'),  -- 18+ перевіряє сервіс (ADR 0016)
+    city_code       text,                   -- FK на cities — нижче, після довідника
+    avatar_key      text,                   -- файл аватара в сховищі
+    avatar_updated_at timestamptz,
     role            user_role   NOT NULL DEFAULT 'user',   -- moderator призначає admin
     status          user_status NOT NULL DEFAULT 'active',
     locale          text        NOT NULL DEFAULT 'uk',
@@ -156,6 +160,7 @@ CREATE TABLE cities (
     sort_order  smallint NOT NULL DEFAULT 0,
     created_at  timestamptz NOT NULL DEFAULT now()
 );
+ALTER TABLE users ADD CONSTRAINT users_city_code_fkey FOREIGN KEY (city_code) REFERENCES cities(code);
 
 CREATE TABLE districts (
     id          serial PRIMARY KEY,

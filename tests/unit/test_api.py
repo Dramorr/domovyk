@@ -133,3 +133,42 @@ async def test_cors_allows_only_configured_origin(client: httpx.AsyncClient) -> 
         headers={"Origin": "https://evil.test", "Access-Control-Request-Method": "GET"},
     )
     assert "access-control-allow-origin" not in bad.headers
+
+
+async def test_personal_data_and_avatar_api(client: httpx.AsyncClient, now: datetime) -> None:
+    """ADR 0016: персональні дані (лише свої) і аватар, який бачать інші."""
+    import io
+
+    from PIL import Image
+
+    await _register(client, now)
+    h = _auth(now)
+    r = await client.put(
+        "/api/v1/me/personal",
+        json={"legal_name": "Шевченко Соломія", "birth_date": "2012-01-01"},
+        headers=h,
+    )
+    assert (r.status_code, r.json()["error"]) == (422, "too_young")
+    r = await client.put(
+        "/api/v1/me/personal",
+        json={"legal_name": "Шевченко Соломія", "birth_date": "1995-06-01", "city_code": "lviv"},
+        headers=h,
+    )
+    assert r.status_code == 200 and r.json()["city_code"] == "lviv"
+
+    img = io.BytesIO()
+    Image.new("RGB", (600, 600), (30, 77, 59)).save(img, "JPEG")
+    r = await client.put(
+        "/api/v1/me/avatar", files={"file": ("me.jpg", img.getvalue(), "image/jpeg")}, headers=h
+    )
+    assert r.status_code == 200 and r.json()["avatar_version"]
+    me_id = r.json()["id"]
+
+    other = _auth(now, user_id=77, first_name="Ірина")
+    body = {"display_name": "Ірина", "terms_version": TERMS_V, "privacy_version": PRIVACY_V}
+    await client.post("/api/v1/register", json=body, headers=other)
+    r = await client.get(f"/api/v1/users/{me_id}/avatar", headers=other)
+    assert r.status_code == 200 and r.headers["content-type"] == "image/jpeg"
+
+    assert (await client.delete("/api/v1/me/avatar", headers=h)).json()["avatar_version"] is None
+    assert (await client.get(f"/api/v1/users/{me_id}/avatar", headers=other)).status_code == 404

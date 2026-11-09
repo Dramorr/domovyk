@@ -1,33 +1,30 @@
-// PROF-1 і PROF-TENANT (BOT_FLOWS §16, FR-USR-3, FR-USR-5).
-// Вкладки «Основне · Анкета · Акаунт» під шапкою і одна кнопка «Зберегти» внизу —
-// зберігає зміни з усіх вкладок разом; вкладка з незбереженим позначена крапкою.
+// PROF-1 (BOT_FLOWS §16, FR-USR-3, FR-USR-5, ADR 0016).
+// Шапка з аватаром (тап — завантажити фото), розділи «клавішами» збоку:
+// Персональні дані · Відгуки · Акаунт. Одна кнопка «Зберегти» внизу — для всіх змін.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { api, type TenantProfile, type User } from "../api/client";
+import { api, type City, type Personal, type User } from "../api/client";
 import { t } from "../i18n";
 import { confirm, type WebApp } from "../telegram";
 import { Icon } from "../icons";
-import { Chip, errorCode, errorText, Screen } from "../ui";
+import { Avatar, errorCode, errorField, errorText, MascotTip, Screen } from "../ui";
 import { isValidName } from "./Onboarding";
 
-const HOUSEHOLD_MAX = 20;
+type ProfileTab = "personal" | "reviews" | "account";
 
-type ProfileTab = "main" | "tenant" | "account";
+const AVATAR_MAX_MB = 15; // як avatar_max_bytes на бекенді
 
-/** Рядок-перемикач: підпис ліворуч, повзунок праворуч. */
-function SwitchRow({ label, value, onChange }: { label: string; value: boolean | null | undefined; onChange: (v: boolean) => void }) {
-  return (
-    <label className="switch-row">
-      <span>{label}</span>
-      <input type="checkbox" role="switch" checked={value === true} onChange={(e) => onChange(e.target.checked)} />
-      <span className="switch" aria-hidden="true" />
-    </label>
-  );
+type Form = { legal_name: string; birth_date: string; city_code: string };
+
+function toForm(p: Personal | null): Form {
+  return { legal_name: p?.legal_name ?? "", birth_date: p?.birth_date ?? "", city_code: p?.city_code ?? "" };
 }
 
-function same(a: unknown, b: unknown): boolean {
-  return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+/** +380670000001 → +380 67 000 00 01 */
+function formatPhone(raw: string): string {
+  const m = /^\+380(\d{2})(\d{3})(\d{2})(\d{2})$/.exec(raw);
+  return m ? `+380 ${m[1]} ${m[2]} ${m[3]} ${m[4]}` : raw;
 }
 
 export function Profile({
@@ -43,35 +40,59 @@ export function Profile({
   onUserChange: (user: User) => void;
   onDeleted: () => void;
 }) {
-  const tenant = user.mode !== "landlord";
+  const [tab, setTab] = useState<ProfileTab>("personal");
   const [name, setName] = useState(user.display_name);
-  const [profile, setProfile] = useState<TenantProfile>({});
-  const [saved, setSaved] = useState<TenantProfile>({});
-  const [loaded, setLoaded] = useState(false);
+  const [personal, setPersonal] = useState<Personal | null>(null);
+  const [form, setForm] = useState<Form>(toForm(null));
+  const [cities, setCities] = useState<City[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [tab, setTab] = useState<ProfileTab>("main");
+  // Аватар на телефоні: перший тап показує підказку, другий — вибір фото.
+  const [armed, setArmed] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!tenant) return;
     api
-      .tenantProfile()
+      .personal()
       .then((p) => {
-        setProfile(p);
-        setSaved(p);
-        setLoaded(true);
+        setPersonal(p);
+        setForm(toForm(p));
       })
       .catch((e: unknown) => setError(errorText(e)));
-  }, [tenant]);
+    api
+      .cities()
+      .then(setCities)
+      .catch(() => setCities([]));
+  }, []);
 
   const nameChanged = name.trim() !== user.display_name;
-  const profileChanged = tenant && loaded && !same(profile, saved);
-  const dirty = nameChanged || profileChanged;
+  const saved = toForm(personal);
+  const personalChanged =
+    !!personal &&
+    (form.legal_name.trim() !== saved.legal_name || form.birth_date !== saved.birth_date || form.city_code !== saved.city_code);
+  const dirty = nameChanged || personalChanged;
 
-  function patch(update: Partial<TenantProfile>) {
-    setProfile((p) => ({ ...p, ...update }));
+  const tabs: { key: ProfileTab; label: string; dirty: boolean }[] = [
+    { key: "personal", label: t("prof_tab_personal"), dirty },
+    { key: "reviews", label: t("prof_tab_reviews"), dirty: false },
+    { key: "account", label: t("prof_tab_account"), dirty: false },
+  ];
+
+  function edit(patch: Partial<Form>) {
+    setForm((f) => ({ ...f, ...patch }));
     setMessage(null);
+    setError(null);
+  }
+
+  function saveError(e: unknown): string {
+    if (errorCode(e) === "too_young") return t("prof_too_young");
+    const field = errorField(e);
+    if (field === "legal_name") return t("prof_bad_legal_name");
+    if (field === "birth_date") return t("prof_bad_birth_date");
+    if (field === "city_code") return t("prof_bad_city");
+    return errorText(e);
   }
 
   async function save() {
@@ -83,18 +104,60 @@ export function Profile({
     setError(null);
     setMessage(null);
     try {
-      if (nameChanged) onUserChange(await api.rename(name.trim()));
-      if (profileChanged) {
-        const p = await api.saveTenantProfile(profile);
-        setProfile(p);
-        setSaved(p);
+      if (personalChanged) {
+        const p = await api.savePersonal({
+          legal_name: form.legal_name.trim() || null,
+          birth_date: form.birth_date || null,
+          city_code: form.city_code || null,
+        });
+        setPersonal(p);
+        setForm(toForm(p));
       }
+      if (nameChanged) onUserChange(await api.rename(name.trim()));
       setMessage(t("prof_saved"));
       window.setTimeout(() => setMessage(null), 2500);
     } catch (e) {
-      setError(errorText(e));
+      setError(saveError(e));
     } finally {
       setBusy(false);
+    }
+  }
+
+  function onAvatarTap() {
+    if (uploading) return;
+    // Миша: одразу вибір файлу (підказку видно при наведенні). Палець: спершу підказка.
+    if (armed || !window.matchMedia("(pointer: coarse)").matches) {
+      setArmed(false);
+      fileInput.current?.click();
+    } else {
+      setArmed(true);
+      window.setTimeout(() => setArmed(false), 4000);
+    }
+  }
+
+  async function onAvatarFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > AVATAR_MAX_MB * 1024 * 1024) return setError(t("ph_err_too_big"));
+    setUploading(true);
+    setError(null);
+    try {
+      const data = await file.arrayBuffer(); // одразу: на телефоні доступ до файлу тимчасовий
+      onUserChange(await api.uploadAvatar(new Blob([data], { type: file.type || "image/jpeg" })));
+    } catch (err) {
+      setError(errorField(err) === "file" ? t("prof_avatar_bad") : errorText(err));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function removeAvatar() {
+    if (!(await confirm(webApp, t("prof_avatar_remove_confirm")))) return;
+    try {
+      onUserChange(await api.removeAvatar());
+    } catch (e) {
+      setError(errorText(e));
     }
   }
 
@@ -111,30 +174,38 @@ export function Profile({
     }
   }
 
-  const household = profile.household_size ?? null;
-  const tabs: { key: ProfileTab; label: string; dirty: boolean }[] = [
-    { key: "main", label: t("prof_group_main"), dirty: nameChanged },
-    ...(tenant ? [{ key: "tenant" as const, label: t("prof_tab_tenant"), dirty: !!profileChanged }] : []),
-    { key: "account", label: t("prof_group_account"), dirty: false },
-  ];
-  const initial = (name.trim() || user.display_name).charAt(0).toUpperCase();
+  const roleLabel = user.role === "admin" ? t("role_admin") : user.role === "moderator" ? t("role_moderator") : null;
 
   return (
     <Screen onBack={onBack} title={t("prof_title")}>
       <section className="profile-head">
-        <span className="avatar" aria-hidden="true">
-          {initial}
-        </span>
-        <div>
+        <div className="avatar-wrap">
+          <button
+            type="button"
+            className={`avatar-button${armed ? " armed" : ""}${uploading ? " uploading" : ""}`}
+            aria-label={t("prof_avatar_change")}
+            onClick={onAvatarTap}
+          >
+            <Avatar userId={user.id} version={user.avatar_version} name={name || user.display_name} size={72} />
+            <span className="avatar-overlay" aria-hidden="true">
+              {uploading ? <span className="spinner" /> : <Icon name="upload" size={24} />}
+            </span>
+          </button>
+          {roleLabel && (
+            <span className="role-badge" title={roleLabel} aria-label={roleLabel}>
+              <Icon name="shield" size={14} />
+            </span>
+          )}
+          <input ref={fileInput} type="file" accept="image/*" hidden onChange={onAvatarFile} />
+        </div>
+        <div className="profile-head-text">
           <p className="profile-name">{name.trim() || user.display_name}</p>
-          <div className="chips">
-            {user.has_phone && (
-              <Chip tone="ok">
-                <Icon name="check" size={14} /> {t("prof_phone_ok")}
-              </Chip>
-            )}
-            {user.role !== "user" && <Chip tone="warn">{t(`role_${user.role}`)}</Chip>}
-          </div>
+          {armed && <p className="hint small">{t("prof_avatar_tap_again")}</p>}
+          {!armed && user.avatar_version && (
+            <button className="link small" onClick={removeAvatar}>
+              {t("prof_avatar_remove")}
+            </button>
+          )}
         </div>
       </section>
 
@@ -155,118 +226,104 @@ export function Profile({
             </button>
           ))}
         </div>
+
         <div className="piano-panel">
-      {tab === "main" && (
-      <section className="card group tab-panel" key="main">
-        <label className="field">
-          {t("prof_name")}
-          <input
-            className="input"
-            value={name}
-            maxLength={40}
-            autoComplete="name"
-            onChange={(e) => {
-              setName(e.target.value);
-              setMessage(null);
-            }}
-          />
-        </label>
-        <p className="hint small">{t("prof_name_hint")}</p>
-      </section>
-      )}
-
-      {tenant && tab === "tenant" && (
-        <>
-          <section className="card group tab-panel" key="tenant">
-            <p className="hint small group-hint">{t("prof_tenant_hint")}</p>
-            {!loaded && !error && <div className="skeleton" />}
-            {loaded && (
-              <>
-                <label className="field">
-                  {t("prof_occupation")}
-                  <input
-                    className="input"
-                    maxLength={100}
-                    placeholder={t("prof_occupation_placeholder")}
-                    value={profile.occupation ?? ""}
-                    onChange={(e) => patch({ occupation: e.target.value })}
-                  />
-                </label>
-                <label className="field">
-                  {t("prof_about")}
-                  <textarea
-                    className="input"
-                    rows={3}
-                    maxLength={1000}
-                    placeholder={t("prof_about_placeholder")}
-                    value={profile.about ?? ""}
-                    onChange={(e) => patch({ about: e.target.value })}
-                  />
-                </label>
-                <div className="stepper-row">
-                  <span>{t("prof_household")}</span>
-                  <div className="num-stepper">
-                    <button
-                      type="button"
-                      aria-label={t("prof_less")}
-                      disabled={household === null || household <= 1}
-                      onClick={() => patch({ household_size: Math.max(1, (household ?? 1) - 1) })}
-                    >
-                      <Icon name="minus" size={18} />
-                    </button>
-                    <span className="num" aria-live="polite">
-                      {household ?? "—"}
-                    </span>
-                    <button
-                      type="button"
-                      aria-label={t("prof_more")}
-                      disabled={household !== null && household >= HOUSEHOLD_MAX}
-                      onClick={() => patch({ household_size: Math.min(HOUSEHOLD_MAX, (household ?? 0) + 1) })}
-                    >
-                      <Icon name="plus" size={18} />
-                    </button>
+          {tab === "personal" && (
+            <section className="card group tab-panel" key="personal">
+              <label className="field">
+                {t("prof_name")}
+                <input
+                  className="input"
+                  value={name}
+                  maxLength={40}
+                  autoComplete="nickname"
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    setMessage(null);
+                  }}
+                />
+              </label>
+              <p className="hint small">{t("prof_name_hint")}</p>
+              {!personal && !error && <div className="skeleton" />}
+              {personal && (
+                <>
+                  <label className="field">
+                    {t("prof_legal_name")}
+                    <input
+                      className="input"
+                      value={form.legal_name}
+                      maxLength={150}
+                      autoComplete="name"
+                      placeholder={t("prof_legal_name_placeholder")}
+                      onChange={(e) => edit({ legal_name: e.target.value })}
+                    />
+                  </label>
+                  <p className="hint small">{t("prof_legal_name_hint")}</p>
+                  <label className="field">
+                    {t("prof_birth_date")}
+                    <input
+                      className="input"
+                      type="date"
+                      value={form.birth_date}
+                      min="1900-01-01"
+                      max={new Date().toISOString().slice(0, 10)}
+                      onChange={(e) => edit({ birth_date: e.target.value })}
+                    />
+                  </label>
+                  <p className="hint small">{t("prof_birth_date_hint")}</p>
+                  <label className="field">
+                    {t("prof_city")}
+                    <select className="input" value={form.city_code} onChange={(e) => edit({ city_code: e.target.value })}>
+                      <option value="">{t("prof_city_none")}</option>
+                      {cities.map((c) => (
+                        <option key={c.code} value={c.code}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="info-row phone-row">
+                    <span className="info-label">{t("prof_phone_row")}</span>
+                    <span className="phone-value">{personal.phone ? formatPhone(personal.phone) : "—"}</span>
+                    {user.has_phone ? (
+                      <span className="phone-ok" title={t("prof_phone_yes")} aria-label={t("prof_phone_yes")}>
+                        <Icon name="check" size={18} />
+                      </span>
+                    ) : (
+                      <span className="phone-bad" title={t("prof_phone_no")} aria-label={t("prof_phone_no")}>
+                        <Icon name="alert" size={18} />
+                      </span>
+                    )}
                   </div>
-                </div>
-                <div className="switch-list">
-                  <SwitchRow label={t("prof_children")} value={profile.has_children} onChange={(v) => patch({ has_children: v })} />
-                  <SwitchRow label={t("prof_pets")} value={profile.has_pets} onChange={(v) => patch({ has_pets: v })} />
-                  {profile.has_pets && (
-                    <label className="field nested">
-                      {t("prof_pets_details")}
-                      <input
-                        className="input"
-                        maxLength={300}
-                        placeholder={t("prof_pets_placeholder")}
-                        value={profile.pets_details ?? ""}
-                        onChange={(e) => patch({ pets_details: e.target.value })}
-                      />
-                    </label>
-                  )}
-                  <SwitchRow label={t("prof_smoker")} value={profile.smoker} onChange={(v) => patch({ smoker: v })} />
-                </div>
-              </>
-            )}
-          </section>
-        </>
-      )}
+                  {!user.has_phone && <p className="hint small">{t("prof_phone_need")}</p>}
+                </>
+              )}
+            </section>
+          )}
 
-      {tab === "account" && (
-      <section className="card group tab-panel" key="account">
-        <div className="info-row">
-          <Icon name="user" size={20} />
-          <span>{t("prof_phone_row")}</span>
-          <span className="hint small">{user.has_phone ? t("prof_phone_yes") : t("prof_phone_no")}</span>
-        </div>
-        <button className="info-row danger" onClick={deleteAccount} disabled={busy}>
-          <Icon name="trash" size={20} />
-          <span>{t("prof_delete")}</span>
-        </button>
-      </section>
-      )}
+          {tab === "reviews" && (
+            <section className="card group tab-panel" key="reviews">
+              <MascotTip>
+                <p>{t("prof_reviews_empty")}</p>
+              </MascotTip>
+            </section>
+          )}
+
+          {tab === "account" && (
+            <section className="card group tab-panel account-panel" key="account">
+              <div className="info-row">
+                <Icon name="send" size={20} />
+                <span>{t("prof_login_telegram")}</span>
+              </div>
+              <p className="hint small">{t("prof_login_hint")}</p>
+              <button className="info-row danger account-delete" onClick={deleteAccount} disabled={busy}>
+                <Icon name="trash" size={20} />
+                <span>{t("prof_delete")}</span>
+              </button>
+            </section>
+          )}
         </div>
       </div>
-
-      <p className="hint small center-text">{t("prof_beta_note")}</p>
 
       {(dirty || message || error) && (
         <div className="sticky-actions">

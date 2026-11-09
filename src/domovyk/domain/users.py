@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import re
+from datetime import date
 from enum import StrEnum
 
-from domovyk.core.errors import InvalidInput, NotAdmin, ProtectedRole
+from domovyk.core.errors import InvalidInput, NotAdmin, ProtectedRole, TooYoung
 
 
 class UserRole(StrEnum):
@@ -51,6 +52,35 @@ def normalize_display_name(raw: str) -> str:
     name = " ".join(raw.split())
     if not (NAME_MIN <= len(name) <= NAME_MAX) or not _NAME_RE.fullmatch(name):
         raise InvalidInput("Некоректне ім'я", field="display_name")
+    return name
+
+
+BIRTH_MIN = date(1900, 1, 1)
+LEGAL_NAME_MIN, LEGAL_NAME_MAX = 3, 150
+
+
+def age_on(birth: date, today: date) -> int:
+    """Повних років на дату `today`."""
+    return today.year - birth.year - ((today.month, today.day) < (birth.month, birth.day))
+
+
+def check_birth_date(birth: date, today: date, min_age: int) -> None:
+    """Дата реальна й людині щонайменше `min_age` (повна дієздатність — 18, ЦКУ ст. 34)."""
+    if birth < BIRTH_MIN or birth > today:
+        raise InvalidInput("Некоректна дата народження", field="birth_date")
+    if age_on(birth, today) < min_age:
+        raise TooYoung(f"Орендувати й здавати житло можна з {min_age} років", field="birth_date")
+
+
+def normalize_legal_name(raw: str) -> str:
+    """ПІБ як у документах: літери, пробіли, апостроф, дефіс; щонайменше два слова."""
+    name = " ".join(raw.split())
+    if (
+        not (LEGAL_NAME_MIN <= len(name) <= LEGAL_NAME_MAX)
+        or not _NAME_RE.fullmatch(name)
+        or len(name.split()) < 2
+    ):
+        raise InvalidInput("Некоректне ПІБ", field="legal_name")
     return name
 
 

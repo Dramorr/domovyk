@@ -23,6 +23,12 @@ class InvalidInput(DomainError):
     code = "invalid_input"
 
 
+class TooYoung(InvalidInput):
+    """Молодше мінімального віку для оренди (ADR 0016)."""
+
+    code = "too_young"
+
+
 class InvalidTransition(DomainError):
     code = "invalid_transition"
 

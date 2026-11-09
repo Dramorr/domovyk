@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
@@ -19,6 +19,20 @@ class UserOut(BaseModel):
     has_phone: bool
     created_at: datetime
     mode: AppMode | None = None  # None — ще не обрав (ONB-4)
+    # Мітка версії аватара (для кешу картинки); None — аватара немає.
+    avatar_version: str | None = None
+
+
+class PersonalIn(BaseModel):
+    """Персональні дані, які людина вносить сама (ADR 0016). Бачить лише вона."""
+
+    legal_name: str | None = Field(default=None, max_length=150)
+    birth_date: date | None = None
+    city_code: str | None = Field(default=None, max_length=32)
+
+
+class PersonalOut(PersonalIn):
+    phone: str | None = None  # підтверджений номер, E.164 — лише власнику
 
 
 class TenantProfile(BaseModel):

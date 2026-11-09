@@ -9,6 +9,8 @@ import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
+from domovyk.adapters.images.base import ImageProcessor, ImageRejected
+from domovyk.adapters.storage.base import FileStorage
 from domovyk.core.clock import Clock
 from domovyk.core.crypto import normalize_phone, phone_hash
 from domovyk.core.errors import (
@@ -32,17 +34,34 @@ from domovyk.domain.users import (
     UserRole,
     UserStatus,
     can_use_app,
+    check_birth_date,
     is_staff,
     new_role_for_moderator_change,
     normalize_display_name,
+    normalize_legal_name,
     require_admin,
 )
 from domovyk.modules.analytics.service import AnalyticsService, EventName, EventSource
 from domovyk.modules.moderation.service import AuditAction, BanIdentifiers, ModerationService
 from domovyk.modules.users.repository import UsersRepository
-from domovyk.modules.users.schemas import ConsentInfo, TenantProfile, UserOut
+from domovyk.modules.users.schemas import (
+    ConsentInfo,
+    PersonalIn,
+    PersonalOut,
+    TenantProfile,
+    UserOut,
+)
 
-__all__ = ["AppMode", "ConsentInfo", "TenantProfile", "UserOut", "UsersConfig", "UsersService"]
+__all__ = [
+    "AppMode",
+    "ConsentInfo",
+    "PersonalIn",
+    "PersonalOut",
+    "TenantProfile",
+    "UserOut",
+    "UsersConfig",
+    "UsersService",
+]
 
 # Ім'я, яке лишається замість справжнього після видалення акаунта (FR-USR-5).
 DELETED_NAME = "deleted"
@@ -58,6 +77,9 @@ class UsersConfig:
     privacy_version: str
     terms_url: str
     privacy_url: str
+    # Мінімальний вік, щоб орендувати чи здавати (повна дієздатність, ЦКУ ст. 34; ADR 0016).
+    min_age: int = 18
+    avatar_max_bytes: int = 15 * 1024 * 1024
 
 
 class UsersService:
@@ -69,7 +91,13 @@ class UsersService:
         analytics: AnalyticsService,
         clock: Clock,
         config: UsersConfig,
+        *,
+        storage: FileStorage | None = None,
+        images: ImageProcessor | None = None,
     ) -> None:
+        self._storage = storage
+        self._images = images
+        self._city_check: Callable[[str], Awaitable[bool]] | None = None
         self._tx = tx
         self._repo = repo
         self._moderation = moderation
@@ -77,6 +105,10 @@ class UsersService:
         self._clock = clock
         self._config = config
         self._delete_guard: Callable[[uuid.UUID], Awaitable[bool]] | None = None
+
+    def set_city_check(self, check: Callable[[str], Awaitable[bool]]) -> None:
+        """Довідник міст веде модуль об'єктів: він і каже, чи є таке місто."""
+        self._city_check = check
 
     def set_delete_guard(self, guard: Callable[[uuid.UUID], Awaitable[bool]]) -> None:
         """Модуль оренд каже, чи є в людини жива оренда (FR-USR-5), без циклічних імпортів."""
@@ -264,6 +296,79 @@ class UsersService:
             await self._repo(tx).upsert_tenant_profile(user.id, cleaned)
         return cleaned
 
+    # ------------------------------------------------- персональні дані (ADR 0016)
+
+    async def personal(self, telegram_uid: int) -> PersonalOut:
+        """ПІБ, дата народження, місто й підтверджений номер — лише самій людині."""
+        user = await self.require_active(telegram_uid)
+        async with self._tx.begin() as tx:
+            repo = self._repo(tx)
+            data = await repo.get_personal(user.id)
+            phone = await repo.identity_uid(user.id, IdentityProvider.PHONE)
+        return PersonalOut(**data.model_dump(), phone=phone)
+
+    async def update_personal(self, telegram_uid: int, data: PersonalIn) -> PersonalOut:
+        user = await self.require_active(telegram_uid)
+        raw_name = _clean(data.legal_name)
+        legal_name = normalize_legal_name(raw_name) if raw_name else None
+        if data.birth_date is not None:
+            check_birth_date(data.birth_date, self._clock.now().date(), self._config.min_age)
+        city = _clean(data.city_code)
+        if city is not None and self._city_check is not None and not await self._city_check(city):
+            raise InvalidInput("Такого міста немає в довіднику", field="city_code")
+        cleaned = PersonalIn(legal_name=legal_name, birth_date=data.birth_date, city_code=city)
+        async with self._tx.begin() as tx:
+            await self._repo(tx).set_personal(user.id, cleaned)
+        return await self.personal(telegram_uid)
+
+    async def set_avatar(self, telegram_uid: int, data: bytes) -> UserOut:
+        """Фото профілю: зменшене, без EXIF. Бачать усі зареєстровані користувачі."""
+        user = await self.require_active(telegram_uid)
+        storage, images = self._files()
+        if len(data) > self._config.avatar_max_bytes:
+            raise InvalidInput("Фото завелике", field="file", reason="too_big")
+        try:
+            image = await images.prepare(data)
+        except ImageRejected as e:
+            raise InvalidInput(
+                "Це не фото або воно не підходить", field="file", reason=e.reason
+            ) from None
+        key = f"avatars/{user.id}/{uuid.uuid4().hex}.jpg"
+        await storage.put(key, image.data)
+        async with self._tx.begin() as tx:
+            repo = self._repo(tx)
+            old = await repo.avatar_key(user.id)
+            await repo.set_avatar(user.id, key, self._clock.now())
+            result = await self._must_get(repo, user.id)
+        if old:
+            await storage.delete(old)
+        return result
+
+    async def remove_avatar(self, telegram_uid: int) -> UserOut:
+        user = await self.require_active(telegram_uid)
+        async with self._tx.begin() as tx:
+            repo = self._repo(tx)
+            old = await repo.avatar_key(user.id)
+            await repo.set_avatar(user.id, None, None)
+            result = await self._must_get(repo, user.id)
+        if old and self._storage is not None:
+            await self._storage.delete(old)
+        return result
+
+    async def avatar(self, viewer_telegram_uid: int, user_id: uuid.UUID) -> bytes:
+        """Аватар будь-якого користувача — для будь-кого зареєстрованого."""
+        await self.require_active(viewer_telegram_uid)
+        async with self._tx.begin() as tx:
+            key = await self._repo(tx).avatar_key(user_id)
+        if key is None or self._storage is None:
+            raise NotFound("Аватара немає")
+        return await self._storage.get(key)
+
+    def _files(self) -> tuple[FileStorage, ImageProcessor]:
+        if self._storage is None or self._images is None:
+            raise RuntimeError("UsersService без сховища файлів")
+        return self._storage, self._images
+
     async def delete_account(self, telegram_uid: int) -> None:
         """FR-USR-5: м'яке видалення й анонімізація. Бани лишаються — вони на хешах.
 
@@ -275,12 +380,17 @@ class UsersService:
         async with self._tx.begin() as tx:
             repo = self._repo(tx)
             await repo.set_display_name(user.id, DELETED_NAME)
+            await repo.set_personal(user.id, PersonalIn())
+            avatar = await repo.avatar_key(user.id)
+            await repo.set_avatar(user.id, None, None)
             await repo.delete_tenant_profile(user.id)
             await repo.remove_identities(user.id)
             await repo.set_status(user.id, UserStatus.DELETED, deleted_at=self._clock.now())
             await self._moderation.audit(
                 tx, user.id, AuditAction.ACCOUNT_DELETE, "user", str(user.id)
             )
+        if avatar and self._storage is not None:
+            await self._storage.delete(avatar)
 
     # -------------------------------------------------------------------- адмін
 

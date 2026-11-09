@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
-import { ApiFailure } from "./api/client";
+import { api, ApiFailure } from "./api/client";
 import { t, type TextKey } from "./i18n";
 import { Icon, type IconName } from "./icons";
 
@@ -89,27 +89,23 @@ function MenuSheet({ nav, onClose }: { nav: Nav; onClose: () => void }) {
         closeRef.current = close;
         return (
           <>
-        <div className="sheet-head">
+        {/* Ім'я й перемикач режиму в один рядок; хрестика немає — шторку ховає тап по тлу чи свайп. */}
+        <div className="sheet-head menu-head">
           <h2>{nav.userName}</h2>
-          <button className="icon-button" aria-label={t("ph_close")} onClick={close}>
-            <Icon name="close" size={20} />
+          <button
+            className={`mode-chip ${nav.mode}`}
+            onClick={pick(nav.switchMode)}
+            aria-label={tenant ? t("mode_switch_to_landlord") : t("mode_switch_to_tenant")}
+          >
+            <Icon name={tenant ? "search" : "building"} size={16} />
+            {tenant ? t("mode_tenant_short") : t("mode_landlord_short")}
+            <Icon name="swap" size={14} />
           </button>
         </div>
-        <button className="mode-card" onClick={pick(nav.switchMode)}>
-          <span className="row-icon">
-            <Icon name={tenant ? "search" : "building"} />
-          </span>
-          <span className="row-body">
-            <span className="row-sub">{tenant ? t("menu_mode_tenant") : t("menu_mode_landlord")}</span>
-            <span className="row-title">{tenant ? t("mode_card_to_landlord") : t("mode_card_to_tenant")}</span>
-          </span>
-          <Icon name="swap" size={20} />
-        </button>
         <nav className="menu-list" aria-label={t("nav_label")}>
           {main.map(row)}
         </nav>
         <div className="menu-list secondary">{more.map(row)}</div>
-        <p className="hint small center-text">{t("menu_beta")}</p>
           </>
         );
       }}
@@ -241,6 +237,54 @@ export function Screen({
       <Header onBack={onBack} title={title} />
       <main className={`screen${center ? " center" : ""}`}>{children}</main>
     </div>
+  );
+}
+
+// ------------------------------------------------------------- аватар
+
+// Файли аватарів у пам'яті сторінки: ключ — користувач + версія (нове фото — нова версія).
+const avatarUrls = new Map<string, Promise<string>>();
+
+function avatarUrl(userId: string, version: string): Promise<string> {
+  const key = `${userId}:${version}`;
+  let url = avatarUrls.get(key);
+  if (!url) {
+    url = api.avatarFile(userId, version).then(({ data }) => URL.createObjectURL(new Blob([data], { type: "image/jpeg" })));
+    url.catch(() => avatarUrls.delete(key));
+    avatarUrls.set(key, url);
+  }
+  return url;
+}
+
+/** Кружок-аватар: фото користувача або перша літера імені на кольорі режиму. */
+export function Avatar({
+  userId,
+  version,
+  name,
+  size = 60,
+}: {
+  userId: string;
+  version?: string | null;
+  name: string;
+  size?: number;
+}) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    setUrl(null);
+    if (version) {
+      avatarUrl(userId, version)
+        .then((u) => alive && setUrl(u))
+        .catch(() => undefined);
+    }
+    return () => {
+      alive = false;
+    };
+  }, [userId, version]);
+  return (
+    <span className="avatar" style={{ width: size, height: size, fontSize: Math.round(size * 0.43) }} aria-hidden="true">
+      {url ? <img src={url} alt="" draggable={false} /> : name.trim().charAt(0).toUpperCase()}
+    </span>
   );
 }
 
