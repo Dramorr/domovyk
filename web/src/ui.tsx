@@ -84,7 +84,7 @@ function MenuSheet({ nav, onClose }: { nav: Nav; onClose: () => void }) {
     </button>
   );
   return (
-    <Sheet label={t("menu_title")} onClose={onClose} className="menu-sheet" side>
+    <Sheet label={t("menu_title")} onClose={onClose} className="menu-sheet">
       {(close) => {
         closeRef.current = close;
         return (
@@ -123,21 +123,18 @@ const SHEET_OUT_MS = 220;
 const SWIPE_CLOSE_PX = 90;
 
 /**
- * Шторка: виїжджає й ховається плавно, закривається тапом по тлу, хрестиком
- * (`close` у children) або свайпом. Нижня — свайп униз за верх; бічна (`side`) —
- * панель справа, свайп праворуч будь-де.
+ * Нижня шторка: виїжджає й ховається плавно, закривається тапом по тлу,
+ * хрестиком (`close` у children) або свайпом униз за верхню частину.
  */
 export function Sheet({
   label,
   onClose,
   className,
-  side = false,
   children,
 }: {
   label: string;
   onClose: () => void;
   className?: string;
-  side?: boolean;
   children: (close: () => void) => ReactNode;
 }) {
   const [closing, setClosing] = useState(false);
@@ -152,15 +149,14 @@ export function Sheet({
   }, [onClose]);
 
   // Свайп униз — лише з верхньої частини (ручка й заголовок), щоб не заважати прокрутці вмісту.
-  const axis = (t: React.Touch | undefined) => (side ? t?.clientX : t?.clientY);
   function onTouchStart(e: React.TouchEvent) {
     const target = e.target as HTMLElement;
-    if (!side && (!target.closest(".sheet-handle, .sheet-head") || target.closest("button"))) return;
-    start.current = axis(e.touches[0]) ?? null;
+    if (!target.closest(".sheet-handle, .sheet-head") || target.closest("button")) return;
+    start.current = e.touches[0]?.clientY ?? null;
   }
   function onTouchMove(e: React.TouchEvent) {
     if (start.current === null) return;
-    setDrag(Math.max(0, (axis(e.touches[0]) ?? start.current) - start.current));
+    setDrag(Math.max(0, (e.touches[0]?.clientY ?? start.current) - start.current));
   }
   function onTouchEnd() {
     if (start.current === null) return;
@@ -170,19 +166,19 @@ export function Sheet({
   }
 
   return createPortal(
-    <div className={`sheet-backdrop${side ? " side" : ""}${closing ? " closing" : ""}`} onClick={close}>
+    <div className={`sheet-backdrop${closing ? " closing" : ""}`} onClick={close}>
       <div
-        className={`sheet${side ? " drawer" : ""}${className ? ` ${className}` : ""}${drag ? " dragging" : ""}`}
+        className={`sheet${className ? ` ${className}` : ""}${drag ? " dragging" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-label={label}
-        style={drag ? { transform: side ? `translateX(${drag}px)` : `translateY(${drag}px)` } : undefined}
+        style={drag ? { transform: `translateY(${drag}px)` } : undefined}
         onClick={(e) => e.stopPropagation()}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
       >
-        {!side && <div className="sheet-handle" />}
+        <div className="sheet-handle" />
         {children(close)}
       </div>
     </div>,
