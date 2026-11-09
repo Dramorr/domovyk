@@ -3208,22 +3208,46 @@ button.info-row {
   color: #8b6522;
 }
 
-/* Сценки — SVG-ілюстрації з власними анімаціями всередині (assets/scenes). Вибір:
-   кадр трохи «наближається», ніби заходимо в сценку. */
-.mode-scene {
-  object-fit: cover;
-  /* На високих картках обрізаємо краї так, щоб Домовик лишався в кадрі. */
-  object-position: 30% 50%;
-  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.6s;
+/* Картинка картки: звичайний маскот на м'якому тлі свого режиму. Вибір — маскот підстрибує. */
+.mode-art {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  min-height: 120px;
+  padding: 12px 0 4px;
 }
 
-.mode-scene-card.picked .mode-scene {
-  transform: scale(1.08);
-  filter: brightness(1.06) saturate(1.1);
+.mode-scene-card.tenant .mode-art {
+  background: radial-gradient(circle at 50% 60%, #dcebe2 0, #eef5f0 55%, transparent 80%);
+}
+
+.mode-scene-card.landlord .mode-art {
+  background: radial-gradient(circle at 50% 60%, #f5e7c6 0, #fbf5e7 55%, transparent 80%);
+}
+
+.mode-art img {
+  width: auto;
+  height: min(140px, 100%);
+  max-height: 140px;
+  transition: transform 0.2s;
+}
+
+.mode-scene-card:hover .mode-art img {
+  transform: translateY(-3px);
+}
+
+.mode-scene-card.picked .mode-art img {
+  animation: mode-hop 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+@keyframes mode-hop {
+  45% {
+    transform: translateY(-18px) rotate(-4deg);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mode-scene {
-    transition: none;
+  .mode-scene-card.picked .mode-art img {
+    animation: none;
   }
 }

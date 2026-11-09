@@ -7,7 +7,6 @@ import { t, type TextKey } from "../i18n";
 import { openLink, requestContact, type WebApp } from "../telegram";
 import { Icon, type IconName } from "../icons";
 import { BRAND, errorText, Mascot, Screen } from "../ui";
-import { LandlordScene, TenantScene } from "./ModeScenes";
 
 const NAME_RE = /^\p{L}[\p{L} '’ʼ-]*$/u;
 
@@ -359,7 +358,9 @@ export function ModeChoice({ onDone }: { onDone: (user: User) => void }) {
       disabled={busy}
       onClick={() => choose(mode)}
     >
-      {mode === "tenant" ? <TenantScene /> : <LandlordScene />}
+      <span className="mode-art" aria-hidden="true">
+        <img src={`${BRAND}${mode === "tenant" ? "mascot" : "mascot-landlord"}.svg`} alt="" draggable={false} />
+      </span>
       <span className="mode-scene-text">
         <span className="mode-scene-title">
           <Icon name={mode === "tenant" ? "search" : "building"} size={20} />
