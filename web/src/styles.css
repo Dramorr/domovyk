@@ -2964,7 +2964,9 @@ button.info-row {
   background: var(--surface);
   color: var(--brand-ink);
   transform: translateX(0);
-  box-shadow: -4px 4px 12px rgb(23 33 28 / 8%);
+  /* Тінь лише зовні (зліва, згори, знизу): справа клавіша переходить у картку, а не лежить на ній. */
+  box-shadow: var(--shadow);
+  clip-path: inset(-16px 0 -16px -16px);
 }
 
 .piano-key .tab-dot {
