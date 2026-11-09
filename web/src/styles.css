@@ -2505,3 +2505,162 @@ label.file-button {
   font-weight: 500;
   font-size: 15px;
 }
+
+/* ---- Плавність: шторки, поява екранів, зміна кольору режиму ---- */
+/* Тло темнішає кольором, а не прозорістю: інакше напівпрозорою була б і сама шторка. */
+.sheet-backdrop {
+  animation: dim-in 220ms ease-out both;
+}
+
+.sheet-backdrop.closing {
+  animation: dim-out 220ms ease-in both;
+}
+
+.sheet {
+  animation: sheet-up 300ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transition: transform 200ms ease-out;
+  will-change: transform;
+}
+
+.sheet.dragging {
+  transition: none;
+}
+
+.sheet-backdrop.closing .sheet {
+  animation: sheet-down 220ms ease-in both;
+}
+
+/* Ручку можна тягнути вниз — більша зона дотику. */
+.sheet-handle {
+  position: relative;
+}
+
+.sheet-handle::after {
+  content: "";
+  position: absolute;
+  inset: -12px -40px;
+}
+
+@keyframes dim-in {
+  from {
+    background-color: rgb(23 33 28 / 0%);
+  }
+}
+
+@keyframes dim-out {
+  to {
+    background-color: rgb(23 33 28 / 0%);
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes sheet-down {
+  to {
+    transform: translateY(100%);
+  }
+}
+
+/* Новий екран з'являється, а не «вистрибує». Лише прозорість: transform на .screen
+   зробив би його рамкою для position: fixed (кнопка головної стрибала б). */
+.screen {
+  animation: screen-in 240ms ease-out both;
+}
+
+/* Картки й рядки — легкий підйом, кожен трохи пізніше. */
+.screen > .card,
+.screen > .row,
+.screen > .hero,
+.screen > .tip {
+  animation: rise-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.screen > :nth-child(2) {
+  animation-delay: 30ms;
+}
+
+.screen > :nth-child(3) {
+  animation-delay: 60ms;
+}
+
+.screen > :nth-child(4) {
+  animation-delay: 90ms;
+}
+
+.screen > :nth-child(n + 5) {
+  animation-delay: 120ms;
+}
+
+@keyframes screen-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* Перемикання режиму: кольори бренду — типізовані змінні, тож перетікають плавно,
+   включно з градієнтами банера й кнопок (без @property просто змінюються одразу). */
+@property --brand {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #1e4d3b;
+}
+
+@property --brand-700 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #163a2c;
+}
+
+@property --brand-500 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #2e6b53;
+}
+
+@property --brand-100 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #dcebe2;
+}
+
+@property --brand-50 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #eef5f0;
+}
+
+:root {
+  transition:
+    --brand 450ms ease,
+    --brand-700 450ms ease,
+    --brand-500 450ms ease,
+    --brand-100 450ms ease,
+    --brand-50 450ms ease;
+}
+
+/* ---- Свій акцент для кожного режиму: власник — зелений, орендар — синій ---- */
+:root[data-mode="tenant"] {
+  --brand: #1f4f86;
+  --brand-700: #173c66;
+  --brand-500: #2f68a8;
+  --brand-100: #d9e6f5;
+  --brand-50: #edf3fb;
+}
+
+/* Кнопка меню — більша ціль для пальця. */
+.menu-button {
+  width: 46px;
+  height: 46px;
+  margin-right: -8px;
+}

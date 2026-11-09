@@ -120,6 +120,10 @@ export function App() {
   })();
 
   const mode: Mode = user?.mode ?? "landlord";
+  // Свій акцентний колір для кожного режиму (styles.css, :root[data-mode]).
+  useEffect(() => {
+    document.documentElement.dataset.mode = mode;
+  }, [mode]);
   const switchMode = useCallback(() => {
     const next: Mode = mode === "tenant" ? "landlord" : "tenant";
     api

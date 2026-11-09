@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 import { ApiFailure } from "./api/client";
@@ -34,9 +34,11 @@ type MenuItem = { key: string; icon: IconName; label: string; count?: number | n
 /** Меню знизу (ADR 0015): режим, розділи, корисні посилання. Нижньої панелі немає. */
 function MenuSheet({ nav, onClose }: { nav: Nav; onClose: () => void }) {
   const tenant = nav.mode === "tenant";
+  // Спершу шторка плавно ховається, потім перехід — новий екран не обриває анімацію.
+  const closeRef = useRef<() => void>(onClose);
   const pick = (fn: () => void) => () => {
-    onClose();
-    fn();
+    closeRef.current();
+    window.setTimeout(fn, SHEET_OUT_MS);
   };
   const main: MenuItem[] = [
     { key: "home", icon: "home", label: t("nav_home"), onClick: pick(() => nav.go("home")), active: nav.active === "home" },
@@ -73,12 +75,14 @@ function MenuSheet({ nav, onClose }: { nav: Nav; onClose: () => void }) {
     </button>
   );
   return (
-    <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet menu-sheet" role="dialog" aria-modal="true" aria-label={t("menu_title")} onClick={(e) => e.stopPropagation()}>
-        <div className="sheet-handle" />
+    <Sheet label={t("menu_title")} onClose={onClose} className="menu-sheet">
+      {(close) => {
+        closeRef.current = close;
+        return (
+          <>
         <div className="sheet-head">
           <h2>{nav.userName}</h2>
-          <button className="icon-button" aria-label={t("ph_close")} onClick={onClose}>
+          <button className="icon-button" aria-label={t("ph_close")} onClick={close}>
             <Icon name="close" size={20} />
           </button>
         </div>
@@ -97,10 +101,82 @@ function MenuSheet({ nav, onClose }: { nav: Nav; onClose: () => void }) {
         </nav>
         <div className="menu-list secondary">{more.map(row)}</div>
         <p className="hint small center-text">{t("menu_beta")}</p>
-      </div>
-    </div>
+          </>
+        );
+      }}
+    </Sheet>
   );
 }
+
+// ------------------------------------------------------------- шторка
+
+const SHEET_OUT_MS = 220;
+const SWIPE_CLOSE_PX = 90;
+
+/**
+ * Нижня шторка: виїжджає й ховається плавно, закривається тапом по тлу,
+ * хрестиком (`close` у children) або свайпом униз за верхню частину.
+ */
+export function Sheet({
+  label,
+  onClose,
+  className,
+  children,
+}: {
+  label: string;
+  onClose: () => void;
+  className?: string;
+  children: (close: () => void) => ReactNode;
+}) {
+  const [closing, setClosing] = useState(false);
+  const [drag, setDrag] = useState(0);
+  const start = useRef<number | null>(null);
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+
+  const close = useCallback(() => {
+    setClosing(true);
+    timer.current = window.setTimeout(onClose, SHEET_OUT_MS);
+  }, [onClose]);
+
+  // Свайп униз — лише з верхньої частини (ручка й заголовок), щоб не заважати прокрутці вмісту.
+  function onTouchStart(e: React.TouchEvent) {
+    const target = e.target as HTMLElement;
+    if (!target.closest(".sheet-handle, .sheet-head") || target.closest("button")) return;
+    start.current = e.touches[0]?.clientY ?? null;
+  }
+  function onTouchMove(e: React.TouchEvent) {
+    if (start.current === null) return;
+    setDrag(Math.max(0, (e.touches[0]?.clientY ?? start.current) - start.current));
+  }
+  function onTouchEnd() {
+    if (start.current === null) return;
+    start.current = null;
+    if (drag > SWIPE_CLOSE_PX) close();
+    else setDrag(0);
+  }
+
+  return createPortal(
+    <div className={`sheet-backdrop${closing ? " closing" : ""}`} onClick={close}>
+      <div
+        className={`sheet${className ? ` ${className}` : ""}${drag ? " dragging" : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={label}
+        style={drag ? { transform: `translateY(${drag}px)` } : undefined}
+        onClick={(e) => e.stopPropagation()}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        <div className="sheet-handle" />
+        {children(close)}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 
 // ------------------------------------------------------------- оболонка
 
@@ -126,14 +202,13 @@ export function Header({ onBack, title }: { onBack?: () => void; title?: string 
       {title ? <span className="appbar-title">{title}</span> : <span className="brand">Домовик</span>}
       {nav ? (
         <button className="icon-button menu-button" onClick={() => setMenu(true)} aria-label={t("menu_title")} aria-haspopup="dialog">
-          <Icon name="menu" />
+          <Icon name="menu" size={28} />
           {!!nav.modCount && nav.isStaff && <span className="dot">{nav.modCount}</span>}
         </button>
       ) : (
         <span className="badge">{t("beta")}</span>
       )}
-      {/* У body: backdrop-filter шапки інакше обмежує position: fixed шторки. */}
-      {nav && menu && createPortal(<MenuSheet nav={nav} onClose={() => setMenu(false)} />, document.body)}
+      {nav && menu && <MenuSheet nav={nav} onClose={() => setMenu(false)} />}
     </header>
   );
 }

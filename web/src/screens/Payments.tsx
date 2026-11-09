@@ -7,7 +7,7 @@ import { api, ApiFailure, type Charge, type PayInfo, type PaymentsOverview, type
 import { t, type TextKey } from "../i18n";
 import { Icon } from "../icons";
 import { confirm, openLink, type WebApp } from "../telegram";
-import { Chip, errorText, formatDate, formatDateTime } from "../ui";
+import { Chip, errorText, formatDate, formatDateTime, Sheet } from "../ui";
 import { PdfViewer } from "./PdfViewer";
 
 const k = (key: string) => t(key as TextKey);
@@ -129,12 +129,12 @@ function PaySheet({
 
   const cashOnly = info?.method === "cash";
   return (
-    <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet" role="dialog" aria-modal="true" aria-label={t("pay_title")} onClick={(e) => e.stopPropagation()}>
-        <div className="sheet-handle" />
+    <Sheet label={t("pay_title")} onClose={onClose}>
+      {(close) => (
+        <>
         <div className="sheet-head">
           <h2>{t("pay_title_for", { period: periodLabel(charge) })}</h2>
-          <button className="icon-button" aria-label={t("ab_close")} onClick={onClose}>
+          <button className="icon-button" aria-label={t("ab_close")} onClick={close}>
             <Icon name="close" size={20} />
           </button>
         </div>
@@ -180,8 +180,9 @@ function PaySheet({
           </section>
         )}
         {error && <p className="error">{error}</p>}
-      </div>
-    </div>
+        </>
+      )}
+    </Sheet>
   );
 }
 
@@ -207,12 +208,12 @@ function ReceiptSheet({ payment, onClose }: { payment: PaymentItem; onClose: () 
     };
   }, [payment.id]);
   return (
-    <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet" role="dialog" aria-modal="true" aria-label={t("pay_receipt")} onClick={(e) => e.stopPropagation()}>
-        <div className="sheet-handle" />
+    <Sheet label={t("pay_receipt")} onClose={onClose}>
+      {(close) => (
+        <>
         <div className="sheet-head">
           <h2>{t("pay_receipt")}</h2>
-          <button className="icon-button" aria-label={t("ab_close")} onClick={onClose}>
+          <button className="icon-button" aria-label={t("ab_close")} onClick={close}>
             <Icon name="close" size={20} />
           </button>
         </div>
@@ -233,8 +234,9 @@ function ReceiptSheet({ payment, onClose }: { payment: PaymentItem; onClose: () 
           {t("ab_save_to_chat")}
         </button>
         {note && <p className="hint small">{note}</p>}
-      </div>
-    </div>
+        </>
+      )}
+    </Sheet>
   );
 }
 

@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { api, type ContractState, type Lease } from "../api/client";
 import { t, type TextKey } from "../i18n";
 import { Icon } from "../icons";
-import { errorText, formatDate } from "../ui";
+import { errorText, formatDate, Sheet } from "../ui";
 import { PdfViewer } from "./PdfViewer";
 
 const k = (key: string) => t(key as TextKey);
@@ -147,9 +147,9 @@ export function AgreementSheet({
   }
 
   return (
-    <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet" role="dialog" aria-modal="true" aria-label={t("ab_sheet_title")} onClick={(e) => e.stopPropagation()}>
-        <div className="sheet-handle" />
+    <Sheet label={t("ab_sheet_title")} onClose={onClose}>
+      {(close) => (
+        <>
         <div className="sheet-head">
           <h2>{t("ab_sheet_title")}</h2>
           {pdf && (
@@ -157,7 +157,7 @@ export function AgreementSheet({
               {pdf.draft ? t("ab_draft") : t("ab_for_signing", { n: String(c?.version ?? 1) })}
             </span>
           )}
-          <button className="icon-button" aria-label={t("ab_close")} onClick={onClose}>
+          <button className="icon-button" aria-label={t("ab_close")} onClick={close}>
             <Icon name="close" size={20} />
           </button>
         </div>
@@ -200,7 +200,8 @@ export function AgreementSheet({
           </button>
         )}
         {note && <p className="hint small">{note}</p>}
-      </div>
-    </div>
+        </>
+      )}
+    </Sheet>
   );
 }
