@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { api, type TenantProfile, type User } from "../api/client";
 import { t } from "../i18n";
 import { confirm, type WebApp } from "../telegram";
-import { Icon, type IconName } from "../icons";
+import { Icon } from "../icons";
 import { Chip, errorCode, errorText, Screen } from "../ui";
 import { isValidName } from "./Onboarding";
 
@@ -112,10 +112,10 @@ export function Profile({
   }
 
   const household = profile.household_size ?? null;
-  const tabs: { key: ProfileTab; label: string; icon: IconName; dirty: boolean }[] = [
-    { key: "main", label: t("prof_group_main"), icon: "user", dirty: nameChanged },
-    ...(tenant ? [{ key: "tenant" as const, label: t("prof_tab_tenant"), icon: "doc" as const, dirty: !!profileChanged }] : []),
-    { key: "account", label: t("prof_group_account"), icon: "shield", dirty: false },
+  const tabs: { key: ProfileTab; label: string; dirty: boolean }[] = [
+    { key: "main", label: t("prof_group_main"), dirty: nameChanged },
+    ...(tenant ? [{ key: "tenant" as const, label: t("prof_tab_tenant"), dirty: !!profileChanged }] : []),
+    { key: "account", label: t("prof_group_account"), dirty: false },
   ];
   const initial = (name.trim() || user.display_name).charAt(0).toUpperCase();
 
@@ -150,7 +150,6 @@ export function Profile({
               className={`piano-key${tab === x.key ? " active" : ""}`}
               onClick={() => setTab(x.key)}
             >
-              <Icon name={x.icon} size={22} />
               <span>{x.label}</span>
               {x.dirty && <span className="tab-dot" aria-label={t("pf_unsaved")} />}
             </button>

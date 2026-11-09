@@ -2915,7 +2915,7 @@ button.info-row {
 /* ---- Профіль: розділи «клавішами» збоку, прикріпленими до картки ---- */
 .piano {
   display: grid;
-  grid-template-columns: 70px 1fr;
+  grid-template-columns: 80px 1fr;
   align-items: start;
   margin: 18px 0 0;
 }
@@ -2924,7 +2924,8 @@ button.info-row {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding-top: 12px;
+  /* Клавіші — лише на прямій частині краю картки (нижче й вище скруглення). */
+  padding-top: calc(var(--radius-lg) + 2px);
 }
 
 /* Неактивні клавіші заходять правим боком під картку, натиснута висувається й зливається з нею. */
@@ -2935,15 +2936,15 @@ button.info-row {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  height: 78px;
-  padding: 0 4px;
+  height: 44px;
+  /* Справа клавіша на 8px заходить під картку — текст центруємо у видимій частині. */
+  padding: 0 12px 0 4px;
   border: 1px solid var(--line);
   border-right: 0;
-  border-radius: 14px 0 0 14px;
+  border-radius: 12px 0 0 12px;
   background: var(--surface-2);
   color: var(--text-3);
-  font: 700 11px Manrope, sans-serif;
+  font: 700 12px Manrope, sans-serif;
   cursor: pointer;
   transform: translateX(8px);
   box-shadow: inset 3px 0 6px rgb(23 33 28 / 5%);
@@ -2967,8 +2968,8 @@ button.info-row {
 }
 
 .piano-key .tab-dot {
-  top: 10px;
-  left: 10px;
+  top: 6px;
+  left: 8px;
   right: auto;
 }
 
@@ -2978,8 +2979,9 @@ button.info-row {
   min-width: 0;
 }
 
+/* Картка завжди вища за стовпчик клавіш разом зі скругленням знизу. */
 .piano-panel .card.group {
-  min-height: 260px;
+  min-height: calc(2 * var(--radius-lg) + 3 * 44px + 2 * 6px + 8px);
   margin: 0;
 }
 
