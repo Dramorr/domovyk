@@ -3134,3 +3134,242 @@ button.info-row {
 .menu-head .mode-chip {
   flex: none;
 }
+
+/* ---- ONB-4 «Що тебе привело?»: картки ділять вільний простір, у кожній — жива сценка ---- */
+.mode-choice {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - 100px - env(safe-area-inset-bottom));
+}
+
+.mode-choice h1 {
+  margin-bottom: 4px;
+}
+
+.mode-scene-card {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 200px;
+  margin-top: 14px;
+  padding: 0;
+  overflow: hidden;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  text-align: start;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.2s;
+}
+
+.mode-scene-card:active {
+  transform: scale(0.985);
+}
+
+.mode-scene-card.tenant:hover,
+.mode-scene-card.tenant.picked {
+  border-color: #1e4d3b;
+}
+
+.mode-scene-card.landlord:hover,
+.mode-scene-card.landlord.picked {
+  border-color: #e2b45a;
+}
+
+.mode-scene {
+  display: block;
+  flex: 1;
+  width: 100%;
+  min-height: 120px;
+}
+
+.mode-scene-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 16px 14px;
+}
+
+.mode-scene-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 17px;
+}
+
+.mode-scene-card.tenant .mode-scene-title .icon {
+  color: #1e4d3b;
+}
+
+.mode-scene-card.landlord .mode-scene-title .icon {
+  color: #8b6522;
+}
+
+/* Анімації сценок: трансформації рахуємо від самої фігури. */
+.mode-scene g,
+.mode-scene circle,
+.mode-scene ellipse {
+  transform-box: fill-box;
+}
+
+.scene-walk .forest {
+  animation: forest 9s linear infinite;
+}
+
+.scene-walk .bob {
+  animation: walk-bob 0.7s ease-in-out infinite;
+}
+
+.scene-walk .foot-l {
+  animation: step 0.7s ease-in-out infinite;
+}
+
+.scene-walk .foot-r {
+  animation: step 0.7s ease-in-out infinite reverse;
+}
+
+.scene-walk .bindle {
+  transform-origin: 30% 0%;
+  animation: swing 1.4s ease-in-out infinite;
+}
+
+.scene-home .smoke .puff {
+  animation: smoke 3.6s ease-out infinite;
+}
+
+.scene-home .smoke .p2 {
+  animation-delay: 1.2s;
+}
+
+.scene-home .smoke .p3 {
+  animation-delay: 2.4s;
+}
+
+.scene-home .win {
+  fill: #f5e7c6;
+  animation: window-glow 4s ease-in-out infinite;
+}
+
+.scene-home .w2 {
+  animation-delay: 2s;
+}
+
+.scene-home .wave-arm {
+  transform-origin: 0% 100%;
+  animation: wave 1.6s ease-in-out infinite;
+}
+
+.scene-home .wave-line {
+  animation: wave-line 1.6s ease-in-out infinite;
+}
+
+.scene-home .bob {
+  animation: idle-bob 2.4s ease-in-out infinite;
+}
+
+/* Вибір: Домовик підстрибує. */
+.mode-scene-card.picked .bob {
+  animation: hop 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+.mode-scene-card.picked .win {
+  fill: #ffd46b;
+  animation: none;
+}
+
+@keyframes forest {
+  to {
+    transform: translateX(-170px);
+  }
+}
+
+@keyframes walk-bob {
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes step {
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes swing {
+  0%,
+  100% {
+    transform: rotate(-8deg);
+  }
+  50% {
+    transform: rotate(8deg);
+  }
+}
+
+@keyframes smoke {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.6);
+  }
+  20% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(14px, -30px) scale(1.8);
+  }
+}
+
+@keyframes window-glow {
+  0%,
+  35% {
+    fill: #f5e7c6;
+  }
+  50%,
+  85% {
+    fill: #ffd46b;
+  }
+  100% {
+    fill: #f5e7c6;
+  }
+}
+
+@keyframes wave {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-14deg);
+  }
+}
+
+@keyframes wave-line {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes idle-bob {
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes hop {
+  0% {
+    transform: translateY(0);
+  }
+  45% {
+    transform: translateY(-26px) rotate(-4deg);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}

@@ -115,3 +115,20 @@ async def test_delete_account_clears_personal_and_avatar() -> None:
     assert user.personal == PersonalIn()
     assert user.avatar_key is None
     assert not db.storage.files
+
+
+async def test_register_with_birth_date_checks_age() -> None:
+    s, _ = make_fake_services()
+    with pytest.raises(TooYoung):
+        await s.users.register(
+            61,
+            "Тарас",
+            terms_version=TERMS_V,
+            privacy_version=PRIVACY_V,
+            birth_date=date(2012, 1, 1),
+        )
+    assert await s.users.find_by_telegram(61) is None  # акаунт не створено
+    await s.users.register(
+        61, "Тарас", terms_version=TERMS_V, privacy_version=PRIVACY_V, birth_date=date(1999, 2, 3)
+    )
+    assert (await s.users.personal(61)).birth_date == date(1999, 2, 3)

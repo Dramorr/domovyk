@@ -7,7 +7,7 @@ import logging
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
-from datetime import timedelta
+from datetime import date, timedelta
 from decimal import Decimal
 from typing import Annotated, Literal
 
@@ -136,6 +136,7 @@ class RegisterIn(BaseModel):
     display_name: str
     terms_version: str
     privacy_version: str
+    birth_date: date | None = None  # Mini App просить завжди; бот — ні (ADR 0016)
 
 
 class NameIn(BaseModel):
@@ -293,6 +294,7 @@ def create_app(
             body.display_name,
             terms_version=body.terms_version,
             privacy_version=body.privacy_version,
+            birth_date=body.birth_date,
         )
 
     @app.patch("/api/v1/me")

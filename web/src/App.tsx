@@ -119,7 +119,8 @@ export function App() {
     return null;
   })();
 
-  const mode: Mode = user?.mode ?? "landlord";
+  // До вибору режиму — тема орендаря (основний бренд); жовта — лише в режимі власника.
+  const mode: Mode = user?.mode ?? "tenant";
   // Свій акцентний колір для кожного режиму (styles.css, :root[data-mode]).
   useEffect(() => {
     document.documentElement.dataset.mode = mode;

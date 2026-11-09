@@ -7,6 +7,7 @@ import { t, type TextKey } from "../i18n";
 import { openLink, requestContact, type WebApp } from "../telegram";
 import { Icon, type IconName } from "../icons";
 import { BRAND, errorText, Mascot, Screen } from "../ui";
+import { LandlordScene, TenantScene } from "./ModeScenes";
 
 const NAME_RE = /^\p{L}[\p{L} '’ʼ-]*$/u;
 
@@ -27,6 +28,7 @@ export function ConsentAndName({
   const [step, setStep] = useState<"intro" | "name">("intro");
   const [introAt, setIntroAt] = useState(0);
   const [name, setName] = useState(me.telegram.first_name);
+  const [birth, setBirth] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -50,6 +52,10 @@ export function ConsentAndName({
       setError(t("onb_name_invalid"));
       return;
     }
+    if (!birth) {
+      setError(t("onb_birth_required"));
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -57,6 +63,7 @@ export function ConsentAndName({
         display_name: name,
         terms_version: me.consent.terms_version,
         privacy_version: me.consent.privacy_version,
+        birth_date: birth,
       });
       onRegistered(user);
     } catch (e) {
@@ -64,8 +71,10 @@ export function ConsentAndName({
         setIntroAt(SLIDES.length);
         setStep("intro");
         setError(t("onb_consent_outdated"));
+      } else if (e instanceof ApiFailure && e.code === "too_young") {
+        setError(t("prof_too_young"));
       } else if (e instanceof ApiFailure && e.code === "invalid_input") {
-        setError(t("onb_name_invalid"));
+        setError(e.field === "birth_date" ? t("prof_bad_birth_date") : t("onb_name_invalid"));
       } else if (e instanceof ApiFailure && e.code === "already_registered") {
         window.location.reload();
       } else {
@@ -85,14 +94,29 @@ export function ConsentAndName({
     >
       <h1 className="center-text">{t("onb_name_title")}</h1>
       <p className="hint center-text">{t("onb_name_text")}</p>
-      <input
-        className="input"
-        value={name}
-        maxLength={40}
-        placeholder={t("onb_name_placeholder")}
-        onChange={(e) => setName(e.target.value)}
-        autoFocus
-      />
+      <label className="field">
+        {t("onb_name_label")}
+        <input
+          className="input"
+          value={name}
+          maxLength={40}
+          placeholder={t("onb_name_placeholder")}
+          onChange={(e) => setName(e.target.value)}
+          autoFocus
+        />
+      </label>
+      <label className="field">
+        {t("prof_birth_date")}
+        <input
+          className="input"
+          type="date"
+          value={birth}
+          min="1900-01-01"
+          max={new Date().toISOString().slice(0, 10)}
+          onChange={(e) => setBirth(e.target.value)}
+        />
+      </label>
+      <p className="hint small">{t("onb_birth_hint")}</p>
       {error && <p className="error">{error}</p>}
       <button className="button" onClick={submit} disabled={busy}>
         {busy ? t("saving") : t("onb_name_next")}
@@ -311,41 +335,50 @@ export function PhoneStep({ webApp, onDone }: { webApp: WebApp; onDone: (user: U
 // ONB-4 · «Що тебе привело?» (ADR 0006): режим, а не тип акаунта — змінюється будь-коли.
 export function ModeChoice({ onDone }: { onDone: (user: User) => void }) {
   const [busy, setBusy] = useState(false);
+  const [picked, setPicked] = useState<"tenant" | "landlord" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function choose(mode: "tenant" | "landlord") {
+    if (busy) return;
     setBusy(true);
+    setPicked(mode); // Домовик підстрибує — і лише тоді переходимо
     setError(null);
     try {
-      onDone(await api.setMode(mode));
+      const [user] = await Promise.all([api.setMode(mode), new Promise((r) => window.setTimeout(r, 650))]);
+      onDone(user as User);
     } catch (e) {
       setError(errorText(e));
       setBusy(false);
+      setPicked(null);
     }
   }
 
+  const card = (mode: "tenant" | "landlord") => (
+    <button
+      className={`mode-scene-card ${mode}${picked === mode ? " picked" : ""}`}
+      disabled={busy}
+      onClick={() => choose(mode)}
+    >
+      {mode === "tenant" ? <TenantScene /> : <LandlordScene />}
+      <span className="mode-scene-text">
+        <span className="mode-scene-title">
+          <Icon name={mode === "tenant" ? "search" : "building"} size={20} />
+          {t(mode === "tenant" ? "mode_tenant_title" : "mode_landlord_title")}
+        </span>
+        <span className="quick-sub">{t(mode === "tenant" ? "mode_tenant_sub" : "mode_landlord_sub")}</span>
+      </span>
+    </button>
+  );
+
   return (
     <Screen>
-      <Mascot size="md" />
-      <h1 className="center-text">{t("mode_question")}</h1>
-      <p className="hint center-text">{t("mode_question_hint")}</p>
-      <div className="mode-cards">
-        <button className="choice-big" disabled={busy} onClick={() => choose("tenant")}>
-          <span className="row-icon">
-            <Icon name="search" />
-          </span>
-          {t("mode_tenant_title")}
-          <span className="quick-sub">{t("mode_tenant_sub")}</span>
-        </button>
-        <button className="choice-big" disabled={busy} onClick={() => choose("landlord")}>
-          <span className="row-icon">
-            <Icon name="building" />
-          </span>
-          {t("mode_landlord_title")}
-          <span className="quick-sub">{t("mode_landlord_sub")}</span>
-        </button>
+      <div className="mode-choice">
+        <h1 className="center-text">{t("mode_question")}</h1>
+        <p className="hint center-text">{t("mode_question_hint")}</p>
+        {card("tenant")}
+        {card("landlord")}
+        {error && <p className="error">{error}</p>}
       </div>
-      {error && <p className="error">{error}</p>}
     </Screen>
   );
 }

@@ -8,6 +8,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from datetime import date
 
 from domovyk.adapters.images.base import ImageProcessor, ImageRejected
 from domovyk.adapters.storage.base import FileStorage
@@ -176,13 +177,19 @@ class UsersService:
         *,
         terms_version: str,
         privacy_version: str,
+        birth_date: date | None = None,
         source: EventSource = EventSource.MINI_APP,
     ) -> UserOut:
-        """ONB-1/ONB-2: згода з поточними версіями документів + ім'я (FR-USR-1, FR-USR-2)."""
+        """ONB-1/ONB-2: згода з поточними версіями документів + ім'я (FR-USR-1, FR-USR-2).
+
+        Mini App просить і дату народження (ADR 0016): молодших 18 не реєструємо.
+        """
         c = self._config
         if terms_version != c.terms_version or privacy_version != c.privacy_version:
             raise ConsentOutdated()
         name = normalize_display_name(display_name)
+        if birth_date is not None:
+            check_birth_date(birth_date, self._clock.now().date(), c.min_age)
 
         async with self._tx.begin() as tx:
             repo = self._repo(tx)
@@ -196,6 +203,8 @@ class UsersService:
 
             is_admin = telegram_uid in c.admin_telegram_ids
             user_id = await repo.create(name, UserRole.ADMIN if is_admin else UserRole.USER)
+            if birth_date is not None:
+                await repo.set_personal(user_id, PersonalIn(birth_date=birth_date))
             now = self._clock.now()
             await repo.add_identity(
                 user_id,

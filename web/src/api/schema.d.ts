@@ -2520,6 +2520,8 @@ export interface components {
         };
         /** RegisterIn */
         RegisterIn: {
+            /** Birth Date */
+            birth_date?: string | null;
             /** Display Name */
             display_name: string;
             /** Privacy Version */

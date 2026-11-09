@@ -4064,6 +4064,18 @@
       },
       "RegisterIn": {
         "properties": {
+          "birth_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Date"
+          },
           "display_name": {
             "title": "Display Name",
             "type": "string"
