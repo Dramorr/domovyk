@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type ReactNode, type TouchEvent } from "re
 
 import { t } from "../i18n";
 import { Icon, type IconName } from "../icons";
-import { BRAND, Screen } from "../ui";
+import { Screen, useArt } from "../ui";
 
 export type Step = {
   key: string;
@@ -54,6 +54,7 @@ export function Stepper({
   /** Усі кроки вже заповнені (зміна наявного): крапками й свайпом можна йти куди завгодно. */
   open?: boolean;
 }) {
+  const art = useArt();
   const touchX = useRef<number | null>(null);
   const [reached, setReached] = useState(open ? steps.length - 1 : at);
   useEffect(() => setReached((r) => Math.max(r, at)), [at]);
@@ -120,7 +121,7 @@ export function Stepper({
           </div>
           {error && <p className="error">{error}</p>}
           <div className="stepper-action">
-            <img key={at} className={`peek ${PEEK[at % PEEK.length]}`} src={`${BRAND}mascot.svg`} alt="" />
+            <img key={at} className={`peek ${PEEK[at % PEEK.length]}`} src={art("mascot")} alt="" />
             {action && (
               <button
                 className={action.secondary ? "button outline" : "button"}

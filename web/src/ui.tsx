@@ -7,6 +7,15 @@ import { Icon, type IconName } from "./icons";
 
 export const BRAND = `${import.meta.env.BASE_URL}../brand/`;
 
+type Art = "mascot" | "mascot-lantern" | "logo-mark" | "app-icon";
+
+/** Маскот і логотип у кольорах режиму: у власника Домовик жовтий, як і весь інтерфейс. */
+export function useArt(): (name: Art) => string {
+  const nav = useContext(NavContext);
+  const landlord = nav?.mode === "landlord";
+  return (name) => `${BRAND}${name}${landlord ? "-landlord" : ""}.svg`;
+}
+
 // ------------------------------------------------------------- навігація
 
 export type Tab = "home" | "search" | "moderation" | "profile";
@@ -183,7 +192,8 @@ export function Sheet({
 export function Header({ onBack, title }: { onBack?: () => void; title?: string }) {
   const nav = useContext(NavContext);
   const [menu, setMenu] = useState(false);
-  const logo = <img className="appbar-logo" src={`${BRAND}app-icon.svg`} alt="" width={34} height={34} />;
+  const art = useArt();
+  const logo = <img className="appbar-logo" src={art("app-icon")} alt="" width={34} height={34} />;
   return (
     <header className="appbar">
       {onBack && (
@@ -237,14 +247,16 @@ export function Screen({
 // ------------------------------------------------------------- маскот
 
 export function Mascot({ lantern = false, size = "lg" }: { lantern?: boolean; size?: "lg" | "md" }) {
-  return <img className={`mascot ${size}`} src={`${BRAND}${lantern ? "mascot-lantern" : "mascot"}.svg`} alt="" />;
+  const art = useArt();
+  return <img className={`mascot ${size}`} src={art(lantern ? "mascot-lantern" : "mascot")} alt="" />;
 }
 
 /** Домовик підказує: голова маскота + бульбашка. Голос — тепло й коротко (CLAUDE.md). */
 export function MascotTip({ children, tone = "default" }: { children: ReactNode; tone?: "default" | "calm" }) {
+  const art = useArt();
   return (
     <div className={`tip ${tone}`}>
-      <img className="tip-avatar" src={`${BRAND}logo-mark.svg`} alt="" width={40} height={40} />
+      <img className="tip-avatar" src={art("logo-mark")} alt="" width={40} height={40} />
       <div className="tip-bubble">{children}</div>
     </div>
   );

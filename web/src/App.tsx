@@ -11,7 +11,7 @@ import { Profile } from "./screens/Profile";
 import { PropertyProfile } from "./screens/PropertyProfile";
 import { NewProperty, OwnershipScreen, PropertyCard, PropertyList } from "./screens/Properties";
 import { getWebApp, openLink, openTelegramLink, startParam } from "./telegram";
-import { errorText, Mascot, MascotTip, type Mode, NavContext, Screen, type Tab } from "./ui";
+import { errorText, Mascot, MascotTip, type Mode, NavContext, Screen, type Tab, useArt } from "./ui";
 
 type State =
   | { kind: "loading" }
@@ -372,12 +372,13 @@ export function App() {
 
 function Hero({ user }: { user: User }) {
   const firstName = user.display_name.split(" ")[0];
+  const art = useArt();
   return (
     <section className="hero">
       {user.role !== "user" && <span className="role">{t(`role_${user.role}`)}</span>}
       <h1>{t("home_hello", { name: firstName })}</h1>
       <p>{t("home_tagline")}</p>
-      <img className="hero-mascot" src={`${import.meta.env.BASE_URL}../brand/mascot.svg`} alt="" />
+      <img className="hero-mascot" src={art("mascot")} alt="" />
     </section>
   );
 }

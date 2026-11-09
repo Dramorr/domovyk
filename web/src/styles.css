@@ -8,6 +8,9 @@
   --brand-500: #2e6b53;
   --brand-100: #dcebe2;
   --brand-50: #eef5f0;
+  /* Текст/іконки кольору бренду на світлому тлі й текст на заливці бренду. */
+  --brand-ink: #1e4d3b;
+  --on-brand: #ffffff;
   --amber: #f2a93b;
   --amber-100: #fdecc9;
   --amber-700: #8a5a0c;
@@ -90,7 +93,7 @@ button {
 .brand {
   font: 700 19px Unbounded, sans-serif;
   letter-spacing: -0.01em;
-  color: var(--brand);
+  color: var(--brand-ink);
 }
 
 .appbar-title {
@@ -183,7 +186,7 @@ button {
 }
 
 .tab.active {
-  color: var(--brand);
+  color: var(--brand-ink);
 }
 
 .tab.active .tab-icon {
@@ -204,7 +207,7 @@ button {
   padding: 0 5px;
   border-radius: 999px;
   background: var(--amber);
-  color: var(--brand-700);
+  color: var(--brand-ink);
   font-size: 11px;
   font-weight: 800;
   line-height: 18px;
@@ -305,7 +308,7 @@ p {
   padding: 12px 14px;
   border-radius: 4px 18px 18px 18px;
   background: var(--brand-50);
-  color: var(--brand-700);
+  color: var(--brand-ink);
   font-size: 15px;
 }
 
@@ -345,17 +348,17 @@ p {
   padding: 20px;
   margin: 6px 0 14px;
   background: linear-gradient(140deg, var(--brand) 0%, var(--brand-500) 100%);
-  color: #fff;
+  color: var(--on-brand);
 }
 
 .hero h1 {
-  color: #fff;
+  color: var(--on-brand);
   margin-top: 0;
   max-width: 70%;
 }
 
 .hero p {
-  color: rgb(255 255 255 / 86%);
+  color: color-mix(in srgb, var(--on-brand) 86%, transparent);
   max-width: 68%;
   text-align: left;
 }
@@ -372,7 +375,7 @@ p {
   display: inline-block;
   font-size: 12px;
   font-weight: 700;
-  color: var(--brand-700);
+  color: var(--brand-ink);
   background: var(--amber);
   padding: 3px 10px;
   border-radius: 999px;
@@ -462,7 +465,7 @@ p {
   height: 42px;
   border-radius: 14px;
   background: var(--brand-50);
-  color: var(--brand);
+  color: var(--brand-ink);
 }
 
 .row-body {
@@ -511,7 +514,7 @@ p {
 
 .chip-status.ok {
   background: var(--brand-100);
-  color: var(--brand-700);
+  color: var(--brand-ink);
 }
 
 .chip-status.warn {
@@ -599,7 +602,7 @@ p {
   border: 0;
   border-radius: var(--radius);
   background: var(--brand);
-  color: #fff;
+  color: var(--on-brand);
   font-weight: 700;
   font-size: 16px;
   text-decoration: none;
@@ -614,7 +617,7 @@ p {
 
 .button.secondary {
   background: var(--brand-50);
-  color: var(--brand);
+  color: var(--brand-ink);
 }
 
 .button.secondary:active {
@@ -623,7 +626,7 @@ p {
 
 .button.ghost {
   background: transparent;
-  color: var(--brand);
+  color: var(--brand-ink);
   border: 1.5px solid var(--line);
 }
 
@@ -634,7 +637,7 @@ p {
 /* Другорядна дія, яка все ж має бути помітною (напр. «Пропустити»). */
 .button.outline {
   background: var(--surface);
-  color: var(--brand);
+  color: var(--brand-ink);
   border: 1.5px solid var(--brand);
 }
 
@@ -673,7 +676,7 @@ p {
   padding: 0;
   border: 0;
   background: none;
-  color: var(--brand);
+  color: var(--brand-ink);
   font: inherit;
   font-weight: 700;
   cursor: pointer;
@@ -786,7 +789,7 @@ select.input {
 .chip.active {
   border-color: var(--brand);
   background: var(--brand);
-  color: #fff;
+  color: var(--on-brand);
 }
 
 .choice-big {
@@ -857,7 +860,7 @@ fieldset.multi legend {
   padding: 12px 14px;
   border-radius: var(--radius-sm);
   background: var(--brand-50);
-  color: var(--brand-700);
+  color: var(--brand-ink);
   font-weight: 700;
   text-align: left;
 }
@@ -903,7 +906,7 @@ fieldset.multi legend {
   height: 30px;
   border-radius: 50%;
   background: var(--brand-50);
-  color: var(--brand);
+  color: var(--brand-ink);
   font-weight: 800;
 }
 
@@ -956,7 +959,7 @@ fieldset.multi legend {
   padding: 0 7px;
   border-radius: 999px;
   background: var(--brand);
-  color: #fff;
+  color: var(--on-brand);
   font-size: 13px;
   font-weight: 800;
   line-height: 24px;
@@ -1010,13 +1013,13 @@ ul.plain li {
   align-self: flex-end;
   border-radius: 18px 4px 18px 18px;
   background: var(--brand);
-  color: #fff;
+  color: var(--on-brand);
 }
 
 .msg-name {
   font-size: 12px;
   font-weight: 700;
-  color: var(--brand);
+  color: var(--brand-ink);
 }
 
 .msg-body {
@@ -1069,7 +1072,7 @@ ul.plain li {
   border: 0;
   border-radius: 50%;
   background: var(--brand);
-  color: #fff;
+  color: var(--on-brand);
   cursor: pointer;
 }
 
@@ -1100,7 +1103,7 @@ ul.plain li {
 
 .mode-chip.landlord {
   background: var(--brand-100);
-  color: var(--brand-700);
+  color: var(--brand-ink);
 }
 
 .mode-cards {
@@ -1124,18 +1127,18 @@ ul.plain li {
   border: 0;
   border-radius: var(--radius-lg);
   background: var(--brand);
-  color: #fff;
+  color: var(--on-brand);
   text-align: left;
   cursor: pointer;
 }
 
 .mode-card .row-icon {
   background: rgb(255 255 255 / 16%);
-  color: #fff;
+  color: var(--on-brand);
 }
 
 .mode-card .row-sub {
-  color: rgb(255 255 255 / 80%);
+  color: color-mix(in srgb, var(--on-brand) 80%, transparent);
 }
 
 .screen h1.center-text,
@@ -1224,7 +1227,7 @@ ul.plain li {
   border: 4px solid var(--bg);
   border-radius: 50%;
   background: var(--amber);
-  color: var(--brand-700);
+  color: var(--brand-ink);
 }
 
 .intro-bottom {
@@ -1436,7 +1439,7 @@ label.file-button {
   border: var(--ab-t) solid var(--line);
   border-radius: 50%;
   background: var(--surface);
-  color: var(--brand);
+  color: var(--brand-ink);
   cursor: pointer;
   transition: border-color 250ms;
 }
@@ -1557,7 +1560,7 @@ label.file-button {
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: var(--brand);
+  color: var(--brand-ink);
   font: 700 20px Manrope, sans-serif;
   cursor: pointer;
 }
@@ -1619,7 +1622,7 @@ label.file-button {
   border: 1.5px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
-  color: var(--brand);
+  color: var(--brand-ink);
   font: 600 13px Manrope, sans-serif;
   cursor: pointer;
 }
@@ -1905,7 +1908,7 @@ label.file-button {
   justify-content: center;
   gap: 4px;
   border: 1.5px dashed var(--line);
-  color: var(--brand);
+  color: var(--brand-ink);
   font: 600 13px Manrope, sans-serif;
   text-align: center;
   cursor: pointer;
@@ -2046,12 +2049,12 @@ label.file-button {
   height: 44px;
   border-radius: 50%;
   background: var(--surface);
-  color: var(--brand);
+  color: var(--brand-ink);
 }
 
 .file-field.picked .file-field-icon {
   background: var(--brand);
-  color: #fff;
+  color: var(--on-brand);
 }
 
 .file-field-body {
@@ -2062,7 +2065,7 @@ label.file-button {
 }
 
 .file-field-title {
-  color: var(--brand);
+  color: var(--brand-ink);
   font-weight: 700;
   font-size: 16px;
   overflow-wrap: anywhere;
@@ -2105,7 +2108,7 @@ label.file-button {
 
 .segmented button.active {
   background: var(--surface);
-  color: var(--brand);
+  color: var(--brand-ink);
   box-shadow: 0 1px 3px rgb(23 33 28 / 12%);
 }
 
@@ -2155,7 +2158,7 @@ label.file-button {
   border: 0;
   border-radius: 10px;
   background: var(--brand);
-  color: #fff;
+  color: var(--on-brand);
   cursor: pointer;
 }
 
@@ -2203,7 +2206,7 @@ label.file-button {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--brand);
+  color: var(--brand-ink);
   font-weight: 700;
 }
 
@@ -2246,7 +2249,7 @@ label.file-button {
 
 .summary-doc.ok {
   background: var(--brand-50);
-  color: var(--brand);
+  color: var(--brand-ink);
 }
 
 .summary-doc .icon {
@@ -2269,7 +2272,7 @@ label.file-button {
 }
 
 .sig-accepted .icon {
-  color: var(--brand);
+  color: var(--brand-ink);
 }
 
 .sig-rejected .icon {
@@ -2286,7 +2289,7 @@ label.file-button {
 }
 
 .match.ok {
-  color: var(--brand);
+  color: var(--brand-ink);
 }
 
 .match.bad {
@@ -2311,7 +2314,7 @@ label.file-button {
   border: 1.5px dashed var(--brand-500);
   border-radius: var(--radius);
   background: var(--brand-50);
-  color: var(--brand);
+  color: var(--brand-ink);
   font: 700 15px Manrope, sans-serif;
   cursor: pointer;
 }
@@ -2363,7 +2366,7 @@ label.file-button {
 .summary-row .icon-button {
   grid-row: 1 / span 2;
   grid-column: 2;
-  color: var(--brand);
+  color: var(--brand-ink);
 }
 
 .segmented button {
@@ -2451,7 +2454,7 @@ label.file-button {
 
 .menu-sheet .mode-card > .icon {
   margin-left: auto;
-  color: #fff;
+  color: var(--on-brand);
 }
 
 .menu-list {
@@ -2485,11 +2488,11 @@ label.file-button {
 
 .menu-row.active {
   background: var(--brand-50);
-  color: var(--brand);
+  color: var(--brand-ink);
 }
 
 .menu-row.active .icon {
-  color: var(--brand);
+  color: var(--brand-ink);
 }
 
 .menu-row:active {
@@ -2640,22 +2643,39 @@ label.file-button {
   initial-value: #eef5f0;
 }
 
+@property --brand-ink {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #1e4d3b;
+}
+
+@property --on-brand {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #ffffff;
+}
+
 :root {
   transition:
     --brand 450ms ease,
     --brand-700 450ms ease,
     --brand-500 450ms ease,
     --brand-100 450ms ease,
-    --brand-50 450ms ease;
+    --brand-50 450ms ease,
+    --brand-ink 450ms ease,
+    --on-brand 450ms ease;
 }
 
-/* ---- Свій акцент для кожного режиму: власник — зелений, орендар — синій ---- */
-:root[data-mode="tenant"] {
-  --brand: #1f4f86;
-  --brand-700: #173c66;
-  --brand-500: #2f68a8;
-  --brand-100: #d9e6f5;
-  --brand-50: #edf3fb;
+/* ---- Свій акцент для кожного режиму: орендар — зелений (бренд), власник — жовтий ---- */
+:root[data-mode="landlord"] {
+  /* Власник — теплий жовтий. Заливки жовті, текст на них темний, написи — вохра. */
+  --brand: #e9aa1c;
+  --brand-700: #c88b0b;
+  --brand-500: #f4c04a;
+  --brand-100: #fbe8b8;
+  --brand-50: #fdf5e0;
+  --brand-ink: #7a5208;
+  --on-brand: #2e2206;
 }
 
 /* Кнопка меню — більша ціль для пальця. */

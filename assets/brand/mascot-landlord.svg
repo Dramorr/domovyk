@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="512" height="512" role="img" aria-label="Домовик (режим власника) — маскот гном-домовик, що махає рукою">
+  <ellipse cx="100" cy="188" rx="58" ry="6" fill="#EFE5CC"/>
+  <path d="M64 146 Q60 184 72 184 L128 184 Q140 184 136 146 Z" fill="#E9AA1C"/>
+  <ellipse cx="82" cy="186" rx="13" ry="6" fill="#3B2A20"/>
+  <ellipse cx="118" cy="186" rx="13" ry="6" fill="#3B2A20"/>
+  <line x1="134" y1="150" x2="160" y2="112" stroke="#E9AA1C" stroke-width="11" stroke-linecap="round"/>
+  <path d="M50 94 Q44 152 100 172 Q156 152 150 94 Z" fill="#FFFFFF" stroke="#E5D7B4" stroke-width="2"/>
+  <path d="M46 96 C 56 58, 80 26, 120 12 C 132 8, 140 16, 132 22 C 120 30, 116 56, 154 96 Z" fill="#E9AA1C"/>
+  <circle cx="134" cy="16" r="7" fill="#E9AA1C"/>
+  <rect x="42" y="86" width="116" height="16" rx="8" fill="#8A5A0C"/>
+  <ellipse cx="78" cy="110" rx="6" ry="4" fill="#F4B8A8"/>
+  <ellipse cx="122" cy="110" rx="6" ry="4" fill="#F4B8A8"/>
+  <circle cx="100" cy="112" r="12" fill="#E8907A"/>
+  <circle cx="163" cy="106" r="9" fill="#F2C9A0"/>
+  <path d="M174 92 Q180 98 178 106" fill="none" stroke="#F2A93B" stroke-width="3" stroke-linecap="round"/>
+  <path d="M168 86 Q176 88 180 94" fill="none" stroke="#F2A93B" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+</svg>
