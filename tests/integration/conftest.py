@@ -40,6 +40,8 @@ from domovyk.modules.properties.repository import SqlPropertiesRepository
 from domovyk.modules.properties.service import PropertiesConfig, PropertiesService
 from domovyk.modules.users.repository import SqlUsersRepository
 from domovyk.modules.users.service import UsersService
+from domovyk.modules.utilities.repository import SqlUtilitiesRepository
+from domovyk.modules.utilities.service import UtilitiesConfig, UtilitiesService
 from tests.fakes import fake_config
 from tests.fakes_contracts import FakePdfRenderer
 from tests.fakes_properties import FakeNotifier, MemoryStorage
@@ -163,6 +165,18 @@ def services(engine: AsyncEngine, it_clock: FixedClock) -> Services:
         notifier=FakeNotifier(),
         receipts=PdfReceiptReader(),
     )
+    utilities = UtilitiesService(
+        tx,
+        SqlUtilitiesRepository,
+        users,
+        properties,
+        leases,
+        notifications,
+        MemoryStorage(),
+        it_clock,
+        UtilitiesConfig(),
+        images=PillowImageProcessor(),
+    )
     wire_guards(users, properties, leases)
     wire_contracts(leases, contracts)
     return Services(
@@ -175,4 +189,5 @@ def services(engine: AsyncEngine, it_clock: FixedClock) -> Services:
         leases=leases,
         contracts=contracts,
         payments=payments,
+        utilities=utilities,
     )

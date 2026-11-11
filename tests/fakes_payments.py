@@ -47,6 +47,11 @@ class FakePaymentsRepository:
         self.db.charges[cid] = ChargeRecord(id=cid, **dataclasses.asdict(data))
         return True
 
+    async def delete_charge(self, charge_id: uuid.UUID) -> None:
+        self.db.charges.pop(charge_id, None)
+        for pid in [p.id for p in self.db.payments.values() if p.charge_id == charge_id]:
+            del self.db.payments[pid]
+
     async def set_charge_status(self, charge_id: uuid.UUID, status: ChargeStatus) -> None:
         self.db.charges[charge_id] = dataclasses.replace(self.db.charges[charge_id], status=status)
 

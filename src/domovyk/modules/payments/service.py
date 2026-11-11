@@ -67,6 +67,7 @@ from domovyk.modules.payments.schemas import (
     PayInfo,
     PaymentOut,
     PaymentsOverview,
+    UtilityChargeIn,
 )
 from domovyk.modules.users.service import UsersService
 
@@ -79,6 +80,7 @@ __all__ = [
     "PaymentsConfig",
     "PaymentsOverview",
     "PaymentsService",
+    "UtilityChargeIn",
 ]
 
 log = logging.getLogger(__name__)
@@ -96,6 +98,8 @@ class PaymentsConfig:
     receipt_max_bytes: int = RECEIPT_MAX_BYTES
     # FR-PAY-3: операція з квитанції — не раніше ніж за N днів до дати оплати.
     receipt_early_days: int = 31
+    # FR-UTL-5: дату оплати комуналки власник ставить не далі ніж за N днів.
+    utility_due_max_days: int = 60
 
 
 @dataclass(frozen=True)
@@ -143,6 +147,9 @@ class PaymentsService:
             charges = await repo.charges(lease_id)
             payments = await repo.payments([c.id for c in charges])
             out = [await self._charge_out(c, payments) for c in charges]
+        if info.lease.my_role == "landlord":
+            for c in out:
+                c.can_cancel = c.kind == ChargeKind.UTILITIES.value and not c.payments
         open_ = [
             c
             for c in out
@@ -378,6 +385,68 @@ class PaymentsService:
                 charge,
                 {"amount": _money(amount)},
             )
+        return await self.overview(telegram_uid, charge.lease_id)
+
+    # ------------------------------------------------ власник: комуналка (FR-UTL-5)
+
+    async def add_utility_charge(
+        self, telegram_uid: int, lease_id: uuid.UUID, data: UtilityChargeIn
+    ) -> PaymentsOverview:
+        """КП платять власнику: він нараховує суму за місяць, далі — як з орендою."""
+        info = await self._leases.for_contract(telegram_uid, lease_id)
+        if info.lease.my_role != "landlord":
+            raise PermissionDenied("Нараховує власник")
+        if info.lease.status not in (LeaseStatus.ACTIVE, LeaseStatus.ENDING):
+            raise Conflict("Оренда не активна", field="status")
+        amount = clean_amount(data.amount, MAX_AMOUNT)
+        today = to_kyiv(self._clock.now()).date()
+        if data.due_date < today:
+            raise InvalidInput("Дата оплати вже минула", field="due_date")
+        if data.due_date > today + timedelta(days=self._config.utility_due_max_days):
+            raise InvalidInput("Задалеко наперед", field="due_date")
+        period = data.period_month.replace(day=1)
+        charge = NewCharge(
+            lease_id=lease_id,
+            period_month=period,
+            kind=ChargeKind.UTILITIES.value,
+            amount=amount,
+            currency=info.lease.currency,
+            due_date=data.due_date,
+            status=charge_status(data.due_date, today, amount, Decimal(0), False),
+            note=clean_note(data.note),
+        )
+        async with self._tx.begin() as tx:
+            repo = self._repo(tx)
+            if not await repo.add_charge(charge):
+                raise Conflict("Комуналку за цей місяць уже нараховано", field="period_month")
+            created = next(
+                c
+                for c in await repo.charges(lease_id)
+                if c.kind == ChargeKind.UTILITIES.value and c.period_month == period
+            )
+            await self._notify(
+                tx,
+                info,
+                [info.responsible_user_id],
+                "utilities_charged",
+                created,
+                {"amount": _money(amount)},
+            )
+        return await self.overview(telegram_uid, lease_id)
+
+    async def cancel_charge(self, telegram_uid: int, charge_id: uuid.UUID) -> PaymentsOverview:
+        """Власник помилився сумою КП: скасувати нарахування, поки за ним немає оплат."""
+        charge = await self._charge(charge_id)
+        info = await self._leases.for_contract(telegram_uid, charge.lease_id)
+        if info.lease.my_role != "landlord" or charge.kind != ChargeKind.UTILITIES.value:
+            raise PermissionDenied("Скасувати можна лише своє нарахування комуналки")
+        async with self._tx.begin() as tx:
+            repo = self._repo(tx)
+            if await repo.payments([charge_id]):
+                raise Conflict(
+                    "За нарахуванням уже є оплати", field="charge", reason="has_payments"
+                )
+            await repo.delete_charge(charge_id)
         return await self.overview(telegram_uid, charge.lease_id)
 
     async def decide(
@@ -673,6 +742,7 @@ class PaymentsService:
             remaining=max(c.amount - paid, Decimal(0)),
             status=c.status,
             payments=out,
+            note=c.note,
         )
 
     async def _system(

@@ -36,6 +36,14 @@ export type PaymentsOverview = S["PaymentsOverview"];
 export type Charge = S["ChargeOut"];
 export type PaymentItem = S["PaymentOut"];
 export type PayInfo = S["PayInfo"];
+export type MetersOverview = S["MetersOverview"];
+export type Meter = S["MeterOut"];
+export type MeterIn = S["MeterIn"];
+export type MeterKind = S["MeterKind"];
+export type Reading = S["ReadingOut"];
+export type ReadingResult = S["ReadingResult"];
+export type Provider = S["ProviderOut"];
+export type UtilityChargeIn = S["UtilityChargeIn"];
 
 export type ApiErrorKind = "no_api" | "unauthorized" | "network" | "server" | "unavailable" | "domain";
 
@@ -220,6 +228,30 @@ export const api = {
   paymentReceipt: (paymentId: string) => requestFile(`/api/v1/payments/${encodeURIComponent(paymentId)}/receipt`),
   sendReceipt: (paymentId: string) =>
     request<S["SentOut"]>("POST", `/api/v1/payments/${encodeURIComponent(paymentId)}/send`),
+
+  addUtilityCharge: (leaseId: string, body: UtilityChargeIn) =>
+    request<PaymentsOverview>("POST", `${l(leaseId)}/utility-charges`, body),
+  cancelCharge: (chargeId: string) =>
+    request<PaymentsOverview>("DELETE", `/api/v1/charges/${encodeURIComponent(chargeId)}`),
+
+  // Лічильники (M5, FR-UTL)
+  propertyMeters: (propertyId: string) => request<MetersOverview>("GET", `${p(propertyId)}/meters`),
+  leaseMeters: (leaseId: string) => request<MetersOverview>("GET", `${l(leaseId)}/meters`),
+  addMeter: (propertyId: string, body: MeterIn) => request<MetersOverview>("POST", `${p(propertyId)}/meters`, body),
+  updateMeter: (meterId: string, body: MeterIn) =>
+    request<MetersOverview>("PUT", `/api/v1/meters/${encodeURIComponent(meterId)}`, body),
+  removeMeter: (meterId: string) => request<MetersOverview>("DELETE", `/api/v1/meters/${encodeURIComponent(meterId)}`),
+  submitReading: (meterId: string, value: string, photo?: Blob) => {
+    const form = new FormData();
+    form.append("value", value);
+    if (photo) form.append("photo", photo, "meter.jpg");
+    return request<ReadingResult>("POST", `/api/v1/meters/${encodeURIComponent(meterId)}/readings`, form);
+  },
+  readingSent: (readingId: string) =>
+    request<ReadingResult>("POST", `/api/v1/readings/${encodeURIComponent(readingId)}/sent`),
+  deleteReading: (readingId: string) =>
+    request<MetersOverview>("DELETE", `/api/v1/readings/${encodeURIComponent(readingId)}`),
+  readingPhoto: (readingId: string) => requestFile(`/api/v1/readings/${encodeURIComponent(readingId)}/photo`),
 
   // Договори (M4)
   contract: (leaseId: string) => request<ContractState>("GET", `${l(leaseId)}/contract`),

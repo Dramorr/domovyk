@@ -8,7 +8,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Protocol
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert
 
 from domovyk.core.tx import Tx, session_of
@@ -27,6 +27,7 @@ class ChargeRecord:
     currency: str
     due_date: date
     status: ChargeStatus
+    note: str | None = None
 
 
 @dataclass(frozen=True)
@@ -38,6 +39,7 @@ class NewCharge:
     currency: str
     due_date: date
     status: ChargeStatus
+    note: str | None = None
 
 
 @dataclass(frozen=True)
@@ -89,6 +91,7 @@ class PaymentsRepository(Protocol):
     async def charges(self, lease_id: uuid.UUID) -> list[ChargeRecord]: ...
     async def charge(self, charge_id: uuid.UUID) -> ChargeRecord | None: ...
     async def add_charge(self, data: NewCharge) -> bool: ...
+    async def delete_charge(self, charge_id: uuid.UUID) -> None: ...
     async def set_charge_status(self, charge_id: uuid.UUID, status: ChargeStatus) -> None: ...
     async def payments(self, charge_ids: list[uuid.UUID]) -> list[PaymentRecord]: ...
     async def payment(self, payment_id: uuid.UUID) -> PaymentRecord | None: ...
@@ -110,6 +113,7 @@ def _charge(r: ChargeRow) -> ChargeRecord:
         currency=r.currency,
         due_date=r.due_date,
         status=r.status,
+        note=r.note,
     )
 
 
@@ -166,6 +170,7 @@ class SqlPaymentsRepository:
                 currency=data.currency,
                 due_date=data.due_date,
                 status=data.status,
+                note=data.note,
             )
             .on_conflict_do_nothing(
                 index_elements=[ChargeRow.lease_id, ChargeRow.period_month, ChargeRow.kind]
@@ -173,6 +178,9 @@ class SqlPaymentsRepository:
             .returning(ChargeRow.id)
         )
         return result.scalar() is not None
+
+    async def delete_charge(self, charge_id: uuid.UUID) -> None:
+        await self._s.execute(delete(ChargeRow).where(ChargeRow.id == charge_id))
 
     async def set_charge_status(self, charge_id: uuid.UUID, status: ChargeStatus) -> None:
         await self._s.execute(

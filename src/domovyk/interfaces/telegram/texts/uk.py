@@ -235,14 +235,15 @@ _MONTHS = (
 
 
 def period_label(period: str, kind: str) -> str:
-    """'2027-01-01' → «січень 2027»; депозит — «депозит»."""
+    """'2027-01-01' → «січень 2027»; депозит — «депозит»; КП — «комуналку (січень 2027)»."""
     if kind == "deposit":
         return "депозит"
     try:
         year, month = int(period[:4]), int(period[5:7])
     except ValueError:
         return ""
-    return f"{_MONTHS[month - 1]} {year}"
+    label = f"{_MONTHS[month - 1]} {year}"
+    return f"комуналку ({label})" if kind == "utilities" else label
 
 
 def days_label(n: int) -> str:
@@ -284,4 +285,38 @@ PAYMENT_EVENTS = {
         "Власник не підтвердив оплату за <b>{period}</b> ({amount} ₴): {reason}. "
         "Подробиці — у чаті."
     ),
+    "utilities_charged": (
+        "🧾 Власник нарахував <b>{period}</b>: {amount} ₴ до {due}. {address}. "
+        "Розбивка й реквізити — в оплатах."
+    ),
 }
+# Для нарахувань комуналки ці події звучать інакше, ніж для оренди.
+UTILITIES_EVENTS = {
+    "rent_reminder_today": "Сьогодні день оплати комуналки 🧾 {address} · {amount} ₴.",
+}
+
+
+# Лічильники (BOT_FLOWS §11, FR-UTL-2). Передати показник постачальнику людина має сама.
+BTN_SUBMIT_READINGS = "📟 Подати показники"
+METER_KINDS_GENITIVE = {
+    "electricity": "світла",
+    "water_cold": "холодної води",
+    "water_hot": "гарячої води",
+    "gas": "газу",
+    "heat": "тепла",
+}
+METER_EVENTS = {
+    "open": (
+        "📟 Час подати показники {kinds} — {address}. {providers} приймають до {end}. "
+        "Сфотографуй лічильник і впиши число — я збережу історію."
+    ),
+    "last": ("📟 Нагадую: показники {kinds} ще не подано ({address}). Останній день — {end}."),
+}
+
+
+def meter_kinds_label(kinds: list[str]) -> str:
+    """['gas', 'water_cold'] → «газу й холодної води»."""
+    names = [METER_KINDS_GENITIVE.get(k, k) for k in dict.fromkeys(kinds)]
+    if len(names) <= 1:
+        return "".join(names)
+    return ", ".join(names[:-1]) + " й " + names[-1]

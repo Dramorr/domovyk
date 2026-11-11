@@ -75,6 +75,7 @@ from domovyk.modules.payments.service import (
     DecisionIn,
     PayInfo,
     PaymentsOverview,
+    UtilityChargeIn,
 )
 from domovyk.modules.properties.service import (
     AddressCandidate,
@@ -96,6 +97,7 @@ from domovyk.modules.users.service import (
     TenantProfile,
     UserOut,
 )
+from domovyk.modules.utilities.service import MeterIn, MetersOverview, ReadingResult
 
 log = logging.getLogger(__name__)
 
@@ -670,6 +672,60 @@ def create_app(
     @app.post("/api/v1/payments/{payment_id}/send")
     async def send_receipt(auth: Auth, payment_id: uuid.UUID) -> SentOut:
         return SentOut(sent=await svc.payments.send_receipt_to_chat(auth.user.id, payment_id))
+
+    @app.post("/api/v1/leases/{lease_id}/utility-charges", status_code=status.HTTP_201_CREATED)
+    async def add_utility_charge(
+        auth: Auth, lease_id: uuid.UUID, body: UtilityChargeIn
+    ) -> PaymentsOverview:
+        return await svc.payments.add_utility_charge(auth.user.id, lease_id, body)
+
+    @app.delete("/api/v1/charges/{charge_id}")
+    async def cancel_charge(auth: Auth, charge_id: uuid.UUID) -> PaymentsOverview:
+        return await svc.payments.cancel_charge(auth.user.id, charge_id)
+
+    # -------------------------------------------- лічильники (M5, FR-UTL-1..4)
+
+    @app.get("/api/v1/properties/{property_id}/meters")
+    async def property_meters(auth: Auth, property_id: uuid.UUID) -> MetersOverview:
+        return await svc.utilities.for_property(auth.user.id, property_id)
+
+    @app.post("/api/v1/properties/{property_id}/meters", status_code=status.HTTP_201_CREATED)
+    async def add_meter(auth: Auth, property_id: uuid.UUID, body: MeterIn) -> MetersOverview:
+        return await svc.utilities.add_meter(auth.user.id, property_id, body)
+
+    @app.put("/api/v1/meters/{meter_id}")
+    async def update_meter(auth: Auth, meter_id: uuid.UUID, body: MeterIn) -> MetersOverview:
+        return await svc.utilities.update_meter(auth.user.id, meter_id, body)
+
+    @app.delete("/api/v1/meters/{meter_id}")
+    async def remove_meter(auth: Auth, meter_id: uuid.UUID) -> MetersOverview:
+        return await svc.utilities.remove_meter(auth.user.id, meter_id)
+
+    @app.get("/api/v1/leases/{lease_id}/meters")
+    async def lease_meters(auth: Auth, lease_id: uuid.UUID) -> MetersOverview:
+        return await svc.utilities.for_lease(auth.user.id, lease_id)
+
+    @app.post("/api/v1/meters/{meter_id}/readings", status_code=status.HTTP_201_CREATED)
+    async def submit_reading(
+        auth: Auth,
+        meter_id: uuid.UUID,
+        value: Annotated[str, Form(max_length=20)],
+        photo: Annotated[UploadFile | None, File()] = None,
+    ) -> ReadingResult:
+        data = await photo.read(PHOTO_MAX_BYTES + 1) if photo is not None else None
+        return await svc.utilities.submit_reading(auth.user.id, meter_id, value, data or None)
+
+    @app.post("/api/v1/readings/{reading_id}/sent")
+    async def reading_sent(auth: Auth, reading_id: uuid.UUID) -> ReadingResult:
+        return await svc.utilities.mark_sent(auth.user.id, reading_id)
+
+    @app.delete("/api/v1/readings/{reading_id}")
+    async def delete_reading(auth: Auth, reading_id: uuid.UUID) -> MetersOverview:
+        return await svc.utilities.delete_reading(auth.user.id, reading_id)
+
+    @app.get("/api/v1/readings/{reading_id}/photo")
+    async def reading_photo(auth: Auth, reading_id: uuid.UUID) -> Response:
+        return _photo(await svc.utilities.reading_photo(auth.user.id, reading_id))
 
     @app.get("/api/v1/leases/{lease_id}/contract")
     async def contract_state(auth: Auth, lease_id: uuid.UUID) -> ContractState:

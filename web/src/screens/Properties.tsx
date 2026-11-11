@@ -573,6 +573,7 @@ export function PropertyCard({
   onNewLease,
   onOpenLease,
   onChat,
+  onMeters,
   onDeleted,
 }: {
   id: string;
@@ -583,6 +584,7 @@ export function PropertyCard({
   onNewLease: (prop: Property) => void;
   onOpenLease: (leaseId: string) => void;
   onChat: (leaseId: string) => void;
+  onMeters: () => void;
   onDeleted: () => void;
 }) {
   const [prop, setProp] = useState<Property | null>(null);
@@ -680,6 +682,10 @@ export function PropertyCard({
         <button className="button secondary" onClick={onProfile}>
           <Icon name="edit" size={20} />
           {t("pf_open_plain")}
+        </button>
+        <button className="button secondary" onClick={onMeters}>
+          <Icon name="meter" size={20} />
+          {t("mt_title")}
         </button>
       </section>
 

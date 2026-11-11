@@ -41,6 +41,7 @@ class ChargeRow(Base):
     )
     due_date: Mapped[date] = mapped_column(Date)
     status: Mapped[ChargeStatus] = mapped_column(_pg_enum(ChargeStatus, "charge_status"))
+    note: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

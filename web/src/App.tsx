@@ -7,6 +7,7 @@ import { Chat } from "./screens/Chat";
 import { InviteAccept, InviteShare, LeaseCard, LeaseForm, LeaseNotifications, TenantHome } from "./screens/Leases";
 import { ModerationCase, ModerationQueue, SignatureReview } from "./screens/Moderation";
 import { ConsentAndName, ModeChoice, PhoneStep } from "./screens/Onboarding";
+import { MetersScreen } from "./screens/Meters";
 import { Profile } from "./screens/Profile";
 import { PropertyProfile } from "./screens/PropertyProfile";
 import { NewProperty, OwnershipScreen, PropertyCard, PropertyList } from "./screens/Properties";
@@ -37,15 +38,24 @@ type Route =
   | { name: "invite-share"; leaseId: string; invite: Invite }
   | { name: "invite"; token: string }
   | { name: "chat"; id: string }
-  | { name: "lease-notify"; id: string };
+  | { name: "lease-notify"; id: string }
+  | { name: "meters"; leaseId?: string; propertyId?: string };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Екран із deep link (кнопки в сповіщеннях бота): prop_, lease_, chat_, inv_, mod. */
+/** Екран із deep link (кнопки в сповіщеннях бота): prop_, lease_, chat_, meters_, pmeters_, inv_, mod. */
 function routeFromStart(param: string | null, isStaff: boolean): Route[] {
   if (!param) return [];
   if (param === "mod" && isStaff) return [{ name: "moderation" }];
   if (param.startsWith("inv_")) return [{ name: "home" }, { name: "invite", token: param.slice(4) }];
+  const meters = param.startsWith("meters_") ? param.slice(7) : "";
+  if (UUID_RE.test(meters)) {
+    return [{ name: "home" }, { name: "lease", id: meters }, { name: "meters", leaseId: meters }];
+  }
+  const propMeters = param.startsWith("pmeters_") ? param.slice(8) : "";
+  if (UUID_RE.test(propMeters)) {
+    return [{ name: "home" }, { name: "property", id: propMeters }, { name: "meters", propertyId: propMeters }];
+  }
   const leaseId = param.startsWith("lease_") ? param.slice(6) : param.startsWith("chat_") ? param.slice(5) : "";
   if (UUID_RE.test(leaseId)) {
     const base: Route[] = [{ name: "home" }, { name: "lease", id: leaseId }];
@@ -264,7 +274,19 @@ export function App() {
           onNewLease={(prop) => push({ name: "lease-new", propertyId: prop.id })}
           onOpenLease={(id) => push({ name: "lease", id })}
           onChat={(id) => push({ name: "chat", id })}
+          onMeters={() => push({ name: "meters", propertyId: route.id })}
           onDeleted={back}
+        />
+      );
+      break;
+    case "meters":
+      screen = (
+        <MetersScreen
+          key={route.leaseId ?? route.propertyId}
+          leaseId={route.leaseId}
+          propertyId={route.propertyId}
+          webApp={webApp}
+          onBack={back}
         />
       );
       break;
@@ -300,6 +322,7 @@ export function App() {
           onEdit={() => push({ name: "lease-edit", id: route.id })}
           onPropose={() => push({ name: "lease-propose", id: route.id })}
           onNotify={() => push({ name: "lease-notify", id: route.id })}
+          onMeters={() => push({ name: "meters", leaseId: route.id })}
           onInvite={(invite) => push({ name: "invite-share", leaseId: route.id, invite })}
         />
       );

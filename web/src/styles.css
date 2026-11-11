@@ -1698,6 +1698,118 @@ label.file-button {
   border-radius: var(--radius-sm);
 }
 
+/* ---- Лічильники (FR-UTL) ---- */
+.meter-card.off {
+  opacity: 0.6;
+}
+
+.meter-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.meter-emoji {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--bg);
+  font-size: 22px;
+}
+
+.meter-title {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.meter-last {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+
+.meter-value {
+  font-family: "Unbounded", "Manrope", sans-serif;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.meter-value small {
+  font-family: "Manrope", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.ok-text {
+  color: var(--brand-ink);
+}
+
+.meter-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.meter-actions .link {
+  align-self: flex-start;
+}
+
+.meter-history summary {
+  min-height: 40px;
+  cursor: pointer;
+  color: var(--brand-ink);
+  font-weight: 600;
+}
+
+.meter-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.meter-row-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.meter-row-value small {
+  margin-left: 6px;
+  font-weight: 500;
+  opacity: 0.7;
+}
+
+.meter-row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+}
+
+.meter-preview {
+  display: block;
+  width: 100%;
+  max-height: 260px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.meter-input {
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
 /* ---- Фото об'єкта (FR-PRP-10) ---- */
 .photo-slider {
   position: relative;

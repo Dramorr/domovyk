@@ -416,6 +416,11 @@ class PropertiesService:
 
     # ---------------------------------------------- для інших модулів (правило 5)
 
+    async def property_by_id(self, property_id: uuid.UUID) -> PropertyOut | None:
+        """Для інших модулів (лічильники): права перевіряє модуль, що викликає."""
+        async with self._tx.begin() as tx:
+            return await self._repo(tx).get_property(property_id)
+
     async def property_of_unit(self, unit_id: uuid.UUID) -> PropertyOut | None:
         """Для оренд: адреса й юніти об'єкта, до якого належить юніт."""
         async with self._tx.begin() as tx:

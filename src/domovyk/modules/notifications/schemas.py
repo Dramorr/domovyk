@@ -22,10 +22,15 @@ class NotificationType(StrEnum):
     CHAT_MESSAGE = "chat_message"
     LEASE_UPDATE = "lease_update"  # приєднався орендар, погоджено умови, прохання змін тощо
     PAYMENT = "payment"  # нагадування про оплату, «оплатив», підтвердження (M5)
+    METER_REMINDER = "meter_reminder"  # час подати показники лічильників (FR-UTL-2)
 
 
 # Типи, які людина може вимкнути для своєї оренди (NTF-LEASE, FR-NTF-1).
-LEASE_OPTIONAL_TYPES = (NotificationType.CHAT_MESSAGE, NotificationType.LEASE_UPDATE)
+LEASE_OPTIONAL_TYPES = (
+    NotificationType.CHAT_MESSAGE,
+    NotificationType.LEASE_UPDATE,
+    NotificationType.METER_REMINDER,
+)
 QUIET_HOURS_DEFAULT = (22, 8)
 
 
@@ -48,5 +53,6 @@ class LeaseNotificationPrefs(BaseModel):
 
     chat_message: bool = True
     lease_update: bool = True
+    meter_reminder: bool = True
     quiet_from: int = Field(default=QUIET_HOURS_DEFAULT[0], ge=0, le=23)
     quiet_to: int = Field(default=QUIET_HOURS_DEFAULT[1], ge=0, le=23)

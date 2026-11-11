@@ -79,6 +79,8 @@ def make_renderer(base_url: str) -> Renderer:
             case NotificationType.PAYMENT:
                 event = str(p.get("event") or "")
                 template = uk.PAYMENT_EVENTS.get(event)
+                if p.get("kind") == "utilities":
+                    template = uk.UTILITIES_EVENTS.get(event, template)
                 if template is None:
                     return None
                 return RenderedMessage(
@@ -95,6 +97,32 @@ def make_renderer(base_url: str) -> Renderer:
                         days=uk.days_label(int(p.get("days") or 0)),
                     ),
                     lease_button(p, uk.BTN_OPEN_PAYMENTS, "lease"),
+                )
+            case NotificationType.METER_REMINDER:
+                template = uk.METER_EVENTS.get(str(p.get("event") or ""))
+                if template is None:
+                    return None
+                kinds = p.get("kinds") or []
+                providers = p.get("providers") or []
+                end = str(p.get("window_end") or "")
+                target = (
+                    f"meters_{p['lease_id']}"
+                    if p.get("lease_id")
+                    else f"pmeters_{p.get('property_id')}"
+                )
+                return RenderedMessage(
+                    template.format(
+                        kinds=uk.meter_kinds_label([str(k) for k in kinds]),
+                        address=format_address(p),
+                        providers=escape(", ".join(str(x) for x in providers)),
+                        end=escape(f"{end[8:10]}.{end[5:7]}" if len(end) == 10 else end),
+                    ),
+                    [
+                        Button(
+                            uk.BTN_SUBMIT_READINGS,
+                            web_app_url=mini_app_url(base_url, target),
+                        )
+                    ],
                 )
             case NotificationType.OWNERSHIP_VERIFIED:
                 return RenderedMessage(

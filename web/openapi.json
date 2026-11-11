@@ -369,6 +369,32 @@
         "title": "Body_report_receipt_api_v1_charges__charge_id__receipt_post",
         "type": "object"
       },
+      "Body_submit_reading_api_v1_meters__meter_id__readings_post": {
+        "properties": {
+          "photo": {
+            "anyOf": [
+              {
+                "contentMediaType": "application/octet-stream",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo"
+          },
+          "value": {
+            "maxLength": 20,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "title": "Body_submit_reading_api_v1_meters__meter_id__readings_post",
+        "type": "object"
+      },
       "Body_upload_ownership_document_api_v1_properties__property_id__ownership_documents_post": {
         "properties": {
           "file": {
@@ -452,6 +478,11 @@
             "title": "Amount",
             "type": "string"
           },
+          "can_cancel": {
+            "default": false,
+            "title": "Can Cancel",
+            "type": "boolean"
+          },
           "due_date": {
             "format": "date",
             "title": "Due Date",
@@ -471,6 +502,17 @@
             ],
             "title": "Kind",
             "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
           },
           "paid": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
@@ -1355,6 +1397,11 @@
             "title": "Lease Update",
             "type": "boolean"
           },
+          "meter_reminder": {
+            "default": true,
+            "title": "Meter Reminder",
+            "type": "boolean"
+          },
           "quiet_from": {
             "default": 22,
             "maximum": 23.0,
@@ -1975,6 +2022,282 @@
         "title": "Meter",
         "type": "string"
       },
+      "MeterIn": {
+        "properties": {
+          "account_number": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Number"
+          },
+          "initial_value": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initial Value"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/MeterKind"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "pays": {
+            "$ref": "#/components/schemas/PartyRole",
+            "default": "tenant"
+          },
+          "provider_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Id"
+          },
+          "submits": {
+            "$ref": "#/components/schemas/PartyRole",
+            "default": "tenant"
+          },
+          "tariff": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "maximum": 100000.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tariff"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "MeterIn",
+        "type": "object"
+      },
+      "MeterKind": {
+        "enum": [
+          "electricity",
+          "water_cold",
+          "water_hot",
+          "gas",
+          "heat"
+        ],
+        "title": "MeterKind",
+        "type": "string"
+      },
+      "MeterOut": {
+        "properties": {
+          "account_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Number"
+          },
+          "due": {
+            "title": "Due",
+            "type": "boolean"
+          },
+          "i_submit": {
+            "title": "I Submit",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/MeterKind"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "last": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReadingOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pays": {
+            "$ref": "#/components/schemas/PartyRole"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProviderOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "readings": {
+            "items": {
+              "$ref": "#/components/schemas/ReadingOut"
+            },
+            "title": "Readings",
+            "type": "array"
+          },
+          "submits": {
+            "$ref": "#/components/schemas/PartyRole"
+          },
+          "tariff": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tariff"
+          },
+          "window": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WindowOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "label",
+          "provider",
+          "account_number",
+          "submits",
+          "pays",
+          "tariff",
+          "is_active",
+          "window",
+          "due",
+          "i_submit",
+          "last",
+          "readings"
+        ],
+        "title": "MeterOut",
+        "type": "object"
+      },
+      "MetersOverview": {
+        "description": "UTL-LIST: лічильники об'єкта очима власника або орендаря.",
+        "properties": {
+          "can_manage": {
+            "title": "Can Manage",
+            "type": "boolean"
+          },
+          "can_submit": {
+            "title": "Can Submit",
+            "type": "boolean"
+          },
+          "lease_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lease Id"
+          },
+          "meters": {
+            "items": {
+              "$ref": "#/components/schemas/MeterOut"
+            },
+            "title": "Meters",
+            "type": "array"
+          },
+          "my_role": {
+            "$ref": "#/components/schemas/PartyRole"
+          },
+          "property_id": {
+            "format": "uuid",
+            "title": "Property Id",
+            "type": "string"
+          },
+          "providers": {
+            "items": {
+              "$ref": "#/components/schemas/ProviderOut"
+            },
+            "title": "Providers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "property_id",
+          "lease_id",
+          "my_role",
+          "can_manage",
+          "can_submit",
+          "meters",
+          "providers"
+        ],
+        "title": "MetersOverview",
+        "type": "object"
+      },
       "ModeIn": {
         "properties": {
           "mode": {
@@ -2176,6 +2499,14 @@
         ],
         "title": "PartyOut",
         "type": "object"
+      },
+      "PartyRole": {
+        "enum": [
+          "tenant",
+          "landlord"
+        ],
+        "title": "PartyRole",
+        "type": "string"
       },
       "PayDetailsIn": {
         "description": "Реквізити — шифруються (FR-PAY-8). Для готівки не потрібні.",
@@ -4009,6 +4340,56 @@
         "title": "ProposalOut",
         "type": "object"
       },
+      "ProviderOut": {
+        "properties": {
+          "cabinet_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cabinet Url"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "meter_kinds": {
+            "items": {
+              "$ref": "#/components/schemas/MeterKind"
+            },
+            "title": "Meter Kinds",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "payment_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Url"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "meter_kinds",
+          "cabinet_url",
+          "payment_url"
+        ],
+        "title": "ProviderOut",
+        "type": "object"
+      },
       "QueueItem": {
         "properties": {
           "documents_count": {
@@ -4060,6 +4441,120 @@
           "message_id"
         ],
         "title": "ReadIn",
+        "type": "object"
+      },
+      "ReadingOut": {
+        "properties": {
+          "can_delete": {
+            "title": "Can Delete",
+            "type": "boolean"
+          },
+          "consumed": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consumed"
+          },
+          "estimate": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimate"
+          },
+          "has_photo": {
+            "title": "Has Photo",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mine": {
+            "title": "Mine",
+            "type": "boolean"
+          },
+          "reading_date": {
+            "format": "date",
+            "title": "Reading Date",
+            "type": "string"
+          },
+          "sent_to_provider_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sent To Provider At"
+          },
+          "submitted_by_name": {
+            "title": "Submitted By Name",
+            "type": "string"
+          },
+          "value": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "value",
+          "consumed",
+          "estimate",
+          "reading_date",
+          "submitted_by_name",
+          "mine",
+          "has_photo",
+          "sent_to_provider_at",
+          "can_delete"
+        ],
+        "title": "ReadingOut",
+        "type": "object"
+      },
+      "ReadingResult": {
+        "description": "Що показати після подачі: скільки спожито й куди передати показник.",
+        "properties": {
+          "cabinet_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cabinet Url"
+          },
+          "meter": {
+            "$ref": "#/components/schemas/MeterOut"
+          },
+          "reading": {
+            "$ref": "#/components/schemas/ReadingOut"
+          }
+        },
+        "required": [
+          "meter",
+          "reading",
+          "cabinet_url"
+        ],
+        "title": "ReadingResult",
         "type": "object"
       },
       "RegisterIn": {
@@ -4831,6 +5326,53 @@
         "title": "UserStatus",
         "type": "string"
       },
+      "UtilityChargeIn": {
+        "description": "FR-UTL-5: КП платять власнику — він нараховує суму за місяць.",
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Amount"
+          },
+          "due_date": {
+            "format": "date",
+            "title": "Due Date",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "period_month": {
+            "format": "date",
+            "title": "Period Month",
+            "type": "string"
+          }
+        },
+        "required": [
+          "period_month",
+          "amount",
+          "due_date"
+        ],
+        "title": "UtilityChargeIn",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -5014,6 +5556,32 @@
         "title": "WallMaterial",
         "type": "string"
       },
+      "WindowOut": {
+        "description": "Вікно подачі показників: поточне або найближче (обидві дати включно).",
+        "properties": {
+          "end": {
+            "format": "date",
+            "title": "End",
+            "type": "string"
+          },
+          "open": {
+            "title": "Open",
+            "type": "boolean"
+          },
+          "start": {
+            "format": "date",
+            "title": "Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "open"
+        ],
+        "title": "WindowOut",
+        "type": "object"
+      },
       "WindowsView": {
         "enum": [
           "yard",
@@ -5106,6 +5674,62 @@
           }
         },
         "summary": "Search Addresses"
+      }
+    },
+    "/api/v1/charges/{charge_id}": {
+      "delete": {
+        "operationId": "cancel_charge_api_v1_charges__charge_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "charge_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Charge Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentsOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Charge"
       }
     },
     "/api/v1/charges/{charge_id}/cash": {
@@ -6832,6 +7456,62 @@
         "summary": "Post Lease Message"
       }
     },
+    "/api/v1/leases/{lease_id}/meters": {
+      "get": {
+        "operationId": "lease_meters_api_v1_leases__lease_id__meters_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lease_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Lease Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetersOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Lease Meters"
+      }
+    },
     "/api/v1/leases/{lease_id}/notifications": {
       "get": {
         "operationId": "lease_notification_prefs_api_v1_leases__lease_id__notifications_get",
@@ -7509,6 +8189,72 @@
         "summary": "Request Termination"
       }
     },
+    "/api/v1/leases/{lease_id}/utility-charges": {
+      "post": {
+        "operationId": "add_utility_charge_api_v1_leases__lease_id__utility_charges_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lease_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Lease Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UtilityChargeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentsOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Utility Charge"
+      }
+    },
     "/api/v1/me": {
       "delete": {
         "operationId": "delete_me_api_v1_me_delete",
@@ -8000,6 +8746,192 @@
           }
         },
         "summary": "Put Tenant Profile"
+      }
+    },
+    "/api/v1/meters/{meter_id}": {
+      "delete": {
+        "operationId": "remove_meter_api_v1_meters__meter_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "meter_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Meter Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetersOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Remove Meter"
+      },
+      "put": {
+        "operationId": "update_meter_api_v1_meters__meter_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "meter_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Meter Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MeterIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetersOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Meter"
+      }
+    },
+    "/api/v1/meters/{meter_id}/readings": {
+      "post": {
+        "operationId": "submit_reading_api_v1_meters__meter_id__readings_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "meter_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Meter Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_submit_reading_api_v1_meters__meter_id__readings_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadingResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit Reading"
       }
     },
     "/api/v1/moderation/ownership": {
@@ -9083,6 +10015,126 @@
         "summary": "Update Property Profile"
       }
     },
+    "/api/v1/properties/{property_id}/meters": {
+      "get": {
+        "operationId": "property_meters_api_v1_properties__property_id__meters_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "property_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Property Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetersOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Property Meters"
+      },
+      "post": {
+        "operationId": "add_meter_api_v1_properties__property_id__meters_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "property_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Property Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MeterIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetersOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Meter"
+      }
+    },
     "/api/v1/properties/{property_id}/ownership": {
       "get": {
         "operationId": "get_ownership_api_v1_properties__property_id__ownership_get",
@@ -9711,6 +10763,172 @@
           }
         },
         "summary": "Property Photo Cover"
+      }
+    },
+    "/api/v1/readings/{reading_id}": {
+      "delete": {
+        "operationId": "delete_reading_api_v1_readings__reading_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reading_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Reading Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetersOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Reading"
+      }
+    },
+    "/api/v1/readings/{reading_id}/photo": {
+      "get": {
+        "operationId": "reading_photo_api_v1_readings__reading_id__photo_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reading_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Reading Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reading Photo"
+      }
+    },
+    "/api/v1/readings/{reading_id}/sent": {
+      "post": {
+        "operationId": "reading_sent_api_v1_readings__reading_id__sent_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reading_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Reading Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadingResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reading Sent"
       }
     },
     "/api/v1/register": {

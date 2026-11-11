@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/charges/{charge_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Cancel Charge */
+        delete: operations["cancel_charge_api_v1_charges__charge_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/charges/{charge_id}/cash": {
         parameters: {
             query?: never;
@@ -469,6 +486,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/leases/{lease_id}/meters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lease Meters */
+        get: operations["lease_meters_api_v1_leases__lease_id__meters_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/leases/{lease_id}/notifications": {
         parameters: {
             query?: never;
@@ -624,6 +658,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/leases/{lease_id}/utility-charges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Utility Charge */
+        post: operations["add_utility_charge_api_v1_leases__lease_id__utility_charges_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me": {
         parameters: {
             query?: never;
@@ -708,6 +759,41 @@ export interface paths {
         /** Put Tenant Profile */
         put: operations["put_tenant_profile_api_v1_me_tenant_profile_put"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/meters/{meter_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Meter */
+        put: operations["update_meter_api_v1_meters__meter_id__put"];
+        post?: never;
+        /** Remove Meter */
+        delete: operations["remove_meter_api_v1_meters__meter_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/meters/{meter_id}/readings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Reading */
+        post: operations["submit_reading_api_v1_meters__meter_id__readings_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -989,6 +1075,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/properties/{property_id}/meters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Property Meters */
+        get: operations["property_meters_api_v1_properties__property_id__meters_get"];
+        put?: never;
+        /** Add Meter */
+        post: operations["add_meter_api_v1_properties__property_id__meters_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/properties/{property_id}/ownership": {
         parameters: {
             query?: never;
@@ -1121,6 +1225,57 @@ export interface paths {
         put?: never;
         /** Property Photo Cover */
         post: operations["property_photo_cover_api_v1_properties__property_id__photos__photo_id__cover_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/readings/{reading_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Reading */
+        delete: operations["delete_reading_api_v1_readings__reading_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/readings/{reading_id}/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reading Photo */
+        get: operations["reading_photo_api_v1_readings__reading_id__photo_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/readings/{reading_id}/sent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reading Sent */
+        post: operations["reading_sent_api_v1_readings__reading_id__sent_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1308,6 +1463,13 @@ export interface components {
             /** Note */
             note?: string | null;
         };
+        /** Body_submit_reading_api_v1_meters__meter_id__readings_post */
+        Body_submit_reading_api_v1_meters__meter_id__readings_post: {
+            /** Photo */
+            photo?: string | null;
+            /** Value */
+            value: string;
+        };
         /** Body_upload_ownership_document_api_v1_properties__property_id__ownership_documents_post */
         Body_upload_ownership_document_api_v1_properties__property_id__ownership_documents_post: {
             /** File */
@@ -1336,6 +1498,11 @@ export interface components {
             /** Amount */
             amount: string;
             /**
+             * Can Cancel
+             * @default false
+             */
+            can_cancel: boolean;
+            /**
              * Due Date
              * Format: date
              */
@@ -1350,6 +1517,8 @@ export interface components {
              * @enum {string}
              */
             kind: "rent" | "deposit" | "utilities" | "other";
+            /** Note */
+            note?: string | null;
             /** Paid */
             paid: string;
             /** Payments */
@@ -1695,6 +1864,11 @@ export interface components {
              */
             lease_update: boolean;
             /**
+             * Meter Reminder
+             * @default true
+             */
+            meter_reminder: boolean;
+            /**
              * Quiet From
              * @default 22
              */
@@ -1960,6 +2134,79 @@ export interface components {
          * @enum {string}
          */
         Meter: "electricity" | "water" | "gas" | "heat";
+        /** MeterIn */
+        MeterIn: {
+            /** Account Number */
+            account_number?: string | null;
+            /** Initial Value */
+            initial_value?: number | string | null;
+            kind: components["schemas"]["MeterKind"];
+            /** Label */
+            label?: string | null;
+            /** @default tenant */
+            pays: components["schemas"]["PartyRole"];
+            /** Provider Id */
+            provider_id?: number | null;
+            /** @default tenant */
+            submits: components["schemas"]["PartyRole"];
+            /** Tariff */
+            tariff?: number | string | null;
+        };
+        /**
+         * MeterKind
+         * @enum {string}
+         */
+        MeterKind: "electricity" | "water_cold" | "water_hot" | "gas" | "heat";
+        /** MeterOut */
+        MeterOut: {
+            /** Account Number */
+            account_number: string | null;
+            /** Due */
+            due: boolean;
+            /** I Submit */
+            i_submit: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            kind: components["schemas"]["MeterKind"];
+            /** Label */
+            label: string | null;
+            last: components["schemas"]["ReadingOut"] | null;
+            pays: components["schemas"]["PartyRole"];
+            provider: components["schemas"]["ProviderOut"] | null;
+            /** Readings */
+            readings: components["schemas"]["ReadingOut"][];
+            submits: components["schemas"]["PartyRole"];
+            /** Tariff */
+            tariff: string | null;
+            window: components["schemas"]["WindowOut"] | null;
+        };
+        /**
+         * MetersOverview
+         * @description UTL-LIST: лічильники об'єкта очима власника або орендаря.
+         */
+        MetersOverview: {
+            /** Can Manage */
+            can_manage: boolean;
+            /** Can Submit */
+            can_submit: boolean;
+            /** Lease Id */
+            lease_id: string | null;
+            /** Meters */
+            meters: components["schemas"]["MeterOut"][];
+            my_role: components["schemas"]["PartyRole"];
+            /**
+             * Property Id
+             * Format: uuid
+             */
+            property_id: string;
+            /** Providers */
+            providers: components["schemas"]["ProviderOut"][];
+        };
         /** ModeIn */
         ModeIn: {
             mode: components["schemas"]["AppMode"];
@@ -2051,6 +2298,11 @@ export interface components {
              */
             user_id: string;
         };
+        /**
+         * PartyRole
+         * @enum {string}
+         */
+        PartyRole: "tenant" | "landlord";
         /**
          * PayDetailsIn
          * @description Реквізити — шифруються (FR-PAY-8). Для готівки не потрібні.
@@ -2499,6 +2751,19 @@ export interface components {
             start_date: string;
             terms: components["schemas"]["LeaseTerms"];
         };
+        /** ProviderOut */
+        ProviderOut: {
+            /** Cabinet Url */
+            cabinet_url: string | null;
+            /** Id */
+            id: number;
+            /** Meter Kinds */
+            meter_kinds: components["schemas"]["MeterKind"][];
+            /** Name */
+            name: string;
+            /** Payment Url */
+            payment_url: string | null;
+        };
         /** QueueItem */
         QueueItem: {
             /** Documents Count */
@@ -2517,6 +2782,45 @@ export interface components {
         ReadIn: {
             /** Message Id */
             message_id: number;
+        };
+        /** ReadingOut */
+        ReadingOut: {
+            /** Can Delete */
+            can_delete: boolean;
+            /** Consumed */
+            consumed: string | null;
+            /** Estimate */
+            estimate: string | null;
+            /** Has Photo */
+            has_photo: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Mine */
+            mine: boolean;
+            /**
+             * Reading Date
+             * Format: date
+             */
+            reading_date: string;
+            /** Sent To Provider At */
+            sent_to_provider_at: string | null;
+            /** Submitted By Name */
+            submitted_by_name: string;
+            /** Value */
+            value: string;
+        };
+        /**
+         * ReadingResult
+         * @description Що показати після подачі: скільки спожито й куди передати показник.
+         */
+        ReadingResult: {
+            /** Cabinet Url */
+            cabinet_url: string | null;
+            meter: components["schemas"]["MeterOut"];
+            reading: components["schemas"]["ReadingOut"];
         };
         /** RegisterIn */
         RegisterIn: {
@@ -2802,6 +3106,26 @@ export interface components {
          * @enum {string}
          */
         UserStatus: "active" | "under_review" | "restricted" | "banned" | "deleted";
+        /**
+         * UtilityChargeIn
+         * @description FR-UTL-5: КП платять власнику — він нараховує суму за місяць.
+         */
+        UtilityChargeIn: {
+            /** Amount */
+            amount: number | string;
+            /**
+             * Due Date
+             * Format: date
+             */
+            due_date: string;
+            /** Note */
+            note?: string | null;
+            /**
+             * Period Month
+             * Format: date
+             */
+            period_month: string;
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -2869,6 +3193,24 @@ export interface components {
          */
         WallMaterial: "brick" | "panel" | "monolith_frame" | "block" | "wood" | "other";
         /**
+         * WindowOut
+         * @description Вікно подачі показників: поточне або найближче (обидві дати включно).
+         */
+        WindowOut: {
+            /**
+             * End
+             * Format: date
+             */
+            end: string;
+            /** Open */
+            open: boolean;
+            /**
+             * Start
+             * Format: date
+             */
+            start: string;
+        };
+        /**
          * WindowsView
          * @enum {string}
          */
@@ -2903,6 +3245,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AddressCandidate"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_charge_api_v1_charges__charge_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                charge_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentsOverview"];
                 };
             };
             /** @description Validation Error */
@@ -3913,6 +4288,39 @@ export interface operations {
             };
         };
     };
+    lease_meters_api_v1_leases__lease_id__meters_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                lease_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetersOverview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     lease_notification_prefs_api_v1_leases__lease_id__notifications_get: {
         parameters: {
             query?: never;
@@ -4299,6 +4707,43 @@ export interface operations {
             };
         };
     };
+    add_utility_charge_api_v1_leases__lease_id__utility_charges_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                lease_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UtilityChargeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentsOverview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     me_api_v1_me_get: {
         parameters: {
             query?: never;
@@ -4614,6 +5059,113 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TenantProfile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_meter_api_v1_meters__meter_id__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                meter_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MeterIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetersOverview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_meter_api_v1_meters__meter_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                meter_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetersOverview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_reading_api_v1_meters__meter_id__readings_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                meter_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_submit_reading_api_v1_meters__meter_id__readings_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadingResult"];
                 };
             };
             /** @description Validation Error */
@@ -5270,6 +5822,76 @@ export interface operations {
             };
         };
     };
+    property_meters_api_v1_properties__property_id__meters_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetersOverview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_meter_api_v1_properties__property_id__meters_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MeterIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetersOverview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_ownership_api_v1_properties__property_id__ownership_get: {
         parameters: {
             query?: never;
@@ -5599,6 +6221,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PhotoOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_reading_api_v1_readings__reading_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                reading_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetersOverview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reading_photo_api_v1_readings__reading_id__photo_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                reading_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reading_sent_api_v1_readings__reading_id__sent_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                reading_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadingResult"];
                 };
             };
             /** @description Validation Error */

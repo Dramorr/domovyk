@@ -39,6 +39,8 @@ from domovyk.modules.properties.repository import SqlPropertiesRepository
 from domovyk.modules.properties.service import PropertiesConfig, PropertiesService
 from domovyk.modules.users.repository import SqlUsersRepository
 from domovyk.modules.users.service import UsersConfig, UsersService
+from domovyk.modules.utilities.repository import SqlUtilitiesRepository
+from domovyk.modules.utilities.service import UtilitiesConfig, UtilitiesService
 
 
 @dataclass
@@ -52,6 +54,7 @@ class Services:
     leases: LeasesService
     contracts: ContractsService
     payments: PaymentsService
+    utilities: UtilitiesService
 
 
 def users_config(settings: Settings) -> UsersConfig:
@@ -193,6 +196,18 @@ class Container:
             notifier=self.notifier,
             receipts=PdfReceiptReader(),
         )
+        utilities = UtilitiesService(
+            tx,
+            SqlUtilitiesRepository,
+            users,
+            properties,
+            leases,
+            notifications,
+            storage,
+            clock,
+            UtilitiesConfig(),
+            images=images,
+        )
         wire_guards(users, properties, leases)
         wire_contracts(leases, contracts)
         self.services = Services(
@@ -205,6 +220,7 @@ class Container:
             leases=leases,
             contracts=contracts,
             payments=payments,
+            utilities=utilities,
         )
 
     async def close(self) -> None:

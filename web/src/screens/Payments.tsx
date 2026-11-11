@@ -17,10 +17,103 @@ function money(v: string | number): string {
   return `${n.toLocaleString("uk-UA", { maximumFractionDigits: 2 })} ₴`;
 }
 
+function monthLabel(iso: string): string {
+  const label = new Date(iso).toLocaleDateString("uk-UA", { month: "long", year: "numeric", timeZone: "UTC" });
+  return label.replace(/\s*р\.$/, "");
+}
+
 function periodLabel(c: Pick<Charge, "kind" | "period_month">): string {
   if (c.kind === "deposit") return t("pay_deposit");
-  const label = new Date(c.period_month).toLocaleDateString("uk-UA", { month: "long", year: "numeric", timeZone: "UTC" });
-  return label.replace(/\s*р\.$/, "");
+  if (c.kind === "utilities") return t("pay_utilities", { period: monthLabel(c.period_month) });
+  return monthLabel(c.period_month);
+}
+
+function isoDay(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** FR-UTL-5: власник нараховує комуналку, яку орендар платить йому. */
+function UtilitySheet({
+  leaseId,
+  onClose,
+  onDone,
+}: {
+  leaseId: string;
+  onClose: () => void;
+  onDone: (o: PaymentsOverview) => void;
+}) {
+  const now = new Date();
+  const months = [-1, 0].map((d) => isoDay(new Date(now.getFullYear(), now.getMonth() + d, 1)));
+  const [period, setPeriod] = useState(months[0] ?? "");
+  const [amount, setAmount] = useState("");
+  const [due, setDue] = useState(isoDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7)));
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save(close: () => void) {
+    setBusy(true);
+    setError(null);
+    try {
+      onDone(
+        await api.addUtilityCharge(leaseId, {
+          period_month: period,
+          amount: amount.replace(",", "."),
+          due_date: due,
+          note: note.trim() || null,
+        }),
+      );
+      close();
+    } catch (e) {
+      setError(payError(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Sheet label={t("pay_util_title")} onClose={onClose}>
+      {(close) => (
+        <>
+          <div className="sheet-head">
+            <h2>{t("pay_util_title")}</h2>
+            <button className="icon-button" aria-label={t("ab_close")} onClick={close}>
+              <Icon name="close" size={20} />
+            </button>
+          </div>
+          <section className="card">
+            <p className="hint small">{t("pay_util_hint")}</p>
+            <div className="field">
+              {t("pay_util_month")}
+              <div className="chips">
+                {months.map((m) => (
+                  <button key={m} type="button" className={`chip${period === m ? " active" : ""}`} aria-pressed={period === m} onClick={() => setPeriod(m)}>
+                    {monthLabel(m)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <label className="field">
+              {t("pay_util_amount")}
+              <input className="input" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
+            </label>
+            <label className="field">
+              {t("pay_util_due")}
+              <input className="input" type="date" min={isoDay(now)} value={due} onChange={(e) => setDue(e.target.value)} />
+            </label>
+            <label className="field">
+              {t("pay_util_note")}
+              <input className="input" maxLength={300} placeholder={t("pay_util_note_ph")} value={note} onChange={(e) => setNote(e.target.value)} />
+            </label>
+            <button className="button" disabled={busy || !(Number(amount.replace(",", ".")) > 0) || !due} onClick={() => save(close)}>
+              {t("pay_util_save")}
+            </button>
+          </section>
+          {error && <p className="error">{error}</p>}
+        </>
+      )}
+    </Sheet>
+  );
 }
 
 const TONE: Record<Charge["status"], "neutral" | "ok" | "warn" | "info" | "bad"> = {
@@ -300,7 +393,17 @@ function PaymentLine({
   );
 }
 
-export function PaymentsBlock({ leaseId, address, webApp }: { leaseId: string; address: string; webApp: WebApp }) {
+export function PaymentsBlock({
+  leaseId,
+  address,
+  webApp,
+  live = true,
+}: {
+  leaseId: string;
+  address: string;
+  webApp: WebApp;
+  live?: boolean;
+}) {
   const [o, setO] = useState<PaymentsOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -309,6 +412,7 @@ export function PaymentsBlock({ leaseId, address, webApp }: { leaseId: string; a
   const [all, setAll] = useState(false);
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [reason, setReason] = useState("");
+  const [utility, setUtility] = useState(false);
 
   const load = useCallback(() => {
     api.payments(leaseId).then(setO).catch((e: unknown) => setError(errorText(e)));
@@ -430,7 +534,20 @@ export function PaymentsBlock({ leaseId, address, webApp }: { leaseId: string; a
                 <Chip tone={TONE[c.status]}>{k(`pay_c_${c.status}`)}</Chip>
               </summary>
               <p className="hint small">{t("pay_due_on", { date: formatDate(c.due_date) })}</p>
+              {c.note && <p className="hint small">{c.note}</p>}
               {c.payments.length === 0 && <p className="hint small">{t("pay_no_payments")}</p>}
+              {c.can_cancel && (
+                <button
+                  className="link danger"
+                  disabled={busy}
+                  onClick={async () => {
+                    if (!(await confirm(webApp, t("pay_util_cancel_confirm")))) return;
+                    await run(() => api.cancelCharge(c.id));
+                  }}
+                >
+                  {t("pay_util_cancel")}
+                </button>
+              )}
               {c.payments.map((p) => (
                 <PaymentLine key={p.id} p={p} landlord={false} busy={busy} onDecide={() => undefined} onReceipt={() => setReceipt(p)} />
               ))}
@@ -444,7 +561,15 @@ export function PaymentsBlock({ leaseId, address, webApp }: { leaseId: string; a
         </div>
       )}
 
+      {landlord && live && (
+        <button className="button secondary" onClick={() => setUtility(true)}>
+          <Icon name="plus" size={20} />
+          {t("pay_add_utilities")}
+        </button>
+      )}
+
       {error && <p className="error">{error}</p>}
+      {utility && <UtilitySheet leaseId={leaseId} onClose={() => setUtility(false)} onDone={setO} />}
       {paying && <PaySheet charge={paying} address={address} webApp={webApp} onClose={() => setPaying(null)} onDone={setO} />}
       {receipt && <ReceiptSheet payment={receipt} onClose={() => setReceipt(null)} />}
     </section>

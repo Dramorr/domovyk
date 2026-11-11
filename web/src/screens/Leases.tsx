@@ -279,7 +279,7 @@ function fromLease(l: Lease): Form {
   };
 }
 
-function Chips<T extends string | number | boolean>({
+export function Chips<T extends string | number | boolean>({
   value,
   options,
   label,
@@ -1035,6 +1035,7 @@ export function LeaseCard({
   onNotify,
   onInvite,
   onPropose,
+  onMeters,
 }: {
   id: string;
   webApp: WebApp;
@@ -1044,6 +1045,7 @@ export function LeaseCard({
   onNotify: () => void;
   onInvite: (invite: Invite) => void;
   onPropose: (lease: Lease) => void;
+  onMeters: () => void;
 }) {
   const [l, setL] = useState<Lease | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -1248,6 +1250,14 @@ export function LeaseCard({
           </span>
           <span className="quick-title">{t("ls_notify")}</span>
         </button>
+        {["active", "ending", "ended"].includes(l.status) && (
+          <button className="quick-item" onClick={onMeters}>
+            <span className="row-icon">
+              <Icon name="meter" />
+            </span>
+            <span className="quick-title">{t("mt_open")}</span>
+          </button>
+        )}
       </div>
 
       <section className="card">
@@ -1313,7 +1323,12 @@ export function LeaseCard({
         </button>
       )}
       {["active", "ending", "ended"].includes(l.status) && (
-        <PaymentsBlock leaseId={l.id} address={leaseAddress(l)} webApp={webApp} />
+        <PaymentsBlock
+          leaseId={l.id}
+          address={leaseAddress(l)}
+          webApp={webApp}
+          live={l.status === "active" || l.status === "ending"}
+        />
       )}
       {(l.status === "active" || l.status === "ending") && l.my_role !== "co_tenant" && (
         <TerminationBlock l={l} webApp={webApp} busy={busy} run={run} />
@@ -1397,6 +1412,10 @@ export function LeaseNotifications({ id, onBack }: { id: string; onBack: () => v
         <div className="field">
           {t("nt_lease")}
           <Chips<boolean> value={p.lease_update ?? true} options={[true, false]} label={(b) => (b ? t("pf_yes") : t("pf_no"))} onChange={(b) => patch({ lease_update: b })} />
+        </div>
+        <div className="field">
+          {t("nt_meters")}
+          <Chips<boolean> value={p.meter_reminder ?? true} options={[true, false]} label={(b) => (b ? t("pf_yes") : t("pf_no"))} onChange={(b) => patch({ meter_reminder: b })} />
         </div>
         <div className="field">
           {t("nt_quiet")}

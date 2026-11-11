@@ -254,6 +254,16 @@ class LeasesService:
         async with self._tx.begin() as tx:
             return await self._repo(tx).ids_with_status([LeaseStatus.ACTIVE, LeaseStatus.ENDING])
 
+    async def live_lease_ids(self, unit_ids: list[uuid.UUID]) -> list[uuid.UUID]:
+        """Активні оренди (й ті, що завершуються) на цих юнітах — для лічильників (M5)."""
+        async with self._tx.begin() as tx:
+            leases = await self._repo(tx).statuses_on_units(unit_ids)
+        return [
+            lease_id
+            for lease_id, status in leases
+            if status in (LeaseStatus.ACTIVE, LeaseStatus.ENDING)
+        ]
+
     async def pay_requisites(self, tx: Tx, lease_id: uuid.UUID) -> dict[str, str]:
         """Повні реквізити для «Оплатити» (FR-PAY-8). Права перевіряє модуль payments."""
         lease = await self._repo(tx).get(lease_id)

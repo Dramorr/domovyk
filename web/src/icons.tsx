@@ -27,7 +27,8 @@ type IconName =
   | "upload"
   | "menu"
   | "info"
-  | "minus";
+  | "minus"
+  | "meter";
 
 const PATHS: Record<IconName, string> = {
   home: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z",
@@ -56,6 +57,7 @@ const PATHS: Record<IconName, string> = {
   menu: "M4 7h16M4 12h16M4 17h16",
   info: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5M12 8v.01",
   minus: "M5 12h14",
+  meter: "M4.5 17a8.5 8.5 0 1 1 15 0M12 13.5l3.5-4.5M12 13.5v.01M7.5 9.5l.01.01M12 7.5v.01M16.5 9.5v.01",
   more: "M6.5 12a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zM13.5 12a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zM20.5 12a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z",
 };
 

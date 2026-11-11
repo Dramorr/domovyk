@@ -594,6 +594,7 @@ CREATE TABLE rent_charges (
     currency        currency_code NOT NULL DEFAULT 'UAH',
     due_date        date NOT NULL,
     status          charge_status NOT NULL DEFAULT 'upcoming',
+    note            text CHECK (note IS NULL OR char_length(note) <= 300),  -- розбивка комуналки
     created_at      timestamptz NOT NULL DEFAULT now(),
     updated_at      timestamptz NOT NULL DEFAULT now(),
     UNIQUE (lease_id, period_month, kind)
@@ -639,26 +640,27 @@ CREATE INDEX idx_payments_dispute_window ON payments(dispute_deadline) WHERE sta
 --   {"from_days_before_month_end": 2, "to_day_next_month": 3}
 CREATE TABLE utility_providers (
     id              serial PRIMARY KEY,
-    code            text NOT NULL UNIQUE,
+    code            text NOT NULL UNIQUE CHECK (code ~ '^[a-z][a-z0-9_]{1,40}$'),
     name            text NOT NULL,
     meter_kinds     meter_kind[] NOT NULL,
     window_rule     jsonb NOT NULL DEFAULT '{}',
-    cabinet_url     text,
-    payment_url     text,
+    cabinet_url     text CHECK (cabinet_url IS NULL OR cabinet_url ~ '^https://'),
+    payment_url     text CHECK (payment_url IS NULL OR payment_url ~ '^https://'),
     city_code       text NOT NULL REFERENCES cities(code)
 );
+CREATE INDEX idx_utility_providers_city ON utility_providers(city_code);
 
 CREATE TABLE meters (
     id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     property_id         uuid NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
     kind                meter_kind NOT NULL,
     provider_id         int REFERENCES utility_providers(id),
-    account_number      text,              -- особовий рахунок
-    serial_number       text,
-    label               text,              -- 'Кухня', 'Ванна'
+    account_number      text CHECK (account_number IS NULL OR char_length(account_number) <= 40),  -- особовий рахунок
+    serial_number       text CHECK (serial_number IS NULL OR char_length(serial_number) <= 40),
+    label               text CHECK (label IS NULL OR char_length(label) <= 40),  -- 'Кухня', 'Ванна'
     submits             party_role NOT NULL DEFAULT 'tenant',   -- хто подає показники
     pays                party_role NOT NULL DEFAULT 'tenant',   -- хто платить
-    tariff              numeric(10,4),     -- ручний тариф для розрахунку, опційно
+    tariff              numeric(10,4) CHECK (tariff IS NULL OR tariff > 0),  -- ручний тариф, опційно (FR-UTL-4)
     is_active           boolean NOT NULL DEFAULT true,
     created_at          timestamptz NOT NULL DEFAULT now()
 );
@@ -667,7 +669,7 @@ CREATE INDEX idx_meters_property ON meters(property_id);
 CREATE TABLE meter_readings (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     meter_id        uuid NOT NULL REFERENCES meters(id) ON DELETE CASCADE,
-    lease_id        uuid REFERENCES leases(id),
+    lease_id        uuid REFERENCES leases(id) ON DELETE SET NULL,
     value           numeric(12,3) NOT NULL CHECK (value >= 0),
     photo_key       text,
     submitted_by    uuid NOT NULL REFERENCES users(id),
@@ -675,7 +677,7 @@ CREATE TABLE meter_readings (
     sent_to_provider_at timestamptz,       -- користувач позначив «передав постачальнику»
     created_at      timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_meter_readings_meter ON meter_readings(meter_id, reading_date DESC);
+CREATE INDEX idx_meter_readings_meter ON meter_readings(meter_id, reading_date DESC, created_at DESC);
 
 -- =====================================================================
 --  9. КОМУНІКАЦІЯ ТА ПОБУТ

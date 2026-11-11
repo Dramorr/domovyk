@@ -66,6 +66,11 @@ async def confirm_auto_payments(ctx: dict[str, Any]) -> int:
     return await jobs.confirm_auto_payments(container.services)
 
 
+async def meter_reminders(ctx: dict[str, Any]) -> int:
+    container: Container = ctx["container"]
+    return await jobs.meter_reminders(container.services)
+
+
 async def startup(ctx: dict[str, Any]) -> None:
     setup_logging()
     # arq має власний обробник логів; без цього кожен рядок дублюється через root.
@@ -90,6 +95,7 @@ class WorkerSettings:
         finish_leases,
         payments_daily,
         confirm_auto_payments,
+        meter_reminders,
     ]
     cron_jobs: ClassVar[list[Any]] = [
         cron(heartbeat, minute={0, 15, 30, 45}, run_at_startup=True),
@@ -100,6 +106,8 @@ class WorkerSettings:
         # О 9:00 за Києвом (UTC+2/+3) — нагадування приходять зранку, не вночі.
         cron(payments_daily, hour={6, 7}, minute={0}),
         cron(confirm_auto_payments, minute={20}),
+        # Близько 10:00 за Києвом; повтор не дублює (dedupe_key).
+        cron(meter_reminders, hour={7, 8}, minute={5}),
     ]
     on_startup = startup
     on_shutdown = shutdown

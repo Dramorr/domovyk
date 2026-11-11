@@ -43,6 +43,8 @@ class ChargeOut(BaseModel):
     remaining: Decimal
     status: ChargeStatus
     payments: list[PaymentOut]
+    note: str | None = None  # розбивка комуналки від власника
+    can_cancel: bool = False  # власник може скасувати своє нарахування КП без оплат
 
 
 class PaymentsOverview(BaseModel):
@@ -75,6 +77,15 @@ class PayInfo(BaseModel):
 
 class CashIn(BaseModel):
     amount: Decimal = Field(gt=0)
+    note: str | None = Field(default=None, max_length=300)
+
+
+class UtilityChargeIn(BaseModel):
+    """FR-UTL-5: КП платять власнику — він нараховує суму за місяць."""
+
+    period_month: date
+    amount: Decimal = Field(gt=0)
+    due_date: date
     note: str | None = Field(default=None, max_length=300)
 
 
