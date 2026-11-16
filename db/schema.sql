@@ -298,50 +298,48 @@ CREATE INDEX idx_verification_documents_verification ON verification_documents(v
 -- =====================================================================
 --  3. ОГОЛОШЕННЯ
 -- =====================================================================
+-- Оголошення не дублює анкету об'єкта (ADR 0018): опис, тварини, діти, мешканці,
+-- реєстрація й зручності — у properties.details. Тут лише умови угоди й публікація.
+-- Живе (draft/active/paused) оголошення на юніт одне; rented/archived/blocked — історія.
 CREATE TABLE listings (
     id                      uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     unit_id                 uuid NOT NULL REFERENCES units(id) ON DELETE CASCADE,
     created_by              uuid NOT NULL REFERENCES users(id),
-    title                   text NOT NULL,
-    description             text,
-    price_amount            integer NOT NULL CHECK (price_amount > 0),
+    price_amount            integer NOT NULL CHECK (price_amount BETWEEN 100 AND 1000000),
     currency                currency_code NOT NULL DEFAULT 'UAH',
     utilities_included      boolean NOT NULL DEFAULT false,
-    utilities_estimate      integer,
-    deposit_amount          integer,
+    deposit_amount          integer CHECK (deposit_amount IS NULL
+                                           OR deposit_amount BETWEEN 0 AND 3000000),
     min_term_months         smallint CHECK (min_term_months BETWEEN 1 AND 35),
     available_from          date,
-    max_occupants           smallint,
-    pets_allowed            boolean,
-    children_allowed        boolean,
-    residence_registration_allowed boolean,     -- згода на реєстрацію місця проживання
     status                  listing_status NOT NULL DEFAULT 'draft',
-    owner_declaration_at    timestamptz NOT NULL,  -- «я власник / уповноважений, без комісії»
-    published_at            timestamptz,
+    owner_declaration_at    timestamptz,           -- «я власник / уповноважений, без комісії»
+    published_at            timestamptz,           -- перша публікація (сортування «новіші»)
+    closed_at               timestamptz,           -- здано / знято / заблоковано
     created_at              timestamptz NOT NULL DEFAULT now(),
-    updated_at              timestamptz NOT NULL DEFAULT now()
+    updated_at              timestamptz NOT NULL DEFAULT now(),
+    CHECK (status = 'draft' OR owner_declaration_at IS NOT NULL),
+    CHECK (status = 'draft' OR published_at IS NOT NULL)
 );
 CREATE UNIQUE INDEX uq_one_live_listing_per_unit
     ON listings(unit_id) WHERE status IN ('draft', 'active', 'paused');
 CREATE INDEX idx_listings_search ON listings(status, price_amount);
+CREATE INDEX idx_listings_author ON listings(created_by, published_at);
 CREATE TRIGGER trg_listings_updated BEFORE UPDATE ON listings
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-CREATE TABLE amenities (
-    id      serial PRIMARY KEY,
-    code    text NOT NULL UNIQUE,
-    name_uk text NOT NULL
+-- «Ріелторські» основи слів для FR-LST-5. Збіг не блокує, а дає risk_signal і сповіщення
+-- модераторам. Дані, не код: список редагують модератори.
+CREATE TABLE risk_words (
+    id          serial PRIMARY KEY,
+    word        text NOT NULL UNIQUE
+                CHECK (word = lower(word) AND char_length(word) BETWEEN 3 AND 40),
+    created_at  timestamptz NOT NULL DEFAULT now()
 );
-
-CREATE TABLE listing_amenities (
-    listing_id  uuid NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
-    amenity_id  int  NOT NULL REFERENCES amenities(id),
-    PRIMARY KEY (listing_id, amenity_id)
-);
-CREATE INDEX idx_listing_amenities_amenity ON listing_amenities(amenity_id);
 
 -- Фото оголошення — це фото об'єкта (property_photos, розділ 2; ADR 0011).
--- Окремої таблиці listing_photos немає.
+-- Окремої таблиці listing_photos немає. Окремого довідника зручностей теж (ADR 0018):
+-- фільтр шукає по анкеті об'єкта.
 
 -- =====================================================================
 --  4. ПОШУК, ЗАЯВКИ, ПОКАЗИ

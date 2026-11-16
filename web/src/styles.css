@@ -3311,3 +3311,53 @@ button.info-row {
     transition: none;
   }
 }
+
+/* оголошення: що бракує для публікації (M6) */
+.checklist {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.checklist-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  border-bottom: 1px solid var(--line);
+}
+
+.checklist-row:last-child {
+  border-bottom: 0;
+}
+
+.checklist-mark {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.checklist-row.is-ok .checklist-mark {
+  background: var(--brand);
+  color: var(--on-brand);
+}
+
+.checklist-row.is-no .checklist-mark {
+  background: var(--danger-50);
+  color: var(--danger);
+}
+
+.checklist-row.is-soft .checklist-mark {
+  background: var(--line);
+  color: var(--text-2);
+}
+
+.checklist-text {
+  flex: 1;
+  font-size: 15px;
+}

@@ -32,6 +32,9 @@ class RiskSignal(StrEnum):
     DUPLICATE_ADDRESS = "duplicate_address"
     SIGNATURE_MISMATCH = "signature_mismatch"  # ПІБ у підписі ≠ довідка / договір (FR-CTR-5)
     BANNED_SIGNER = "banned_signer"  # РНОКПП із підпису є в бан-листі
+    COMMISSION_KEYWORDS = "commission_keywords"  # «ріелторські» слова в оголошенні (FR-LST-5)
+    DUPLICATE_PHOTOS = "duplicate_photos"  # ті самі фото в чужому об'єкті
+    MANY_ADDRESSES = "many_addresses"  # багато оголошень на різних адресах за короткий час
 
 
 class BanIdentifiers(BaseModel):

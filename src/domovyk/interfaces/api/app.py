@@ -70,6 +70,7 @@ from domovyk.modules.leases.service import (
     RespondIn,
     TerminationIn,
 )
+from domovyk.modules.listings.service import ListingIn, ListingOut, ListingState, PublishIn
 from domovyk.modules.payments.service import (
     CashIn,
     DecisionIn,
@@ -386,6 +387,32 @@ def create_app(
         auth: Auth, property_id: uuid.UUID, body: PropertyDetails
     ) -> PropertyOut:
         return await svc.properties.update_profile(auth.user.id, property_id, body)
+
+    # --------------------------------------------- оголошення (M6, FR-LST-1..5)
+
+    @app.get("/api/v1/listings")
+    async def my_listings(auth: Auth) -> list[ListingOut]:
+        return await svc.listings.mine(auth.user.id)
+
+    @app.get("/api/v1/properties/{property_id}/listing")
+    async def listing_state(auth: Auth, property_id: uuid.UUID) -> ListingState:
+        return await svc.listings.state(auth.user.id, property_id)
+
+    @app.put("/api/v1/properties/{property_id}/listing")
+    async def save_listing(auth: Auth, property_id: uuid.UUID, body: ListingIn) -> ListingState:
+        return await svc.listings.save(auth.user.id, property_id, body)
+
+    @app.post("/api/v1/properties/{property_id}/listing/publish")
+    async def publish_listing(auth: Auth, property_id: uuid.UUID, body: PublishIn) -> ListingState:
+        return await svc.listings.publish(auth.user.id, property_id, body)
+
+    @app.post("/api/v1/properties/{property_id}/listing/pause")
+    async def pause_listing(auth: Auth, property_id: uuid.UUID) -> ListingState:
+        return await svc.listings.pause(auth.user.id, property_id)
+
+    @app.post("/api/v1/properties/{property_id}/listing/close")
+    async def close_listing(auth: Auth, property_id: uuid.UUID) -> ListingState:
+        return await svc.listings.close(auth.user.id, property_id)
 
     # ------------------------------------------------- фото об'єкта (FR-PRP-10)
 

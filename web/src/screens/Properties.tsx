@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
-import { api, ApiFailure, type AddressCandidate, type LeaseSummary, type Ownership, type Photo, type Property, type PropertyCreate, type City } from "../api/client";
+import { api, ApiFailure, type AddressCandidate, type LeaseSummary, type Listing, type Ownership, type Photo, type Property, type PropertyCreate, type City } from "../api/client";
 import { botLink, DIIA_URL } from "../config";
 import { t, type TextKey } from "../i18n";
 import { confirm, openLink, openTelegramLink, type WebApp } from "../telegram";
@@ -21,6 +21,7 @@ import {
   Screen,
 } from "../ui";
 import { isOpenLease, LeaseRows, LeaseStatusChip, rentText } from "./Leases";
+import { ListingChip } from "./Listing";
 import { PhotoSlider } from "./Photos";
 import { CompletenessBar, PublishHint } from "./PropertyProfile";
 import { Stepper, type Step } from "./Stepper";
@@ -59,6 +60,8 @@ function propertyError(e: unknown): string {
       return t("prp_already_yours");
     case "has_open_lease":
       return t("prp_delete_has_lease");
+    case "has_live_listing":
+      return t("prp_delete_has_listing");
     case "phone_required":
       return t("prp_phone_required");
     case "invalid_input":
@@ -574,6 +577,7 @@ export function PropertyCard({
   onOpenLease,
   onChat,
   onMeters,
+  onListing,
   onDeleted,
 }: {
   id: string;
@@ -585,12 +589,14 @@ export function PropertyCard({
   onOpenLease: (leaseId: string) => void;
   onChat: (leaseId: string) => void;
   onMeters: () => void;
+  onListing: () => void;
   onDeleted: () => void;
 }) {
   const [prop, setProp] = useState<Property | null>(null);
   // Оренди цієї квартири: поточна (незавершена) і історія.
   const [leases, setLeases] = useState<LeaseSummary[] | null>(null);
   const [photos, setPhotos] = useState<Photo[] | null>(null);
+  const [listing, setListing] = useState<Listing | null | undefined>(undefined);
   const [edit, setEdit] = useState(false);
   const [form, setForm] = useState({ entrance: "", floor: "", rooms: 1, area: "" });
   const [busy, setBusy] = useState(false);
@@ -606,6 +612,10 @@ export function PropertyCard({
       .leases()
       .then((all) => setLeases(all.filter((l) => l.property_id === id && l.my_role === "landlord")))
       .catch(() => setLeases([]));
+    api
+      .listing(id)
+      .then((s) => setListing(s.listing ?? null))
+      .catch(() => setListing(null));
   }, [id]);
 
   async function run(action: () => Promise<Property | void>) {
@@ -674,6 +684,8 @@ export function PropertyCard({
         onOpen={onOpenLease}
         onChat={onChat}
       />
+
+      {!current && listing !== undefined && <ListingBlock listing={listing} onOpen={onListing} />}
 
       <section className="card">
         <h2>{t("pf_title")}</h2>
@@ -784,6 +796,28 @@ export function PropertyCard({
         {t("prp_delete")}
       </button>
     </Screen>
+  );
+}
+
+/** Блок «Оголошення» в картці вільної квартири (M6): стан і перехід до редагування. */
+function ListingBlock({ listing, onOpen }: { listing: Listing | null; onOpen: () => void }) {
+  const live = listing && ["draft", "active", "paused"].includes(listing.status) ? listing : null;
+  return (
+    <section className={listing?.status === "active" ? "card accent" : "card"}>
+      <div className="stat">
+        <h2 style={{ margin: 0, flex: 1 }}>{t("lst_title")}</h2>
+        {live && <ListingChip status={live.status} />}
+      </div>
+      {live ? (
+        <p className="row-title">{t("ls_rent_month", { rent: live.price_amount.toLocaleString("uk-UA") })}</p>
+      ) : (
+        <p className="hint small">{t("lst_card_hint_none")}</p>
+      )}
+      <button className={live ? "button secondary" : "button"} onClick={onOpen}>
+        <Icon name={live ? "edit" : "plus"} size={20} />
+        {live ? t("lst_card_open") : t("lst_card_create")}
+      </button>
+    </section>
   );
 }
 

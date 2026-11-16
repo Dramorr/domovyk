@@ -1823,6 +1823,270 @@
         "title": "LegalNameIn",
         "type": "object"
       },
+      "ListingIn": {
+        "description": "Умови угоди (FR-LST-1). Решту — опис, тварин, дітей, мешканців — бере з анкети.",
+        "properties": {
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available From"
+          },
+          "deposit_amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deposit Amount"
+          },
+          "min_term_months": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Term Months"
+          },
+          "price_amount": {
+            "title": "Price Amount",
+            "type": "integer"
+          },
+          "utilities_included": {
+            "default": false,
+            "title": "Utilities Included",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "price_amount"
+        ],
+        "title": "ListingIn",
+        "type": "object"
+      },
+      "ListingOut": {
+        "properties": {
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available From"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "deposit_amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deposit Amount"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "min_term_months": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Term Months"
+          },
+          "owner_declared": {
+            "title": "Owner Declared",
+            "type": "boolean"
+          },
+          "price_amount": {
+            "title": "Price Amount",
+            "type": "integer"
+          },
+          "property_id": {
+            "format": "uuid",
+            "title": "Property Id",
+            "type": "string"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ListingStatus"
+          },
+          "unit_id": {
+            "format": "uuid",
+            "title": "Unit Id",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "utilities_included": {
+            "title": "Utilities Included",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "property_id",
+          "unit_id",
+          "status",
+          "price_amount",
+          "currency",
+          "utilities_included",
+          "deposit_amount",
+          "min_term_months",
+          "available_from",
+          "owner_declared",
+          "published_at",
+          "closed_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ListingOut",
+        "type": "object"
+      },
+      "ListingReadiness": {
+        "description": "Що бракує для публікації. Фото не обов'язкові, але без них оголошення слабке.",
+        "properties": {
+          "completeness_min": {
+            "title": "Completeness Min",
+            "type": "integer"
+          },
+          "completeness_percent": {
+            "title": "Completeness Percent",
+            "type": "integer"
+          },
+          "ownership_verified": {
+            "title": "Ownership Verified",
+            "type": "boolean"
+          },
+          "photos": {
+            "title": "Photos",
+            "type": "integer"
+          },
+          "profile_ok": {
+            "title": "Profile Ok",
+            "type": "boolean"
+          },
+          "ready": {
+            "title": "Ready",
+            "type": "boolean"
+          },
+          "unit_busy": {
+            "title": "Unit Busy",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ownership_verified",
+          "completeness_percent",
+          "completeness_min",
+          "profile_ok",
+          "photos",
+          "unit_busy",
+          "ready"
+        ],
+        "title": "ListingReadiness",
+        "type": "object"
+      },
+      "ListingState": {
+        "description": "Екран оголошення власника: живе оголошення (або останнє з історії) і готовність.",
+        "properties": {
+          "listing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListingOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "property_id": {
+            "format": "uuid",
+            "title": "Property Id",
+            "type": "string"
+          },
+          "readiness": {
+            "$ref": "#/components/schemas/ListingReadiness"
+          }
+        },
+        "required": [
+          "property_id",
+          "listing",
+          "readiness"
+        ],
+        "title": "ListingState",
+        "type": "object"
+      },
+      "ListingStatus": {
+        "enum": [
+          "draft",
+          "active",
+          "paused",
+          "rented",
+          "archived",
+          "blocked"
+        ],
+        "title": "ListingStatus",
+        "type": "string"
+      },
       "MeOut": {
         "properties": {
           "consent": {
@@ -4388,6 +4652,18 @@
           "payment_url"
         ],
         "title": "ProviderOut",
+        "type": "object"
+      },
+      "PublishIn": {
+        "description": "FR-LST-2: «Я власник або уповноважена особа і не беру комісії».",
+        "properties": {
+          "owner_declaration": {
+            "default": false,
+            "title": "Owner Declaration",
+            "type": "boolean"
+          }
+        },
+        "title": "PublishIn",
         "type": "object"
       },
       "QueueItem": {
@@ -8255,6 +8531,56 @@
         "summary": "Add Utility Charge"
       }
     },
+    "/api/v1/listings": {
+      "get": {
+        "operationId": "my_listings_api_v1_listings_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ListingOut"
+                  },
+                  "title": "Response My Listings Api V1 Listings Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "My Listings"
+      }
+    },
     "/api/v1/me": {
       "delete": {
         "operationId": "delete_me_api_v1_me_delete",
@@ -10013,6 +10339,304 @@
           }
         },
         "summary": "Update Property Profile"
+      }
+    },
+    "/api/v1/properties/{property_id}/listing": {
+      "get": {
+        "operationId": "listing_state_api_v1_properties__property_id__listing_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "property_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Property Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Listing State"
+      },
+      "put": {
+        "operationId": "save_listing_api_v1_properties__property_id__listing_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "property_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Property Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListingIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Listing"
+      }
+    },
+    "/api/v1/properties/{property_id}/listing/close": {
+      "post": {
+        "operationId": "close_listing_api_v1_properties__property_id__listing_close_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "property_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Property Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Close Listing"
+      }
+    },
+    "/api/v1/properties/{property_id}/listing/pause": {
+      "post": {
+        "operationId": "pause_listing_api_v1_properties__property_id__listing_pause_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "property_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Property Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Pause Listing"
+      }
+    },
+    "/api/v1/properties/{property_id}/listing/publish": {
+      "post": {
+        "operationId": "publish_listing_api_v1_properties__property_id__listing_publish_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "property_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Property Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Publish Listing"
       }
     },
     "/api/v1/properties/{property_id}/meters": {

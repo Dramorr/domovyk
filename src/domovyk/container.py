@@ -29,6 +29,8 @@ from domovyk.modules.contracts.repository import SqlContractsRepository
 from domovyk.modules.contracts.service import ContractsConfig, ContractsService
 from domovyk.modules.leases.repository import SqlLeasesRepository
 from domovyk.modules.leases.service import LeasesConfig, LeasesService
+from domovyk.modules.listings.repository import SqlListingsRepository
+from domovyk.modules.listings.service import ListingsConfig, ListingsService
 from domovyk.modules.moderation.repository import SqlModerationRepository
 from domovyk.modules.moderation.service import ModerationService
 from domovyk.modules.notifications.repository import SqlNotificationsRepository
@@ -55,6 +57,7 @@ class Services:
     contracts: ContractsService
     payments: PaymentsService
     utilities: UtilitiesService
+    listings: ListingsService
 
 
 def users_config(settings: Settings) -> UsersConfig:
@@ -100,6 +103,14 @@ def wire_guards(users: UsersService, properties: PropertiesService, leases: Leas
     """Заборони видаляти акаунт і об'єкт з живою орендою — без циклічних імпортів модулів."""
     users.set_delete_guard(leases.has_open_leases)
     properties.set_release_hook(leases.release_property)
+
+
+def wire_listings(
+    properties: PropertiesService, leases: LeasesService, listings: ListingsService
+) -> None:
+    """Оренда робить оголошення «здано»; опубліковане оголошення не дає видалити об'єкт."""
+    leases.set_opened_hook(listings.on_units_opened)
+    properties.set_listing_guard(listings.guard_property_delete)
 
 
 def make_geocoder(settings: Settings) -> Geocoder:
@@ -208,8 +219,21 @@ class Container:
             UtilitiesConfig(),
             images=images,
         )
+        listings = ListingsService(
+            tx,
+            SqlListingsRepository,
+            users,
+            properties,
+            leases,
+            moderation,
+            notifications,
+            analytics,
+            clock,
+            ListingsConfig(),
+        )
         wire_guards(users, properties, leases)
         wire_contracts(leases, contracts)
+        wire_listings(properties, leases, listings)
         self.services = Services(
             users=users,
             moderation=moderation,
@@ -221,6 +245,7 @@ class Container:
             contracts=contracts,
             payments=payments,
             utilities=utilities,
+            listings=listings,
         )
 
     async def close(self) -> None:

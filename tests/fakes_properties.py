@@ -108,6 +108,7 @@ class PropDb:
     verifications: dict[uuid.UUID, _Verification] = field(default_factory=dict)
     documents: dict[uuid.UUID, StoredDocument] = field(default_factory=dict)
     photos: dict[uuid.UUID, StoredPhoto] = field(default_factory=dict)
+    phashes: dict[uuid.UUID, int] = field(default_factory=dict)
     notifications: list[_Notification] = field(default_factory=list)
     prefs: dict[tuple[uuid.UUID, uuid.UUID, str], tuple[bool, dict[str, Any]]] = field(
         default_factory=dict
@@ -412,6 +413,8 @@ class FakePropertiesRepository:
 
     async def add_photo(self, photo: StoredPhoto, phash: int | None) -> None:
         self.db.photos[photo.id] = photo
+        if phash is not None:
+            self.db.phashes[photo.id] = phash
 
     async def delete_photo(self, photo_id: uuid.UUID) -> None:
         self.db.photos.pop(photo_id, None)
@@ -422,6 +425,24 @@ class FakePropertiesRepository:
             self.db.photos[photo_id] = StoredPhoto(
                 ph.id, ph.property_id, ph.storage_key, position, ph.width, ph.height
             )
+
+    async def photo_twins(self, property_id: uuid.UUID, max_distance: int) -> list[uuid.UUID]:
+        owner = self.db.properties[property_id].data.owner_user_id
+        mine = [
+            h
+            for pid, h in self.db.phashes.items()
+            if self.db.photos[pid].property_id == property_id
+        ]
+        out: list[uuid.UUID] = []
+        for pid, h in self.db.phashes.items():
+            other = self.db.photos[pid].property_id
+            if other == property_id or other in out:
+                continue
+            if self.db.properties[other].data.owner_user_id == owner:
+                continue
+            if any(bin((h ^ m) & (2**64 - 1)).count("1") <= max_distance for m in mine):
+                out.append(other)
+        return out
 
 
 class FakeNotificationsRepository:

@@ -675,6 +675,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/listings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Listings */
+        get: operations["my_listings_api_v1_listings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me": {
         parameters: {
             query?: never;
@@ -1069,6 +1086,75 @@ export interface paths {
         /** Update Property Profile */
         put: operations["update_property_profile_api_v1_properties__property_id__details_put"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/properties/{property_id}/listing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listing State */
+        get: operations["listing_state_api_v1_properties__property_id__listing_get"];
+        /** Save Listing */
+        put: operations["save_listing_api_v1_properties__property_id__listing_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/properties/{property_id}/listing/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close Listing */
+        post: operations["close_listing_api_v1_properties__property_id__listing_close_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/properties/{property_id}/listing/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause Listing */
+        post: operations["pause_listing_api_v1_properties__property_id__listing_pause_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/properties/{property_id}/listing/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish Listing */
+        post: operations["publish_listing_api_v1_properties__property_id__listing_publish_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2065,6 +2151,110 @@ export interface components {
             /** Full Name */
             full_name: string;
         };
+        /**
+         * ListingIn
+         * @description Умови угоди (FR-LST-1). Решту — опис, тварин, дітей, мешканців — бере з анкети.
+         */
+        ListingIn: {
+            /** Available From */
+            available_from?: string | null;
+            /** Deposit Amount */
+            deposit_amount?: number | null;
+            /** Min Term Months */
+            min_term_months?: number | null;
+            /** Price Amount */
+            price_amount: number;
+            /**
+             * Utilities Included
+             * @default false
+             */
+            utilities_included: boolean;
+        };
+        /** ListingOut */
+        ListingOut: {
+            /** Available From */
+            available_from: string | null;
+            /** Closed At */
+            closed_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            /** Deposit Amount */
+            deposit_amount: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Min Term Months */
+            min_term_months: number | null;
+            /** Owner Declared */
+            owner_declared: boolean;
+            /** Price Amount */
+            price_amount: number;
+            /**
+             * Property Id
+             * Format: uuid
+             */
+            property_id: string;
+            /** Published At */
+            published_at: string | null;
+            status: components["schemas"]["ListingStatus"];
+            /**
+             * Unit Id
+             * Format: uuid
+             */
+            unit_id: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Utilities Included */
+            utilities_included: boolean;
+        };
+        /**
+         * ListingReadiness
+         * @description Що бракує для публікації. Фото не обов'язкові, але без них оголошення слабке.
+         */
+        ListingReadiness: {
+            /** Completeness Min */
+            completeness_min: number;
+            /** Completeness Percent */
+            completeness_percent: number;
+            /** Ownership Verified */
+            ownership_verified: boolean;
+            /** Photos */
+            photos: number;
+            /** Profile Ok */
+            profile_ok: boolean;
+            /** Ready */
+            ready: boolean;
+            /** Unit Busy */
+            unit_busy: boolean;
+        };
+        /**
+         * ListingState
+         * @description Екран оголошення власника: живе оголошення (або останнє з історії) і готовність.
+         */
+        ListingState: {
+            listing: components["schemas"]["ListingOut"] | null;
+            /**
+             * Property Id
+             * Format: uuid
+             */
+            property_id: string;
+            readiness: components["schemas"]["ListingReadiness"];
+        };
+        /**
+         * ListingStatus
+         * @enum {string}
+         */
+        ListingStatus: "draft" | "active" | "paused" | "rented" | "archived" | "blocked";
         /** MeOut */
         MeOut: {
             consent: components["schemas"]["ConsentInfo"];
@@ -2763,6 +2953,17 @@ export interface components {
             name: string;
             /** Payment Url */
             payment_url: string | null;
+        };
+        /**
+         * PublishIn
+         * @description FR-LST-2: «Я власник або уповноважена особа і не беру комісії».
+         */
+        PublishIn: {
+            /**
+             * Owner Declaration
+             * @default false
+             */
+            owner_declaration: boolean;
         };
         /** QueueItem */
         QueueItem: {
@@ -4744,6 +4945,37 @@ export interface operations {
             };
         };
     };
+    my_listings_api_v1_listings_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListingOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     me_api_v1_me_get: {
         parameters: {
             query?: never;
@@ -5809,6 +6041,179 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PropertyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listing_state_api_v1_properties__property_id__listing_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListingState"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_listing_api_v1_properties__property_id__listing_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ListingIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListingState"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    close_listing_api_v1_properties__property_id__listing_close_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListingState"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pause_listing_api_v1_properties__property_id__listing_pause_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListingState"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_listing_api_v1_properties__property_id__listing_publish_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListingState"];
                 };
             };
             /** @description Validation Error */

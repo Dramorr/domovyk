@@ -169,6 +169,10 @@ class PropertiesRepository(Protocol):
         """Позиції 0..n-1 у порядку списку (0 — обкладинка)."""
         ...
 
+    async def photo_twins(self, property_id: uuid.UUID, max_distance: int) -> list[uuid.UUID]:
+        """Об'єкти інших власників, де є фото з pHash не далі max_distance біт (FR-LST-5)."""
+        ...
+
 
 _PROPERTY_COLUMNS: tuple[Any, ...] = (
     PropertyRow,
@@ -710,3 +714,22 @@ class SqlPropertiesRepository:
                 .where(PropertyPhotoRow.id == photo_id)
                 .values(position=position)
             )
+
+    async def photo_twins(self, property_id: uuid.UUID, max_distance: int) -> list[uuid.UUID]:
+        rows = await self._s.execute(
+            text(
+                """
+                SELECT DISTINCT o.property_id
+                FROM property_photos p
+                JOIN properties mine ON mine.id = p.property_id
+                JOIN property_photos o ON o.property_id <> p.property_id
+                JOIN properties other ON other.id = o.property_id
+                WHERE p.property_id = :pid
+                  AND other.owner_user_id <> mine.owner_user_id
+                  AND p.phash IS NOT NULL AND o.phash IS NOT NULL
+                  AND bit_count((p.phash # o.phash)::bit(64)) <= :d
+                """
+            ),
+            {"pid": property_id, "d": max_distance},
+        )
+        return [r[0] for r in rows]

@@ -9,7 +9,7 @@ from typing import Any, Protocol
 from sqlalchemy import func, or_, select, update
 
 from domovyk.core.tx import Tx, session_of
-from domovyk.modules.moderation.models import AuditRow, BanRow, RiskSignalRow
+from domovyk.modules.moderation.models import AuditRow, BanRow, RiskSignalRow, RiskWordRow
 from domovyk.modules.moderation.schemas import BanIdentifiers, BanOut
 
 
@@ -41,6 +41,7 @@ class ModerationRepository(Protocol):
     ) -> None: ...
 
     async def count_risk_signals(self, user_id: uuid.UUID) -> int: ...
+    async def risk_words(self) -> list[str]: ...
 
 
 def _matches(ids: BanIdentifiers) -> list[Any]:
@@ -137,3 +138,7 @@ class SqlModerationRepository:
             select(func.count()).select_from(RiskSignalRow).where(RiskSignalRow.user_id == user_id)
         )
         return int(count or 0)
+
+    async def risk_words(self) -> list[str]:
+        rows = await self._s.scalars(select(RiskWordRow.word).order_by(RiskWordRow.word))
+        return list(rows)

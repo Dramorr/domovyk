@@ -44,6 +44,10 @@ export type Reading = S["ReadingOut"];
 export type ReadingResult = S["ReadingResult"];
 export type Provider = S["ProviderOut"];
 export type UtilityChargeIn = S["UtilityChargeIn"];
+export type Listing = S["ListingOut"];
+export type ListingIn = S["ListingIn"];
+export type ListingState = S["ListingState"];
+export type ListingStatus = S["ListingStatus"];
 
 export type ApiErrorKind = "no_api" | "unauthorized" | "network" | "server" | "unavailable" | "domain";
 
@@ -183,6 +187,16 @@ export const api = {
   deleteProperty: (id: string) => request<void>("DELETE", p(id)),
   updateProfile: (id: string, body: PropertyDetails) => request<Property>("PUT", `${p(id)}/details`, body),
   photos: (id: string) => request<Photo[]>("GET", `${p(id)}/photos`),
+
+  // Оголошення (M6, FR-LST-1..5)
+  myListings: () => request<Listing[]>("GET", "/api/v1/listings"),
+  listing: (id: string) => request<ListingState>("GET", `${p(id)}/listing`),
+  saveListing: (id: string, body: ListingIn) => request<ListingState>("PUT", `${p(id)}/listing`, body),
+  publishListing: (id: string, owner_declaration: boolean) =>
+    request<ListingState>("POST", `${p(id)}/listing/publish`, { owner_declaration }),
+  pauseListing: (id: string) => request<ListingState>("POST", `${p(id)}/listing/pause`),
+  closeListing: (id: string) => request<ListingState>("POST", `${p(id)}/listing/close`),
+
   addPhoto: (id: string, data: Blob) => {
     const form = new FormData();
     form.append("file", data, "photo");

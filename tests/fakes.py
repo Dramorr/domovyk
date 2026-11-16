@@ -14,7 +14,7 @@ from domovyk.adapters.geocoder.manual import ManualGeocoder
 from domovyk.adapters.images.pillow import PillowImageProcessor
 from domovyk.adapters.receipts.pdf import PdfReceiptReader
 from domovyk.adapters.signing.diia_portal import DiiaPortalVerifier
-from domovyk.container import Services, wire_contracts, wire_guards
+from domovyk.container import Services, wire_contracts, wire_guards, wire_listings
 from domovyk.core.clock import Clock, FixedClock
 from domovyk.core.crypto import Cipher
 from domovyk.core.tx import NullTxManager, Tx
@@ -29,6 +29,7 @@ from domovyk.modules.analytics.service import AnalyticsService
 from domovyk.modules.chat.service import ChatService
 from domovyk.modules.contracts.service import ContractsConfig, ContractsService
 from domovyk.modules.leases.service import LeasesConfig, LeasesService
+from domovyk.modules.listings.service import ListingsConfig, ListingsService
 from domovyk.modules.moderation.schemas import BanIdentifiers, BanOut
 from domovyk.modules.moderation.service import ModerationService
 from domovyk.modules.notifications.service import NotificationsService
@@ -39,6 +40,7 @@ from domovyk.modules.users.service import UsersConfig, UsersService
 from domovyk.modules.utilities.service import UtilitiesConfig, UtilitiesService
 from tests.fakes_contracts import ContractDb, FakeContractsRepository, FakePdfRenderer
 from tests.fakes_leases import FakeChatRepository, FakeLeasesRepository, LeaseDb
+from tests.fakes_listings import FakeListingsRepository, ListingDb
 from tests.fakes_payments import FakePaymentsRepository, PaymentDb
 from tests.fakes_properties import (
     FakeNotificationsRepository,
@@ -90,11 +92,13 @@ class FakeDb:
         self.audit: list[dict[str, Any]] = []
         self.events: list[tuple[uuid.UUID | None, str, str]] = []
         self.risk_signals: list[tuple[uuid.UUID, str, dict[str, Any]]] = []
+        self.risk_words: list[str] = ["комісі", "агенці", "ріелтор", "агент"]
         self.prop = PropDb()
         self.lease = LeaseDb()
         self.contract = ContractDb()
         self.payment = PaymentDb()
         self.utility = UtilityDb()
+        self.listing = ListingDb()
         self.pdf = FakePdfRenderer()
         self.cipher = Cipher(Fernet.generate_key().decode())
         self.storage = MemoryStorage()
@@ -271,6 +275,9 @@ class FakeModerationRepository:
     async def count_risk_signals(self, user_id: uuid.UUID) -> int:
         return sum(1 for uid, _, _ in self.db.risk_signals if uid == user_id)
 
+    async def risk_words(self) -> list[str]:
+        return list(self.db.risk_words)
+
 
 class FakeEventsRepository:
     def __init__(self, db: FakeDb) -> None:
@@ -412,8 +419,21 @@ def make_fake_services(
         UtilitiesConfig(),
         images=PillowImageProcessor(),
     )
+    listings = ListingsService(
+        NullTxManager(),
+        lambda _: FakeListingsRepository(db.listing),
+        users,
+        properties,
+        leases,
+        moderation,
+        notifications,
+        analytics,
+        clock,
+        ListingsConfig(),
+    )
     wire_guards(users, properties, leases)
     wire_contracts(leases, contracts)
+    wire_listings(properties, leases, listings)
     services = Services(
         users=users,
         moderation=moderation,
@@ -425,5 +445,6 @@ def make_fake_services(
         contracts=contracts,
         payments=payments,
         utilities=utilities,
+        listings=listings,
     )
     return services, db

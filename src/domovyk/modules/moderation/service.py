@@ -97,3 +97,7 @@ class ModerationService:
 
     async def count_risk_signals(self, tx: Tx, user_id: uuid.UUID) -> int:
         return await self._repo(tx).count_risk_signals(user_id)
+
+    async def risk_words(self, tx: Tx) -> list[str]:
+        """Основи «ріелторських» слів (FR-LST-5): список у БД, редагують модератори."""
+        return await self._repo(tx).risk_words()

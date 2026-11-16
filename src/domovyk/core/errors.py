@@ -119,6 +119,24 @@ class OwnershipNotVerified(PermissionDenied):
     code = "ownership_not_verified"
 
 
+class HasLiveListing(Conflict):
+    """Об'єкт з опублікованим оголошенням не видаляють — спершу зняти оголошення (FR-PRP-9)."""
+
+    code = "has_live_listing"
+
+
+class UnitBusy(Conflict):
+    """На об'єкті вже є оренда — оголошення не опублікувати (FR-LST-3)."""
+
+    code = "unit_busy"
+
+
+class DeclarationRequired(InvalidInput):
+    """Без галочки «я власник і не беру комісії» оголошення не публікується (FR-LST-2)."""
+
+    code = "declaration_required"
+
+
 class ServiceUnavailable(DomainError):
     """Зовнішній сервіс (геокодер, Telegram) тимчасово недоступний."""
 

@@ -124,6 +124,8 @@ class PropertiesConfig:
     # Фото об'єкта (FR-PRP-10).
     max_photos: int = 15
     max_photo_bytes: int = 15 * 1024 * 1024
+    # Ті самі фото в чужому об'єкті (FR-LST-5): відстань Геммінга між pHash, біт.
+    photo_twin_max_distance: int = 6
 
 
 class PropertiesService:
@@ -155,6 +157,7 @@ class PropertiesService:
         self._notifier = notifier
         self._images = images
         self._release: Callable[[PropertyOut], Awaitable[bool]] | None = None
+        self._listing_guard: Callable[[PropertyOut], Awaitable[None]] | None = None
 
     # ----------------------------------------------------------------- адреси
 
@@ -363,6 +366,8 @@ class PropertiesService:
         user = await self._users.require_active(telegram_uid)
         async with self._tx.begin() as tx:
             prop = await self._owned(self._repo(tx), property_id, user.id)
+        if self._listing_guard is not None:
+            await self._listing_guard(prop)
         archive = await self._release(prop) if self._release is not None else False
         async with self._tx.begin() as tx:
             repo = self._repo(tx)
@@ -448,6 +453,17 @@ class PropertiesService:
         Кидає HasOpenLease, якщо оренда жива; True — треба архівувати, а не стирати.
         """
         self._release = hook
+
+    def set_listing_guard(self, hook: Callable[[PropertyOut], Awaitable[None]]) -> None:
+        """Модуль оголошень забороняє видаляти об'єкт з опублікованим оголошенням."""
+        self._listing_guard = hook
+
+    async def photo_twins(self, property_id: uuid.UUID) -> list[uuid.UUID]:
+        """Чужі об'єкти з тими самими фото (FR-LST-5): для сигналу модератору."""
+        async with self._tx.begin() as tx:
+            return await self._repo(tx).photo_twins(
+                property_id, self._config.photo_twin_max_distance
+            )
 
     async def require_verified_owner(
         self, user_id: uuid.UUID, property_id: uuid.UUID

@@ -17,7 +17,7 @@ from domovyk.adapters.geocoder.manual import ManualGeocoder
 from domovyk.adapters.images.pillow import PillowImageProcessor
 from domovyk.adapters.receipts.pdf import PdfReceiptReader
 from domovyk.adapters.signing.diia_portal import DiiaPortalVerifier
-from domovyk.container import Services, wire_contracts, wire_guards
+from domovyk.container import Services, wire_contracts, wire_guards, wire_listings
 from domovyk.core.clock import FixedClock
 from domovyk.core.crypto import Cipher
 from domovyk.core.db import make_engine, make_sessionmaker
@@ -30,6 +30,8 @@ from domovyk.modules.contracts.repository import SqlContractsRepository
 from domovyk.modules.contracts.service import ContractsConfig, ContractsService
 from domovyk.modules.leases.repository import SqlLeasesRepository
 from domovyk.modules.leases.service import LeasesConfig, LeasesService
+from domovyk.modules.listings.repository import SqlListingsRepository
+from domovyk.modules.listings.service import ListingsConfig, ListingsService
 from domovyk.modules.moderation.repository import SqlModerationRepository
 from domovyk.modules.moderation.service import ModerationService
 from domovyk.modules.notifications.repository import SqlNotificationsRepository
@@ -177,8 +179,21 @@ def services(engine: AsyncEngine, it_clock: FixedClock) -> Services:
         UtilitiesConfig(),
         images=PillowImageProcessor(),
     )
+    listings = ListingsService(
+        tx,
+        SqlListingsRepository,
+        users,
+        properties,
+        leases,
+        moderation,
+        notifications,
+        analytics,
+        it_clock,
+        ListingsConfig(),
+    )
     wire_guards(users, properties, leases)
     wire_contracts(leases, contracts)
+    wire_listings(properties, leases, listings)
     return Services(
         users=users,
         moderation=moderation,
@@ -190,4 +205,5 @@ def services(engine: AsyncEngine, it_clock: FixedClock) -> Services:
         contracts=contracts,
         payments=payments,
         utilities=utilities,
+        listings=listings,
     )

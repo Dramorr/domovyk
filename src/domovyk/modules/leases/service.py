@@ -168,6 +168,7 @@ class LeasesService:
         self._clock = clock
         self._config = config
         self._purge_hook: Callable[[uuid.UUID], Awaitable[None]] | None = None
+        self._opened_hook: Callable[[list[uuid.UUID]], Awaitable[None]] | None = None
 
     # ------------------------------------------------------- для інших модулів
 
@@ -175,6 +176,15 @@ class LeasesService:
         """Видалення акаунта заборонене, поки є жива оренда (FR-USR-5)."""
         async with self._tx.begin() as tx:
             return await self._repo(tx).count_open_for_user(user_id) > 0
+
+    async def busy_unit_ids(self, unit_ids: list[uuid.UUID]) -> set[uuid.UUID]:
+        """Юніти з живою орендою (від чернетки до «завершується») — для оголошень (M6)."""
+        async with self._tx.begin() as tx:
+            return await self._repo(tx).open_unit_ids(unit_ids)
+
+    def set_opened_hook(self, hook: Callable[[list[uuid.UUID]], Awaitable[None]]) -> None:
+        """Оголошення на об'єкті стає «здано», щойно на нього створено оренду (FR-LST-3)."""
+        self._opened_hook = hook
 
     async def release_property(self, prop: PropertyOut) -> bool:
         """Перед видаленням об'єкта (FR-PRP-9): звільнити його від оренд.
@@ -317,6 +327,8 @@ class LeasesService:
             await self._chat.system(tx, conversation, SystemCode.LEASE_CREATED)
             invite = await self._new_invite(repo, lease_id, MemberRole.RESPONSIBLE, user.id, now)
             out = await self._out(tx, await self._ctx(tx, lease_id, user))
+        if self._opened_hook is not None:
+            await self._opened_hook([u.id for u in prop.units])
         return out, invite
 
     def _pick_unit(self, prop: PropertyOut, unit_id: uuid.UUID | None) -> uuid.UUID:

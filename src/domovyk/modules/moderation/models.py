@@ -12,6 +12,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Identity,
+    Integer,
     SmallInteger,
     Text,
     func,
@@ -58,6 +59,14 @@ class RiskSignalRow(Base):
     signal_type: Mapped[str] = mapped_column(Text)
     weight: Mapped[int] = mapped_column(SmallInteger, server_default="1")
     details: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class RiskWordRow(Base):
+    __tablename__ = "risk_words"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    word: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

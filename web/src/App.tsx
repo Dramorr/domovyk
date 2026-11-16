@@ -7,6 +7,7 @@ import { Chat } from "./screens/Chat";
 import { InviteAccept, InviteShare, LeaseCard, LeaseForm, LeaseNotifications, TenantHome } from "./screens/Leases";
 import { ModerationCase, ModerationQueue, SignatureReview } from "./screens/Moderation";
 import { ConsentAndName, ModeChoice, PhoneStep } from "./screens/Onboarding";
+import { ListingScreen } from "./screens/Listing";
 import { MetersScreen } from "./screens/Meters";
 import { Profile } from "./screens/Profile";
 import { PropertyProfile } from "./screens/PropertyProfile";
@@ -39,7 +40,8 @@ type Route =
   | { name: "invite"; token: string }
   | { name: "chat"; id: string }
   | { name: "lease-notify"; id: string }
-  | { name: "meters"; leaseId?: string; propertyId?: string };
+  | { name: "meters"; leaseId?: string; propertyId?: string }
+  | { name: "listing"; id: string };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -275,7 +277,20 @@ export function App() {
           onOpenLease={(id) => push({ name: "lease", id })}
           onChat={(id) => push({ name: "chat", id })}
           onMeters={() => push({ name: "meters", propertyId: route.id })}
+          onListing={() => push({ name: "listing", id: route.id })}
           onDeleted={back}
+        />
+      );
+      break;
+    case "listing":
+      screen = (
+        <ListingScreen
+          key={route.id}
+          id={route.id}
+          webApp={webApp}
+          onBack={back}
+          onOwnership={() => push({ name: "ownership", id: route.id })}
+          onProfile={() => push({ name: "profile-form", id: route.id })}
         />
       );
       break;
