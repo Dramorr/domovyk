@@ -390,7 +390,7 @@ export function App() {
       );
       break;
     case "chat":
-      screen = <Chat key={route.id} leaseId={route.id} onBack={back} />;
+      screen = <Chat key={route.id} source={{ kind: "lease", id: route.id }} onBack={back} />;
       break;
     case "lease-notify":
       screen = <LeaseNotifications id={route.id} onBack={back} />;

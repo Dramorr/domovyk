@@ -49,6 +49,12 @@ from domovyk.interfaces.api.telegram_auth import (
     TelegramAuth,
     validate_init_data,
 )
+from domovyk.modules.applications.service import (
+    ApplicationCard,
+    ApplicationIn,
+    ApplicationOut,
+    DeclineIn,
+)
 from domovyk.modules.contracts.service import (
     ContractState,
     ExternalDecisionIn,
@@ -628,6 +634,70 @@ def create_app(
         return await svc.leases.accept_invite(auth.user.id, token)
 
     # ------------------------------------------------- чат оренди (FR-CHT-1)
+
+    # ------------------------------------------------ заявки (M6, FR-APP-1..3, 6)
+
+    @app.post("/api/v1/listings/{listing_id}/applications", status_code=status.HTTP_201_CREATED)
+    async def apply(auth: Auth, listing_id: uuid.UUID, body: ApplicationIn) -> ApplicationCard:
+        return await svc.applications.apply(auth.user.id, listing_id, body)
+
+    @app.get("/api/v1/applications")
+    async def my_applications(auth: Auth) -> list[ApplicationOut]:
+        return await svc.applications.mine(auth.user.id)
+
+    @app.get("/api/v1/applications/incoming")
+    async def incoming_applications(
+        auth: Auth, property_id: Annotated[uuid.UUID | None, Query()] = None
+    ) -> list[ApplicationOut]:
+        return await svc.applications.incoming(auth.user.id, property_id)
+
+    @app.get("/api/v1/applications/{application_id}")
+    async def application_card(auth: Auth, application_id: uuid.UUID) -> ApplicationCard:
+        return await svc.applications.card(auth.user.id, application_id)
+
+    @app.post("/api/v1/applications/{application_id}/approve")
+    async def approve_application(auth: Auth, application_id: uuid.UUID) -> ApplicationCard:
+        return await svc.applications.approve(auth.user.id, application_id)
+
+    @app.post("/api/v1/applications/{application_id}/decline")
+    async def decline_application(
+        auth: Auth, application_id: uuid.UUID, body: DeclineIn
+    ) -> ApplicationCard:
+        return await svc.applications.decline(auth.user.id, application_id, body)
+
+    @app.post("/api/v1/applications/{application_id}/withdraw")
+    async def withdraw_application(auth: Auth, application_id: uuid.UUID) -> ApplicationCard:
+        return await svc.applications.withdraw(auth.user.id, application_id)
+
+    @app.post("/api/v1/applications/{application_id}/lease", status_code=status.HTTP_201_CREATED)
+    async def lease_from_application(
+        auth: Auth, application_id: uuid.UUID, body: LeaseConditions
+    ) -> LeaseOut:
+        return await svc.applications.create_lease(auth.user.id, application_id, body)
+
+    @app.get("/api/v1/applications/{application_id}/messages")
+    async def application_messages(
+        auth: Auth,
+        application_id: uuid.UUID,
+        after_id: Annotated[int, Query(ge=0)] = 0,
+        before_id: Annotated[int | None, Query(ge=1)] = None,
+    ) -> MessagesPage:
+        return await svc.applications.messages(
+            auth.user.id, application_id, after_id=after_id, before_id=before_id
+        )
+
+    @app.post("/api/v1/applications/{application_id}/messages", status_code=status.HTTP_201_CREATED)
+    async def post_application_message(
+        auth: Auth, application_id: uuid.UUID, body: MessageIn
+    ) -> MessageOut:
+        return await svc.applications.post_message(auth.user.id, application_id, body.body)
+
+    @app.post("/api/v1/applications/{application_id}/read", status_code=status.HTTP_204_NO_CONTENT)
+    async def mark_application_read(
+        auth: Auth, application_id: uuid.UUID, body: ReadIn
+    ) -> Response:
+        await svc.applications.mark_read(auth.user.id, application_id, body.message_id)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     @app.get("/api/v1/leases/{lease_id}/messages")
     async def lease_messages(

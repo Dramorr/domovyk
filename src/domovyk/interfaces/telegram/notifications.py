@@ -124,6 +124,29 @@ def make_renderer(base_url: str) -> Renderer:
                         )
                     ],
                 )
+            case NotificationType.APPLICATION:
+                event = str(p.get("event") or "")
+                if event == "declined" and p.get("reason") == "rented":
+                    event = "declined_rented"
+                template = uk.APPLICATION_EVENTS.get(event)
+                if template is None:
+                    return None
+                rooms = int(p.get("rooms") or 0)
+                room_text = uk.ROOMS_STUDIO if rooms == 0 else uk.ROOMS_N.format(n=rooms)
+                place = f"{room_text}, {escape(str(p.get('street') or ''))}"
+                return RenderedMessage(
+                    template.format(
+                        name=escape(str(p.get("name") or "")),
+                        place=place,
+                        preview=escape(str(p.get("preview") or "")),
+                    ),
+                    [
+                        Button(
+                            uk.BTN_OPEN_APPLICATION,
+                            web_app_url=mini_app_url(base_url, f"app_{p.get('application_id')}"),
+                        )
+                    ],
+                )
             case NotificationType.NEW_MATCH:
                 if p.get("digest"):
                     return RenderedMessage(

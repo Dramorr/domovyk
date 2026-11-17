@@ -1,9 +1,9 @@
-// Чат оренди (FR-CHT-1, FR-CHT-2): живе в застосунку, бот лише сповіщає.
+// Чат оренди (FR-CHT-1, FR-CHT-2) і заявки (FR-APP-2): живе в застосунку, бот лише сповіщає.
 // Нові повідомлення — опитуванням раз на кілька секунд (WebSocket — коли знадобиться).
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { api, type Lease, type Message } from "../api/client";
+import { api, type ChatSource, type Message } from "../api/client";
 import { t, type TextKey } from "../i18n";
 import { Icon } from "../icons";
 import { errorText, MascotTip, Screen } from "../ui";
@@ -19,8 +19,15 @@ function systemText(m: Message): string {
   return t(`ch_sys_${m.system_code}` as TextKey, { name: String(params.name ?? "") });
 }
 
-export function Chat({ leaseId, onBack }: { leaseId: string; onBack: () => void }) {
-  const [lease, setLease] = useState<Lease | null>(null);
+function isMine(sender: string | null | undefined, me: string | null): boolean {
+  if (!me || !sender) return false;
+  return me.startsWith("not:") ? sender !== me.slice(4) : sender === me;
+}
+
+type People = { me: string | null; names: Map<string, string> };
+
+export function Chat({ source, onBack }: { source: ChatSource; onBack: () => void }) {
+  const [people, setPeople] = useState<People>({ me: null, names: new Map() });
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -28,8 +35,8 @@ export function Chat({ leaseId, onBack }: { leaseId: string; onBack: () => void 
   const lastId = useRef(0);
   const bottom = useRef<HTMLDivElement>(null);
 
-  const me = lease?.members.find((m) => m.role === lease.my_role)?.user_id;
-  const names = new Map(lease?.members.map((m) => [m.user_id, m.display_name]) ?? []);
+  const { me, names } = people;
+  const key = `${source.kind}:${source.id}`;
 
   const append = useCallback(
     (fresh: Message[]) => {
@@ -39,25 +46,43 @@ export function Chat({ leaseId, onBack }: { leaseId: string; onBack: () => void 
         return [...prev, ...fresh.filter((m) => !known.has(m.id))];
       });
       lastId.current = Math.max(lastId.current, ...fresh.map((m) => m.id));
-      void api.markRead(leaseId, lastId.current).catch(() => undefined);
+      void api.markRead(source, lastId.current).catch(() => undefined);
     },
-    [leaseId],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [key],
   );
 
   useEffect(() => {
-    api.lease(leaseId).then(setLease).catch((e: unknown) => setError(errorText(e)));
+    if (source.kind === "lease") {
+      api
+        .lease(source.id)
+        .then((l) =>
+          setPeople({
+            me: l.members.find((m) => m.role === l.my_role)?.user_id ?? null,
+            names: new Map(l.members.map((m) => [m.user_id, m.display_name])),
+          }),
+        )
+        .catch((e: unknown) => setError(errorText(e)));
+    } else {
+      // У заявці двоє: «я» — той, хто не інша сторона.
+      api
+        .application(source.id)
+        .then((c) => setPeople({ me: `not:${c.other.user_id}`, names: new Map([[c.other.user_id, c.other.display_name]]) }))
+        .catch((e: unknown) => setError(errorText(e)));
+    }
     api
-      .messages(leaseId)
+      .messages(source)
       .then((page) => append(page.messages))
       .catch((e: unknown) => setError(errorText(e)));
     const timer = window.setInterval(() => {
       api
-        .messages(leaseId, lastId.current)
+        .messages(source, lastId.current)
         .then((page) => append(page.messages))
         .catch(() => undefined);
     }, POLL_MS);
     return () => window.clearInterval(timer);
-  }, [leaseId, append]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, append]);
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: "end" });
@@ -69,7 +94,7 @@ export function Chat({ leaseId, onBack }: { leaseId: string; onBack: () => void 
     setBusy(true);
     setError(null);
     try {
-      append([await api.postMessage(leaseId, body)]);
+      append([await api.postMessage(source, body)]);
       setText("");
     } catch (e) {
       setError(errorText(e));
@@ -81,7 +106,7 @@ export function Chat({ leaseId, onBack }: { leaseId: string; onBack: () => void 
   const userMessages = messages.filter((m) => !m.system_code);
 
   return (
-    <Screen onBack={onBack} title={t("ch_title")}>
+    <Screen onBack={onBack} title={source.kind === "lease" ? t("ch_title") : t("ap_chat_title")}>
       {userMessages.length === 0 && (
         <MascotTip>
           <p>{t("ch_empty")}</p>
@@ -94,8 +119,8 @@ export function Chat({ leaseId, onBack }: { leaseId: string; onBack: () => void 
               {systemText(m)}
             </p>
           ) : (
-            <div key={m.id} className={`msg${m.sender_id === me ? " mine" : ""}`}>
-              {m.sender_id !== me && <span className="msg-name">{names.get(m.sender_id ?? "") ?? ""}</span>}
+            <div key={m.id} className={`msg${isMine(m.sender_id, me) ? " mine" : ""}`}>
+              {!isMine(m.sender_id, me) && <span className="msg-name">{names.get(m.sender_id ?? "") ?? ""}</span>}
               <span className="msg-body">{m.body}</span>
               <span className="msg-time">{time(m.created_at)}</span>
             </div>

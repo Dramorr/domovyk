@@ -55,6 +55,11 @@ export type ListingSummary = S["ListingSummary"];
 export type ListingCard = S["ListingCard"];
 export type Amenity = S["Amenity"];
 export type SavedSearch = S["SavedSearchOut"];
+export type Application = S["ApplicationOut"];
+export type ApplicationCard = S["ApplicationCard"];
+export type DeclineReason = S["DeclineReason"];
+/** Чат оренди або заявки — однакові запити, різна адреса. */
+export type ChatSource = { kind: "lease" | "application"; id: string };
 
 export type ApiErrorKind = "no_api" | "unauthorized" | "network" | "server" | "unavailable" | "domain";
 
@@ -155,6 +160,9 @@ async function requestPdf(path: string): Promise<{ data: ArrayBuffer; draft: boo
 }
 
 const p = (id: string) => `/api/v1/properties/${encodeURIComponent(id)}`;
+const a = (id: string) => `/api/v1/applications/${encodeURIComponent(id)}`;
+const chatBase = (src: ChatSource) =>
+  src.kind === "lease" ? `/api/v1/leases/${encodeURIComponent(src.id)}` : a(src.id);
 const l = (id: string) => `/api/v1/leases/${encodeURIComponent(id)}`;
 const c = (id: string) => `/api/v1/contracts/${encodeURIComponent(id)}`;
 const v = (id: string) => `/api/v1/moderation/ownership/${encodeURIComponent(id)}`;
@@ -339,9 +347,27 @@ export const api = {
   newInvite: (id: string, role: Invite["role"]) => request<Invite>("POST", `${l(id)}/invites`, { role }),
   previewInvite: (token: string) => request<InvitePreview>("GET", `/api/v1/invites/${encodeURIComponent(token)}`),
   acceptInvite: (token: string) => request<Lease>("POST", `/api/v1/invites/${encodeURIComponent(token)}/accept`),
-  messages: (id: string, afterId = 0) => request<MessagesPage>("GET", `${l(id)}/messages?after_id=${afterId}`),
-  postMessage: (id: string, body: string) => request<Message>("POST", `${l(id)}/messages`, { body }),
-  markRead: (id: string, messageId: number) => request<void>("POST", `${l(id)}/read`, { message_id: messageId }),
+  messages: (src: ChatSource, afterId = 0) =>
+    request<MessagesPage>("GET", `${chatBase(src)}/messages?after_id=${afterId}`),
+  postMessage: (src: ChatSource, body: string) => request<Message>("POST", `${chatBase(src)}/messages`, { body }),
+  markRead: (src: ChatSource, messageId: number) =>
+    request<void>("POST", `${chatBase(src)}/read`, { message_id: messageId }),
+
+  // Заявки (M6, FR-APP-1..3, 6)
+  apply: (listingId: string, message: string | null) =>
+    request<ApplicationCard>("POST", `/api/v1/listings/${encodeURIComponent(listingId)}/applications`, { message }),
+  myApplications: () => request<Application[]>("GET", "/api/v1/applications"),
+  incomingApplications: (propertyId?: string) =>
+    request<Application[]>(
+      "GET",
+      `/api/v1/applications/incoming${propertyId ? `?property_id=${encodeURIComponent(propertyId)}` : ""}`,
+    ),
+  application: (id: string) => request<ApplicationCard>("GET", a(id)),
+  approveApplication: (id: string) => request<ApplicationCard>("POST", `${a(id)}/approve`),
+  declineApplication: (id: string, reason: DeclineReason | null) =>
+    request<ApplicationCard>("POST", `${a(id)}/decline`, { reason }),
+  withdrawApplication: (id: string) => request<ApplicationCard>("POST", `${a(id)}/withdraw`),
+  leaseFromApplication: (id: string, body: LeaseConditions) => request<Lease>("POST", `${a(id)}/lease`, body),
   notifyPrefs: (id: string) => request<NotifyPrefs>("GET", `${l(id)}/notifications`),
   setNotifyPrefs: (id: string, body: NotifyPrefs) => request<NotifyPrefs>("PUT", `${l(id)}/notifications`, body),
 

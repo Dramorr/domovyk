@@ -28,6 +28,17 @@ class ChatService:
         existing = await repo.conversation_for_lease(lease_id)
         return existing or await repo.create_for_lease(lease_id)
 
+    async def ensure_for_application(self, tx: Tx, application_id: uuid.UUID) -> uuid.UUID:
+        """Чат заявки (FR-APP-2): з'являється після схвалення."""
+        repo = self._repo(tx)
+        existing = await repo.conversation_for_application(application_id)
+        return existing or await repo.create_for_application(application_id)
+
+    async def conversation_for_application(
+        self, tx: Tx, application_id: uuid.UUID
+    ) -> uuid.UUID | None:
+        return await self._repo(tx).conversation_for_application(application_id)
+
     async def conversation_for_lease(self, tx: Tx, lease_id: uuid.UUID) -> uuid.UUID | None:
         return await self._repo(tx).conversation_for_lease(lease_id)
 

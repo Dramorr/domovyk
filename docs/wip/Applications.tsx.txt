@@ -1,0 +1,393 @@
+// Заявки (M6, BOT_FLOWS §5–6, FR-APP-1..3, 6, 7). До схвалення сторони бачать одна одну
+// (ім'я, вік, з якого часу на Домовику), але не контакти й не точну адресу (правило 9).
+
+import { useEffect, useState } from "react";
+
+import { api, ApiFailure, type Application, type ApplicationCard, type DeclineReason } from "../api/client";
+import { t, type TextKey } from "../i18n";
+import { Icon } from "../icons";
+import { confirm, type WebApp } from "../telegram";
+import { Avatar, Chip, errorCode, errorText, Fold, formatDate, formatDateTime, MascotTip, roomsText, Screen, Sheet, shortStreet } from "../ui";
+import { PhotoImage } from "./Photos";
+
+const k = (key: string, vars?: Record<string, string>) => t(key as TextKey, vars);
+
+type Tone = "neutral" | "ok" | "warn" | "info" | "bad";
+const TONE: Record<Application["status"], Tone> = {
+  pending: "info",
+  approved: "ok",
+  declined: "neutral",
+  withdrawn: "neutral",
+  expired: "neutral",
+  showing_scheduled: "ok",
+  showing_done: "ok",
+  no_show: "warn",
+  lease_created: "ok",
+};
+
+export function ApplicationChip({ status }: { status: Application["status"] }) {
+  return <Chip tone={TONE[status]}>{k(`ap_status_${status}`)}</Chip>;
+}
+
+function money(n: number): string {
+  return n.toLocaleString("uk-UA");
+}
+
+function place(a: Application): string {
+  return [a.listing.district, shortStreet(a.listing.street)].filter(Boolean).join(" · ");
+}
+
+function personLine(p: Application["other"]): string {
+  const parts = [p.age != null ? k("ap_age", { n: String(p.age) }) : null, k("ap_since", { date: formatDate(p.member_since) })];
+  return parts.filter(Boolean).join(" · ");
+}
+
+function applyError(e: unknown): string {
+  switch (errorCode(e)) {
+    case "contacts_in_text":
+      return t("ap_err_contacts");
+    case "conflict":
+      return e instanceof ApiFailure && e.reason === "too_many" ? t("ap_err_too_many") : t("ap_err_already");
+  }
+  return errorText(e);
+}
+
+function SheetHead({ title, onClose }: { title: string; onClose: () => void }) {
+  return (
+    <div className="sheet-head">
+      <h2>{title}</h2>
+      <button className="icon-button" aria-label={t("ab_close")} onClick={onClose}>
+        <Icon name="close" size={20} />
+      </button>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------- APP-NEW: відгук
+
+export function ApplySheet({
+  listingId,
+  onClose,
+  onSent,
+}: {
+  listingId: string;
+  onClose: () => void;
+  onSent: (card: ApplicationCard) => void;
+}) {
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function send() {
+    setBusy(true);
+    setError(null);
+    try {
+      onSent(await api.apply(listingId, text.trim() || null));
+    } catch (e) {
+      setError(applyError(e));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Sheet label={t("ap_new_title")} onClose={onClose}>
+      {(close) => (
+        <>
+          <SheetHead title={t("ap_new_title")} onClose={close} />
+      <p className="hint small">{t("ap_new_hint")}</p>
+      <label className="field">
+        {t("ap_new_message")}
+        <textarea
+          className="input"
+          rows={4}
+          maxLength={500}
+          value={text}
+          placeholder={t("ap_new_placeholder")}
+          onChange={(e) => setText(e.target.value)}
+        />
+      </label>
+      <p className="hint small">{t("ap_new_contacts_later")}</p>
+      <MascotTip tone="calm">{t("src_no_money")}</MascotTip>
+      {error && <p className="error">{error}</p>}
+      <button className="button" disabled={busy} onClick={send}>
+        <Icon name="send" size={20} />
+        {t("ap_new_send")}
+      </button>
+        </>
+      )}
+    </Sheet>
+  );
+}
+
+// ------------------------------------------------------------- списки
+
+function ApplicationRow({ item, onOpen }: { item: Application; onOpen: () => void }) {
+  const tenantSide = item.my_role === "tenant";
+  return (
+    <button type="button" className="result-row" onClick={onOpen}>
+      <span className="result-photo">
+        {tenantSide && item.listing.cover_photo_id ? (
+          <PhotoImage
+            src={{ kind: "listing", id: item.listing.listing_id }}
+            photo={{ id: item.listing.cover_photo_id, position: 0, width: 4, height: 3 }}
+            mode="cover"
+          />
+        ) : tenantSide ? (
+          <Icon name="photo" size={24} />
+        ) : (
+          <Avatar userId={item.other.user_id} version={item.other.avatar_version} name={item.other.display_name} size={56} />
+        )}
+      </span>
+      <span className="result-body">
+        <span className="result-price">
+          {tenantSide ? k("ls_rent_month", { rent: money(item.listing.price_amount) }) : item.other.display_name}
+          {item.unread > 0 && <span className="count">{item.unread}</span>}
+        </span>
+        <span className="result-line">
+          {tenantSide ? `${roomsText(item.listing.rooms)} · ${place(item)}` : personLine(item.other)}
+        </span>
+        <span className="result-line hint">{k("ap_sent_at", { date: formatDate(item.created_at) })}</span>
+        <span className="result-meta">
+          <ApplicationChip status={item.status} />
+        </span>
+      </span>
+    </button>
+  );
+}
+
+/** APP-MY: заявки орендаря. */
+export function MyApplications({ onBack, onOpen }: { onBack: () => void; onOpen: (id: string) => void }) {
+  const [items, setItems] = useState<Application[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    api
+      .myApplications()
+      .then(setItems)
+      .catch((e: unknown) => setError(errorText(e)));
+  }, []);
+  return (
+    <Screen onBack={onBack}>
+      <h1 className="left">{t("ap_my_title")}</h1>
+      {error && <p className="error">{error}</p>}
+      {items && items.length === 0 && <MascotTip tone="calm">{t("ap_my_empty")}</MascotTip>}
+      {items && items.length > 0 && (
+        <div className="result-list">
+          {items.map((x) => (
+            <ApplicationRow key={x.id} item={x} onOpen={() => onOpen(x.id)} />
+          ))}
+        </div>
+      )}
+      {!items && !error && <p className="hint">{t("loading")}</p>}
+    </Screen>
+  );
+}
+
+/** Заявки на оголошення квартири — блок на екрані оголошення власника. */
+export function IncomingApplications({ propertyId, onOpen }: { propertyId: string; onOpen: (id: string) => void }) {
+  const [items, setItems] = useState<Application[] | null>(null);
+  useEffect(() => {
+    api
+      .incomingApplications(propertyId)
+      .then(setItems)
+      .catch(() => setItems([]));
+  }, [propertyId]);
+  if (!items) return null;
+  const pending = items.filter((x) => x.status === "pending").length;
+  return (
+    <Fold
+      id={`incoming:${propertyId}`}
+      icon="send"
+      title={t("ap_incoming_title")}
+      summary={items.length ? k("ap_incoming_summary", { n: String(items.length), p: String(pending) }) : t("ap_incoming_none")}
+      aside={pending > 0 ? <span className="count">{pending}</span> : undefined}
+      defaultOpen={pending > 0}
+    >
+      {items.length === 0 ? (
+        <p className="hint small">{t("ap_incoming_empty")}</p>
+      ) : (
+        <div className="result-list">
+          {items.map((x) => (
+            <ApplicationRow key={x.id} item={x} onOpen={() => onOpen(x.id)} />
+          ))}
+        </div>
+      )}
+    </Fold>
+  );
+}
+
+// ------------------------------------------------------------- APP-CARD
+
+const REASONS: DeclineReason[] = ["rented", "terms", "other"];
+
+export function ApplicationScreen({
+  id,
+  webApp,
+  onBack,
+  onChat,
+  onListing,
+  onCreateLease,
+  onOpenLease,
+}: {
+  id: string;
+  webApp: WebApp;
+  onBack: () => void;
+  onChat: () => void;
+  onListing: (listingId: string) => void;
+  onCreateLease: (card: ApplicationCard) => void;
+  onOpenLease: (leaseId: string) => void;
+}) {
+  const [card, setCard] = useState<ApplicationCard | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [declining, setDeclining] = useState(false);
+
+  useEffect(() => {
+    api
+      .application(id)
+      .then(setCard)
+      .catch((e: unknown) => setError(errorText(e)));
+  }, [id]);
+
+  async function run(action: () => Promise<ApplicationCard>) {
+    setBusy(true);
+    setError(null);
+    try {
+      setCard(await action());
+      setDeclining(false);
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!card) {
+    return <Screen onBack={onBack}>{error ? <p className="error">{error}</p> : <p className="hint">{t("loading")}</p>}</Screen>;
+  }
+
+  const landlord = card.my_role === "landlord";
+  const statusHint = k(`ap_hint_${card.my_role}_${card.status}`, {
+    date: formatDateTime(card.expires_at),
+    reason: card.decline_reason ? k(`ap_reason_${card.decline_reason}`) : "",
+  });
+  const c = card.contacts;
+
+  return (
+    <Screen onBack={onBack}>
+      <h1 className="left">{landlord ? t("ap_card_title_landlord") : t("ap_card_title_tenant")}</h1>
+      <p className="hint left">
+        {k("ls_rent_month", { rent: money(card.listing.price_amount) })} · {roomsText(card.listing.rooms)} · {place(card)}
+      </p>
+
+      <section className="card">
+        <div className="stat">
+          <h2 style={{ margin: 0, flex: 1 }}>{t("ap_status")}</h2>
+          <ApplicationChip status={card.status} />
+        </div>
+        <p className="hint small">{statusHint}</p>
+        {card.can_approve && (
+          <div className="buttons">
+            <button className="button" disabled={busy} onClick={() => run(() => api.approveApplication(card.id))}>
+              <Icon name="check" size={20} />
+              {t("ap_approve")}
+            </button>
+            <button className="button secondary" disabled={busy} onClick={() => setDeclining(true)}>
+              {t("ap_decline")}
+            </button>
+          </div>
+        )}
+        {card.can_create_lease && (
+          <button className="button" disabled={busy} onClick={() => onCreateLease(card)}>
+            <Icon name="key" size={20} />
+            {t("ap_create_lease")}
+          </button>
+        )}
+        {card.lease_id && (
+          <button className="button" onClick={() => onOpenLease(card.lease_id ?? "")}>
+            <Icon name="key" size={20} />
+            {t("ap_open_lease")}
+          </button>
+        )}
+        {card.can_chat && (
+          <button className="button secondary" onClick={onChat}>
+            <Icon name="send" size={20} />
+            {t("ap_chat")}
+            {card.unread > 0 && <span className="count">{card.unread}</span>}
+          </button>
+        )}
+      </section>
+
+      {c && (
+        <section className="card accent">
+          <h2>{t("ap_contacts")}</h2>
+          <p className="row-title">
+            {t("address_apt", { street: shortStreet(card.listing.street), house: c.house_number, apartment: c.apartment ?? "—" })}
+          </p>
+          <p className="hint small">
+            {[c.entrance ? k("ap_entrance", { n: c.entrance }) : null, c.floor != null ? k("ap_floor", { n: String(c.floor) }) : null]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+          {c.phone && (
+            <a className="button secondary" href={`tel:${c.phone}`}>
+              <Icon name="user" size={20} />
+              {card.other.display_name} · {c.phone}
+            </a>
+          )}
+        </section>
+      )}
+
+      <section className="card">
+        <div className="person">
+          <Avatar userId={card.other.user_id} version={card.other.avatar_version} name={card.other.display_name} size={48} />
+          <div>
+            <p className="row-title">{card.other.display_name}</p>
+            <p className="hint small">{personLine(card.other)}</p>
+          </div>
+        </div>
+        {card.message && <p className="quote">«{card.message}»</p>}
+        {!landlord && <p className="hint small">{t("src_owner_verified")}</p>}
+        <button className="link" onClick={() => onListing(card.listing.listing_id)}>
+          {t("ap_open_listing")}
+        </button>
+      </section>
+
+      {!landlord && card.status === "pending" && <MascotTip tone="calm">{t("src_no_money")}</MascotTip>}
+      {error && <p className="error">{error}</p>}
+
+      {card.can_withdraw && (
+        <button
+          className="link danger"
+          disabled={busy}
+          onClick={async () => {
+            if (!(await confirm(webApp, t("ap_withdraw_confirm")))) return;
+            await run(() => api.withdrawApplication(card.id));
+          }}
+        >
+          {t("ap_withdraw")}
+        </button>
+      )}
+      {landlord && card.can_decline && !card.can_approve && (
+        <button className="link danger" disabled={busy} onClick={() => setDeclining(true)}>
+          {t("ap_decline")}
+        </button>
+      )}
+
+      {declining && (
+        <Sheet label={t("ap_decline_title")} onClose={() => setDeclining(false)}>
+          {(close) => (
+            <>
+              <SheetHead title={t("ap_decline_title")} onClose={close} />
+              <p className="hint small">{t("ap_decline_hint")}</p>
+              {REASONS.map((r) => (
+                <button key={r} className="button secondary" disabled={busy} onClick={() => run(() => api.declineApplication(card.id, r))}>
+                  {k(`ap_reason_${r}`)}
+                </button>
+              ))}
+            </>
+          )}
+        </Sheet>
+      )}
+    </Screen>
+  );
+}

@@ -26,6 +26,7 @@ from domovyk.domain.users import (
     UserStatus,
 )
 from domovyk.modules.analytics.service import AnalyticsService
+from domovyk.modules.applications.service import ApplicationsConfig, ApplicationsService
 from domovyk.modules.chat.service import ChatService
 from domovyk.modules.contracts.service import ContractsConfig, ContractsService
 from domovyk.modules.leases.service import LeasesConfig, LeasesService
@@ -39,6 +40,7 @@ from domovyk.modules.search.service import SearchConfig, SearchService
 from domovyk.modules.users.schemas import PersonalIn, TenantProfile, UserOut
 from domovyk.modules.users.service import UsersConfig, UsersService
 from domovyk.modules.utilities.service import UtilitiesConfig, UtilitiesService
+from tests.fakes_applications import ApplicationDb, FakeApplicationsRepository
 from tests.fakes_contracts import ContractDb, FakeContractsRepository, FakePdfRenderer
 from tests.fakes_leases import FakeChatRepository, FakeLeasesRepository, LeaseDb
 from tests.fakes_listings import FakeListingsRepository, FakeSearchRepository, ListingDb, SearchDb
@@ -101,6 +103,7 @@ class FakeDb:
         self.utility = UtilityDb()
         self.listing = ListingDb()
         self.search = SearchDb()
+        self.application = ApplicationDb()
         self.pdf = FakePdfRenderer()
         self.cipher = Cipher(Fernet.generate_key().decode())
         self.storage = MemoryStorage()
@@ -445,10 +448,24 @@ def make_fake_services(
         clock,
         SearchConfig(),
     )
+    applications = ApplicationsService(
+        NullTxManager(),
+        lambda _: FakeApplicationsRepository(db.application),
+        users,
+        properties,
+        listings,
+        leases,
+        chat,
+        notifications,
+        analytics,
+        clock,
+        ApplicationsConfig(),
+    )
     wire_guards(users, properties, leases)
     wire_contracts(leases, contracts)
     wire_listings(properties, leases, listings)
     listings.set_published_hook(search.on_published)
+    listings.set_rented_hook(applications.on_listings_rented)
     services = Services(
         users=users,
         moderation=moderation,
@@ -462,5 +479,6 @@ def make_fake_services(
         utilities=utilities,
         listings=listings,
         search=search,
+        applications=applications,
     )
     return services, db

@@ -24,6 +24,7 @@ class NotificationType(StrEnum):
     PAYMENT = "payment"  # нагадування про оплату, «оплатив», підтвердження (M5)
     METER_REMINDER = "meter_reminder"  # час подати показники лічильників (FR-UTL-2)
     NEW_MATCH = "new_match"  # нове оголошення під збережений пошук (FR-SRC-3)
+    APPLICATION = "application"  # заявки: нова, схвалено, відхилено, без відповіді, чат
 
 
 # Типи, які людина може вимкнути для своєї оренди (NTF-LEASE, FR-NTF-1).

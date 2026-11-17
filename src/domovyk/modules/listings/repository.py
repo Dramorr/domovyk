@@ -50,6 +50,7 @@ class ListingsRepository(Protocol):
     async def live_on_units(self, unit_ids: list[uuid.UUID]) -> list[ListingRecord]: ...
     async def with_status(self, statuses: list[ListingStatus]) -> list[ListingRecord]: ...
     async def many(self, listing_ids: list[uuid.UUID]) -> list[ListingRecord]: ...
+    async def ids_on_units(self, unit_ids: list[uuid.UUID]) -> list[uuid.UUID]: ...
     async def by_author(self, user_id: uuid.UUID) -> list[ListingRecord]:
         """Живі оголошення автора й останні з історії — по одному на юніт."""
         ...
@@ -123,6 +124,12 @@ class SqlListingsRepository:
             .execution_options(populate_existing=True)
         )
         return [_record(r) for r in rows]
+
+    async def ids_on_units(self, unit_ids: list[uuid.UUID]) -> list[uuid.UUID]:
+        if not unit_ids:
+            return []
+        rows = await self._s.scalars(select(ListingRow.id).where(ListingRow.unit_id.in_(unit_ids)))
+        return list(rows)
 
     async def many(self, listing_ids: list[uuid.UUID]) -> list[ListingRecord]:
         if not listing_ids:

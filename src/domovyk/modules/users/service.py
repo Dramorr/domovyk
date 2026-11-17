@@ -12,7 +12,7 @@ from datetime import date
 
 from domovyk.adapters.images.base import ImageProcessor, ImageRejected
 from domovyk.adapters.storage.base import FileStorage
-from domovyk.core.clock import Clock
+from domovyk.core.clock import Clock, to_kyiv
 from domovyk.core.crypto import normalize_phone, phone_hash
 from domovyk.core.errors import (
     AccountInactive,
@@ -34,6 +34,7 @@ from domovyk.domain.users import (
     IdentityProvider,
     UserRole,
     UserStatus,
+    age_on,
     can_use_app,
     check_birth_date,
     is_staff,
@@ -47,6 +48,7 @@ from domovyk.modules.moderation.service import AuditAction, BanIdentifiers, Mode
 from domovyk.modules.users.repository import UsersRepository
 from domovyk.modules.users.schemas import (
     ConsentInfo,
+    PartyProfile,
     PersonalIn,
     PersonalOut,
     TenantProfile,
@@ -157,6 +159,28 @@ class UsersService:
         """Для інших модулів: ім'я, роль, Telegram ID власника тощо."""
         async with self._tx.begin() as tx:
             return await self._repo(tx).get(user_id)
+
+    async def party_profile(self, user_id: uuid.UUID) -> PartyProfile | None:
+        """Для заявок (FR-APP-1): ім'я, з якого часу на Домовику, вік. Без контактів."""
+        async with self._tx.begin() as tx:
+            repo = self._repo(tx)
+            user = await repo.get(user_id)
+            if user is None:
+                return None
+            personal = await repo.get_personal(user_id)
+        today = to_kyiv(self._clock.now()).date()
+        return PartyProfile(
+            user_id=user.id,
+            display_name=user.display_name,
+            member_since=user.created_at,
+            avatar_version=user.avatar_version,
+            age=age_on(personal.birth_date, today) if personal.birth_date else None,
+        )
+
+    async def contact_phone(self, user_id: uuid.UUID) -> str | None:
+        """Підтверджений номер — лише після схвалення заявки (правило 9)."""
+        async with self._tx.begin() as tx:
+            return await self._repo(tx).identity_uid(user_id, IdentityProvider.PHONE)
 
     async def staff_ids(self) -> list[uuid.UUID]:
         """Активні модератори й адміни — кому слати черги модерації."""

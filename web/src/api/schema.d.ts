@@ -21,6 +21,160 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Applications */
+        get: operations["my_applications_api_v1_applications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/incoming": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Incoming Applications */
+        get: operations["incoming_applications_api_v1_applications_incoming_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Application Card */
+        get: operations["application_card_api_v1_applications__application_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Application */
+        post: operations["approve_application_api_v1_applications__application_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decline Application */
+        post: operations["decline_application_api_v1_applications__application_id__decline_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/lease": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Lease From Application */
+        post: operations["lease_from_application_api_v1_applications__application_id__lease_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Application Messages */
+        get: operations["application_messages_api_v1_applications__application_id__messages_get"];
+        put?: never;
+        /** Post Application Message */
+        post: operations["post_application_message_api_v1_applications__application_id__messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark Application Read */
+        post: operations["mark_application_read_api_v1_applications__application_id__read_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw Application */
+        post: operations["withdraw_application_api_v1_applications__application_id__withdraw_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/charges/{charge_id}": {
         parameters: {
             query?: never;
@@ -738,6 +892,23 @@ export interface paths {
         get: operations["listing_card_api_v1_listings__listing_id__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/listings/{listing_id}/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply */
+        post: operations["apply_api_v1_listings__listing_id__applications_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1665,6 +1836,100 @@ export interface components {
          * @enum {string}
          */
         Appliance: "fridge" | "washing_machine" | "dryer" | "dishwasher" | "oven" | "microwave" | "hob" | "hood" | "kettle" | "coffee_machine" | "tv" | "vacuum" | "iron";
+        /** ApplicationCard */
+        ApplicationCard: {
+            /** Can Approve */
+            can_approve: boolean;
+            /** Can Chat */
+            can_chat: boolean;
+            /** Can Create Lease */
+            can_create_lease: boolean;
+            /** Can Decline */
+            can_decline: boolean;
+            /** Can Withdraw */
+            can_withdraw: boolean;
+            contacts: components["schemas"]["ContactsOut"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Decided At */
+            decided_at: string | null;
+            decline_reason: components["schemas"]["DeclineReason"] | null;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Lease Id */
+            lease_id: string | null;
+            listing: components["schemas"]["ListingBrief"];
+            /** Message */
+            message: string | null;
+            /**
+             * My Role
+             * @enum {string}
+             */
+            my_role: "tenant" | "landlord";
+            other: components["schemas"]["PartyProfile"];
+            status: components["schemas"]["ApplicationStatus"];
+            /** Unread */
+            unread: number;
+        };
+        /**
+         * ApplicationIn
+         * @description APP-NEW: пара слів власнику, необов'язково. Контакти — лише після схвалення.
+         */
+        ApplicationIn: {
+            /** Message */
+            message?: string | null;
+        };
+        /** ApplicationOut */
+        ApplicationOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Decided At */
+            decided_at: string | null;
+            decline_reason: components["schemas"]["DeclineReason"] | null;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Lease Id */
+            lease_id: string | null;
+            listing: components["schemas"]["ListingBrief"];
+            /** Message */
+            message: string | null;
+            /**
+             * My Role
+             * @enum {string}
+             */
+            my_role: "tenant" | "landlord";
+            other: components["schemas"]["PartyProfile"];
+            status: components["schemas"]["ApplicationStatus"];
+            /** Unread */
+            unread: number;
+        };
+        /**
+         * ApplicationStatus
+         * @enum {string}
+         */
+        ApplicationStatus: "pending" | "approved" | "declined" | "withdrawn" | "expired" | "showing_scheduled" | "showing_done" | "no_show" | "lease_created";
         /** ApproveIn */
         ApproveIn: {
             /** Owner Name */
@@ -1850,6 +2115,22 @@ export interface components {
             /** Terms Version */
             terms_version: string;
         };
+        /**
+         * ContactsOut
+         * @description Після схвалення (FR-APP-2): телефон іншої сторони й точна адреса.
+         */
+        ContactsOut: {
+            /** Apartment */
+            apartment: string | null;
+            /** Entrance */
+            entrance: string | null;
+            /** Floor */
+            floor: number | null;
+            /** House Number */
+            house_number: string;
+            /** Phone */
+            phone: string | null;
+        };
         /** ContractOut */
         ContractOut: {
             /**
@@ -1931,6 +2212,15 @@ export interface components {
             /** Reason */
             reason?: string | null;
         };
+        /** DeclineIn */
+        DeclineIn: {
+            reason?: components["schemas"]["DeclineReason"] | null;
+        };
+        /**
+         * DeclineReason
+         * @enum {string}
+         */
+        DeclineReason: "rented" | "terms" | "other";
         /**
          * DistrictOut
          * @description Район міста — для фільтра пошуку (FR-SRC-2).
@@ -2321,6 +2611,37 @@ export interface components {
         LegalNameIn: {
             /** Full Name */
             full_name: string;
+        };
+        /**
+         * ListingBrief
+         * @description Оголошення в заявці — без точної адреси, доки заявку не схвалено (FR-LST-4).
+         */
+        ListingBrief: {
+            /** Area */
+            area: string | null;
+            /** Cover Photo Id */
+            cover_photo_id: string | null;
+            /** District */
+            district: string | null;
+            /**
+             * Listing Id
+             * Format: uuid
+             */
+            listing_id: string;
+            /** Price Amount */
+            price_amount: number;
+            /**
+             * Property Id
+             * Format: uuid
+             */
+            property_id: string;
+            /** Rooms */
+            rooms: number;
+            status: components["schemas"]["ListingStatus"];
+            /** Street */
+            street: string;
+            /** Utilities Included */
+            utilities_included: boolean;
         };
         /**
          * ListingCard
@@ -2772,6 +3093,28 @@ export interface components {
              */
             role: "landlord" | "tenant";
             signature: components["schemas"]["SignatureOut"] | null;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /**
+         * PartyProfile
+         * @description Що бачить інша сторона заявки до схвалення (FR-APP-1): без контактів і ПІБ.
+         */
+        PartyProfile: {
+            /** Age */
+            age: number | null;
+            /** Avatar Version */
+            avatar_version: string | null;
+            /** Display Name */
+            display_name: string;
+            /**
+             * Member Since
+             * Format: date-time
+             */
+            member_since: string;
             /**
              * User Id
              * Format: uuid
@@ -3646,7 +3989,7 @@ export interface components {
          * @description Системні повідомлення (FR-CHT-2). Текст — у файлі локалізації інтерфейсу.
          * @enum {string}
          */
-        SystemCode: "lease_created" | "member_joined" | "member_left" | "terms_accepted" | "terms_change_requested" | "terms_declined" | "terms_updated" | "lease_cancelled" | "terms_proposed" | "proposal_accepted" | "proposal_declined" | "contract_ready" | "contract_signed_by" | "contract_external" | "contract_external_rejected" | "lease_activated" | "termination_requested" | "termination_withdrawn" | "lease_ended" | "payment_reported" | "payment_confirmed" | "payment_rejected";
+        SystemCode: "lease_created" | "member_joined" | "member_left" | "terms_accepted" | "terms_change_requested" | "terms_declined" | "terms_updated" | "lease_cancelled" | "terms_proposed" | "proposal_accepted" | "proposal_declined" | "contract_ready" | "contract_signed_by" | "contract_external" | "contract_external_rejected" | "lease_activated" | "termination_requested" | "termination_withdrawn" | "lease_ended" | "payment_reported" | "payment_confirmed" | "payment_rejected" | "application_approved";
         /** TelegramUserOut */
         TelegramUserOut: {
             /** First Name */
@@ -3907,6 +4250,351 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AddressCandidate"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_applications_api_v1_applications_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    incoming_applications_api_v1_applications_incoming_get: {
+        parameters: {
+            query?: {
+                property_id?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    application_card_api_v1_applications__application_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationCard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_application_api_v1_applications__application_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationCard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decline_application_api_v1_applications__application_id__decline_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeclineIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationCard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lease_from_application_api_v1_applications__application_id__lease_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaseConditions"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    application_messages_api_v1_applications__application_id__messages_get: {
+        parameters: {
+            query?: {
+                after_id?: number;
+                before_id?: number | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessagesPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_application_message_api_v1_applications__application_id__messages_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MessageIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_application_read_api_v1_applications__application_id__read_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReadIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    withdraw_application_api_v1_applications__application_id__withdraw_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationCard"];
                 };
             };
             /** @description Validation Error */
@@ -5550,6 +6238,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ListingCard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    apply_api_v1_listings__listing_id__applications_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                listing_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationCard"];
                 };
             };
             /** @description Validation Error */

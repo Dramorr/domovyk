@@ -117,6 +117,9 @@ BTN_OPEN_CHAT = "💬 Відкрити чат"
 BTN_OPEN_LEASE = "🔑 Відкрити оренду"
 LEASE_EVENTS = {
     "member_joined": "🔑 {name} приєднується до оренди: <b>{address}</b>.",
+    "lease_offered": (
+        "🔑 Власник пропонує оформити оренду: <b>{address}</b>. Переглянь умови й погодь їх."
+    ),
     "terms_accepted": "✅ Орендар погодив умови оренди: <b>{address}</b>. Далі — договір.",
     "terms_change_requested": (
         "✏️ Орендар просить змінити умови: <b>{address}</b>. Подробиці — у чаті."
@@ -336,3 +339,21 @@ def meter_kinds_label(kinds: list[str]) -> str:
     if len(names) <= 1:
         return "".join(names)
     return ", ".join(names[:-1]) + " й " + names[-1]
+
+
+# Заявки (FR-APP-1..3, BOT_FLOWS §6). Адреса — лише вулиця: будинок відкриється після схвалення.
+APPLICATION_EVENTS = {
+    "new": "📨 Нова заявка від {name}: <b>{place}</b>. Відповідай протягом 72 годин.",
+    "approved": (
+        "✅ {name} погодив твою заявку: <b>{place}</b>. Точна адреса, телефон і чат — у заявці."
+    ),
+    "declined": "На жаль, власник не зможе здати тобі житло: <b>{place}</b>. Шукаймо далі.",
+    "declined_rented": "Житло вже здали: <b>{place}</b>. Шукаймо далі — нові варіанти щодня.",
+    "expired": (
+        "Власник не відповів на заявку за 72 години: <b>{place}</b>. "
+        "Заявку закрито — спробуй інші варіанти."
+    ),
+    "withdrawn": "{name} відкликав заявку: <b>{place}</b>.",
+    "message": "💬 {name} у чаті заявки (<b>{place}</b>):\n{preview}",
+}
+BTN_OPEN_APPLICATION = "📨 Відкрити заявку"

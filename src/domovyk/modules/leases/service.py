@@ -331,6 +331,62 @@ class LeasesService:
             await self._opened_hook([u.id for u in prop.units])
         return out, invite
 
+    async def create_from_application(
+        self,
+        telegram_uid: int,
+        data: LeaseCreate,
+        *,
+        tenant_user_id: uuid.UUID,
+        application_id: uuid.UUID,
+    ) -> LeaseOut:
+        """FR-APP-6: оренда одним кроком із погодженої заявки — без запрошення.
+
+        Заявник одразу стає відповідальним орендарем і погоджує умови в картці оренди.
+        Права на заявку перевіряє модуль заявок; тут — власність і вільний об'єкт.
+        """
+        user = await self._users.require_active(telegram_uid)
+        prop = await self._properties.require_verified_owner(user.id, data.property_id)
+        unit = self._pick_unit(prop, data.unit_id)
+        conditions = self._conditions(data)
+        tenant = await self._users.get_by_id(tenant_user_id)
+        if tenant is None:
+            raise NotFound("Орендаря не знайдено")
+        now = self._clock.now()
+        async with self._tx.begin() as tx:
+            repo = self._repo(tx)
+            await self._check_unit_free(repo, prop, unit)
+            if await self._over_limit(repo, tenant_user_id):
+                raise LeaseLimitReached(
+                    "Забагато одночасних оренд", limit=self._config.tenant_max_open_leases
+                )
+            lease_id = await repo.create(
+                NewLease(
+                    unit_id=unit,
+                    landlord_user_id=user.id,
+                    origin=LeaseOrigin.APPLICATION,
+                    status=LeaseStatus.AWAITING_TENANT,
+                    application_id=application_id,
+                    **asdict(conditions),
+                )
+            )
+            await repo.update(lease_id, landlord_accepted_at=now)
+            await repo.add_member(lease_id, tenant_user_id, MemberRole.RESPONSIBLE, now)
+            conversation = await self._chat.ensure_for_lease(tx, lease_id)
+            await self._chat.system(tx, conversation, SystemCode.LEASE_CREATED)
+            await self._chat.system(
+                tx,
+                conversation,
+                SystemCode.MEMBER_JOINED,
+                {"name": tenant.display_name, "role": MemberRole.RESPONSIBLE.value},
+            )
+            lease = await repo.get(lease_id)
+            if lease is not None:
+                await self._notify_lease(tx, lease, [tenant_user_id], "lease_offered", {})
+            out = await self._out(tx, await self._ctx(tx, lease_id, user))
+        if self._opened_hook is not None:
+            await self._opened_hook([u.id for u in prop.units])
+        return out
+
     def _pick_unit(self, prop: PropertyOut, unit_id: uuid.UUID | None) -> uuid.UUID:
         if unit_id is None:
             entire = next((u for u in prop.units if u.kind is UnitKind.ENTIRE), None)

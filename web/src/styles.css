@@ -3505,3 +3505,32 @@ button.info-row {
 dl.facts {
   margin: 0;
 }
+
+/* заявки (M6.4) */
+.person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.person .row-title {
+  margin: 0;
+}
+
+.quote {
+  margin: 12px 0 4px;
+  padding: 10px 14px;
+  border-left: 3px solid var(--brand);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--surface-2);
+  font-style: italic;
+  white-space: pre-wrap;
+}
+
+.result-photo .avatar {
+  margin: 0;
+}
+
+a.button {
+  text-decoration: none;
+}

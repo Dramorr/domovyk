@@ -37,6 +37,9 @@ class FakeListingsRepository:
         out = [r for r in self.db.listings.values() if r.status in statuses]
         return sorted(out, key=lambda r: r.published_at or r.created_at, reverse=True)
 
+    async def ids_on_units(self, unit_ids: list[uuid.UUID]) -> list[uuid.UUID]:
+        return [r.id for r in self.db.listings.values() if r.unit_id in unit_ids]
+
     async def many(self, listing_ids: list[uuid.UUID]) -> list[ListingRecord]:
         return [self.db.listings[i] for i in listing_ids if i in self.db.listings]
 

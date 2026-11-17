@@ -23,6 +23,8 @@ from domovyk.core.db import make_engine, make_sessionmaker
 from domovyk.core.tx import SqlTxManager
 from domovyk.modules.analytics.repository import SqlEventsRepository
 from domovyk.modules.analytics.service import AnalyticsService
+from domovyk.modules.applications.repository import SqlApplicationsRepository
+from domovyk.modules.applications.service import ApplicationsConfig, ApplicationsService
 from domovyk.modules.chat.repository import SqlChatRepository
 from domovyk.modules.chat.service import ChatService
 from domovyk.modules.contracts.repository import SqlContractsRepository
@@ -61,6 +63,7 @@ class Services:
     utilities: UtilitiesService
     listings: ListingsService
     search: SearchService
+    applications: ApplicationsService
 
 
 def users_config(settings: Settings) -> UsersConfig:
@@ -245,10 +248,24 @@ class Container:
             clock,
             SearchConfig(default_city=settings.default_city),
         )
+        applications = ApplicationsService(
+            tx,
+            SqlApplicationsRepository,
+            users,
+            properties,
+            listings,
+            leases,
+            chat,
+            notifications,
+            analytics,
+            clock,
+            ApplicationsConfig(),
+        )
         wire_guards(users, properties, leases)
         wire_contracts(leases, contracts)
         wire_listings(properties, leases, listings)
         listings.set_published_hook(search.on_published)
+        listings.set_rented_hook(applications.on_listings_rented)
         self.services = Services(
             users=users,
             moderation=moderation,
@@ -262,6 +279,7 @@ class Container:
             utilities=utilities,
             listings=listings,
             search=search,
+            applications=applications,
         )
 
     async def close(self) -> None:

@@ -23,6 +23,16 @@ class UserOut(BaseModel):
     avatar_version: str | None = None
 
 
+class PartyProfile(BaseModel):
+    """Що бачить інша сторона заявки до схвалення (FR-APP-1): без контактів і ПІБ."""
+
+    user_id: uuid.UUID
+    display_name: str
+    member_since: datetime
+    avatar_version: str | None
+    age: int | None  # повних років; None — дату народження не вказано
+
+
 class PersonalIn(BaseModel):
     """Персональні дані, які людина вносить сама (ADR 0016). Бачить лише вона."""
 

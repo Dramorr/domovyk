@@ -85,6 +85,7 @@ class NewLease:
     pay_details: dict[str, Any]
     pay_details_enc: str | None
     terms: dict[str, Any]
+    application_id: uuid.UUID | None = None  # оренда із заявки (FR-APP-6)
 
 
 class LeasesRepository(Protocol):
@@ -178,6 +179,7 @@ class SqlLeasesRepository:
             pay_details=data.pay_details,
             pay_details_enc=data.pay_details_enc,
             terms=data.terms,
+            application_id=data.application_id,
         )
         self._s.add(row)
         await self._s.flush()

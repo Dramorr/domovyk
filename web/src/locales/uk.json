@@ -1081,5 +1081,7 @@
   "prof_personal_summary_empty": "ПІБ, дата народження, місто — для договору",
   "prof_reviews_summary": "Поки немає",
   "prp_profile_summary": "Заповнено на {percent}% · фото, опис, лічильники",
-  "prp_history_summary": "Завершених оренд: {n}"
+  "prp_history_summary": "Завершених оренд: {n}",
+  "ap_chat_title": "Чат заявки",
+  "ch_sys_application_approved": "Власник погодив заявку — тепер можна домовитись про показ"
 }

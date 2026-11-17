@@ -24,6 +24,8 @@ from domovyk.core.db import make_engine, make_sessionmaker
 from domovyk.core.tx import SqlTxManager
 from domovyk.modules.analytics.repository import SqlEventsRepository
 from domovyk.modules.analytics.service import AnalyticsService
+from domovyk.modules.applications.repository import SqlApplicationsRepository
+from domovyk.modules.applications.service import ApplicationsConfig, ApplicationsService
 from domovyk.modules.chat.repository import SqlChatRepository
 from domovyk.modules.chat.service import ChatService
 from domovyk.modules.contracts.repository import SqlContractsRepository
@@ -204,10 +206,24 @@ def services(engine: AsyncEngine, it_clock: FixedClock) -> Services:
         it_clock,
         SearchConfig(),
     )
+    applications = ApplicationsService(
+        tx,
+        SqlApplicationsRepository,
+        users,
+        properties,
+        listings,
+        leases,
+        chat,
+        notifications,
+        analytics,
+        it_clock,
+        ApplicationsConfig(),
+    )
     wire_guards(users, properties, leases)
     wire_contracts(leases, contracts)
     wire_listings(properties, leases, listings)
     listings.set_published_hook(search.on_published)
+    listings.set_rented_hook(applications.on_listings_rented)
     return Services(
         users=users,
         moderation=moderation,
@@ -221,4 +237,5 @@ def services(engine: AsyncEngine, it_clock: FixedClock) -> Services:
         utilities=utilities,
         listings=listings,
         search=search,
+        applications=applications,
     )

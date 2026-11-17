@@ -20,6 +20,8 @@ _SYS_PREFIX = "sys:"
 class ChatRepository(Protocol):
     async def conversation_for_lease(self, lease_id: uuid.UUID) -> uuid.UUID | None: ...
     async def create_for_lease(self, lease_id: uuid.UUID) -> uuid.UUID: ...
+    async def conversation_for_application(self, application_id: uuid.UUID) -> uuid.UUID | None: ...
+    async def create_for_application(self, application_id: uuid.UUID) -> uuid.UUID: ...
     async def add(
         self,
         conversation_id: uuid.UUID,
@@ -68,6 +70,17 @@ class SqlChatRepository:
 
     async def create_for_lease(self, lease_id: uuid.UUID) -> uuid.UUID:
         row = ConversationRow(lease_id=lease_id)
+        self._s.add(row)
+        await self._s.flush()
+        return row.id
+
+    async def conversation_for_application(self, application_id: uuid.UUID) -> uuid.UUID | None:
+        return await self._s.scalar(
+            select(ConversationRow.id).where(ConversationRow.application_id == application_id)
+        )
+
+    async def create_for_application(self, application_id: uuid.UUID) -> uuid.UUID:
+        row = ConversationRow(application_id=application_id)
         self._s.add(row)
         await self._s.flush()
         return row.id

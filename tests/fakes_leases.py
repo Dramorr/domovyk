@@ -229,6 +229,13 @@ class FakeChatRepository:
         self.db.messages[cid] = []
         return cid
 
+    # Заявки й оренди мають різні uuid — тримаємо в тому самому словнику.
+    async def conversation_for_application(self, application_id: uuid.UUID) -> uuid.UUID | None:
+        return self.db.conversations.get(application_id)
+
+    async def create_for_application(self, application_id: uuid.UUID) -> uuid.UUID:
+        return await self.create_for_lease(application_id)
+
     async def add(
         self,
         conversation_id: uuid.UUID,

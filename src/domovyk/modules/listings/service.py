@@ -94,6 +94,7 @@ class ListingsService:
         self._clock = clock
         self._config = config
         self._published_hook: Callable[[uuid.UUID], Awaitable[int]] | None = None
+        self._rented_hook: Callable[[list[uuid.UUID]], Awaitable[None]] | None = None
 
     # ----------------------------------------------------------------- власник
 
@@ -211,6 +212,11 @@ class ListingsService:
             records = await self._repo(tx).many(listing_ids)
         return await self._with_properties(records)
 
+    async def ids_on_units(self, unit_ids: list[uuid.UUID]) -> list[uuid.UUID]:
+        """Усі оголошення юнітів, у будь-якому стані — для історії заявок."""
+        async with self._tx.begin() as tx:
+            return await self._repo(tx).ids_on_units(unit_ids)
+
     async def author_of(self, listing_id: uuid.UUID) -> uuid.UUID | None:
         async with self._tx.begin() as tx:
             record = await self._repo(tx).get(listing_id)
@@ -220,6 +226,10 @@ class ListingsService:
         props = await self._properties.property_ids_of_units([r.unit_id for r in records])
         return [_out(r, props[r.unit_id]) for r in records if r.unit_id in props]
 
+    def set_rented_hook(self, hook: Callable[[list[uuid.UUID]], Awaitable[None]]) -> None:
+        """Заявки на здане оголошення закриваються (FR-APP, «вже здано»)."""
+        self._rented_hook = hook
+
     def set_published_hook(self, hook: Callable[[uuid.UUID], Awaitable[int]]) -> None:
         """Пошук розсилає new_match тим, чий збережений фільтр підходить (FR-SRC-3)."""
         self._published_hook = hook
@@ -227,12 +237,16 @@ class ListingsService:
     async def on_units_opened(self, unit_ids: list[uuid.UUID]) -> None:
         """Оренда на об'єкті: опубліковане оголошення стає «здано» (FR-LST-3)."""
         now = self._clock.now()
+        rented: list[uuid.UUID] = []
         async with self._tx.begin() as tx:
             repo = self._repo(tx)
             for listing in await repo.live_on_units(unit_ids):
                 if listing.status in PUBLISHED:
                     LISTING.transition(listing.status, ListingStatus.RENTED)
                     await repo.update(listing.id, status=ListingStatus.RENTED, closed_at=now)
+                    rented.append(listing.id)
+        if rented and self._rented_hook is not None:
+            await self._rented_hook(rented)  # відкриті заявки закриваються «вже здано»
 
     async def guard_property_delete(self, prop: PropertyOut) -> None:
         """FR-PRP-9: об'єкт з опублікованим оголошенням не видаляють. Чернетка зникає з ним."""

@@ -35,6 +35,7 @@ class SystemCode(StrEnum):
     PAYMENT_REPORTED = "payment_reported"  # {name, period}
     PAYMENT_CONFIRMED = "payment_confirmed"  # {period, amount}
     PAYMENT_REJECTED = "payment_rejected"  # {period, amount, reason}
+    APPLICATION_APPROVED = "application_approved"  # чат заявки відкрито (FR-APP-2)
 
 
 class MessageOut(BaseModel):

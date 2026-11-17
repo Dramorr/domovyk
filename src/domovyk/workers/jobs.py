@@ -59,6 +59,14 @@ async def meter_reminders(services: Services) -> int:
     return queued
 
 
+async def expire_applications(services: Services) -> int:
+    """FR-APP-3: власник мовчить 72 год — заявка закривається."""
+    done = await services.applications.expire_due()
+    if done:
+        log.info("Заявок без відповіді закрито: %s", done)
+    return done
+
+
 async def confirm_auto_payments(services: Services) -> int:
     """FR-PAY-3: вікно оскарження минуло — автоматично зараховані оплати стають confirmed."""
     done = await services.payments.confirm_expired()
@@ -91,6 +99,7 @@ async def dev_background_loop(services: Services, notifier: Notifier, mini_app_u
                 await payments_daily(services)
                 await confirm_auto_payments(services)
                 await meter_reminders(services)
+                await expire_applications(services)
                 since_remind = 0
         except Exception:  # фонова петля не має падати через один збій
             log.exception("Помилка фонової задачі")

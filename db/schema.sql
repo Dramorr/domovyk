@@ -359,24 +359,28 @@ CREATE TABLE showing_slots (
 );
 CREATE INDEX idx_slots_listing_time ON showing_slots(listing_id, starts_at);
 
+-- Заявка (FR-APP-1..3, M6.4). Слот показу (slot_id) з'явиться з показами в M6.5.
 CREATE TABLE applications (
     id                      uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     listing_id              uuid NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
-    tenant_user_id          uuid NOT NULL REFERENCES users(id),
+    tenant_user_id          uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     status                  application_status NOT NULL DEFAULT 'pending',
-    message                 text,
-    slot_id                 uuid REFERENCES showing_slots(id),
+    message                 text CHECK (message IS NULL OR char_length(message) <= 500),
+    decline_reason          text CHECK (decline_reason IS NULL
+                                        OR decline_reason IN ('rented', 'terms', 'other')),
+    lease_id                uuid REFERENCES leases(id) ON DELETE SET NULL,  -- оренда із заявки
     contacts_revealed_at    timestamptz,
     decided_at              timestamptz,
-    expires_at              timestamptz,
+    expires_at              timestamptz NOT NULL,   -- FR-APP-3: без відповіді 72 год → expired
     created_at              timestamptz NOT NULL DEFAULT now(),
     updated_at              timestamptz NOT NULL DEFAULT now()
 );
-CREATE UNIQUE INDEX uq_active_application
+CREATE UNIQUE INDEX uq_one_open_application
     ON applications(listing_id, tenant_user_id)
     WHERE status IN ('pending', 'approved', 'showing_scheduled');
-CREATE INDEX idx_applications_tenant  ON applications(tenant_user_id, status);
 CREATE INDEX idx_applications_listing ON applications(listing_id, status);
+CREATE INDEX idx_applications_tenant ON applications(tenant_user_id, created_at DESC);
+CREATE INDEX idx_applications_expiry ON applications(expires_at) WHERE status = 'pending';
 CREATE TRIGGER trg_applications_updated BEFORE UPDATE ON applications
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
@@ -385,7 +389,7 @@ CREATE TABLE application_status_history (
     application_id  uuid NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
     from_status     application_status,
     to_status       application_status NOT NULL,
-    changed_by      uuid REFERENCES users(id),
+    changed_by      uuid REFERENCES users(id) ON DELETE SET NULL,
     changed_at      timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_app_history_app ON application_status_history(application_id);
@@ -423,7 +427,7 @@ CREATE TABLE leases (
     unit_id             uuid NOT NULL REFERENCES units(id),
     landlord_user_id    uuid NOT NULL REFERENCES users(id),
     origin              lease_origin NOT NULL,
-    application_id      uuid REFERENCES applications(id),
+    application_id      uuid REFERENCES applications(id) ON DELETE SET NULL,
     status              lease_status NOT NULL DEFAULT 'draft',
     start_date          date NOT NULL,
     end_date            date NOT NULL,      -- строк обов'язковий; ≤ 35 міс. (без нотаріуса)
@@ -679,7 +683,7 @@ CREATE TABLE conversations (
     CHECK ((lease_id IS NOT NULL) <> (application_id IS NOT NULL))
 );
 CREATE UNIQUE INDEX uq_conversation_lease ON conversations(lease_id) WHERE lease_id IS NOT NULL;
-CREATE UNIQUE INDEX uq_conversation_app   ON conversations(application_id) WHERE application_id IS NOT NULL;
+CREATE UNIQUE INDEX uq_conversation_application ON conversations(application_id) WHERE application_id IS NOT NULL;
 
 CREATE TABLE messages (
     id                  bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
