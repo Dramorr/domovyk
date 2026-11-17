@@ -24,7 +24,7 @@ type State =
 
 type Route =
   | { name: "home" }
-  | { name: "search" }
+  | { name: "search"; saved?: boolean }
   | { name: "profile" }
   | { name: "new-property" }
   | { name: "property"; id: string }
@@ -53,6 +53,9 @@ function routeFromStart(param: string | null, isStaff: boolean): Route[] {
   if (!param) return [];
   if (param === "mod" && isStaff) return [{ name: "moderation" }];
   if (param.startsWith("inv_")) return [{ name: "home" }, { name: "invite", token: param.slice(4) }];
+  if (param === "searches") return [{ name: "search", saved: true }];
+  const listing = param.startsWith("lst_") ? param.slice(4) : "";
+  if (UUID_RE.test(listing)) return [{ name: "search" }, { name: "listing-view", id: listing }];
   const meters = param.startsWith("meters_") ? param.slice(7) : "";
   if (UUID_RE.test(meters)) {
     return [{ name: "home" }, { name: "lease", id: meters }, { name: "meters", leaseId: meters }];
@@ -256,6 +259,7 @@ export function App() {
     case "search":
       screen = (
         <SearchScreen
+          initialView={route.saved ? "saved" : undefined}
           onOpen={(id) => push({ name: "listing-view", id })}
           onFavorites={() => push({ name: "favorites" })}
         />

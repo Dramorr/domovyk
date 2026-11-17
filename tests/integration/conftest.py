@@ -199,11 +199,15 @@ def services(engine: AsyncEngine, it_clock: FixedClock) -> Services:
         users,
         properties,
         listings,
+        notifications,
+        analytics,
+        it_clock,
         SearchConfig(),
     )
     wire_guards(users, properties, leases)
     wire_contracts(leases, contracts)
     wire_listings(properties, leases, listings)
+    listings.set_published_hook(search.on_published)
     return Services(
         users=users,
         moderation=moderation,

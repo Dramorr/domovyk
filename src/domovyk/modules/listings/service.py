@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
@@ -93,6 +93,7 @@ class ListingsService:
         self._analytics = analytics
         self._clock = clock
         self._config = config
+        self._published_hook: Callable[[uuid.UUID], Awaitable[int]] | None = None
 
     # ----------------------------------------------------------------- власник
 
@@ -176,6 +177,8 @@ class ListingsService:
                 )
             fresh = await repo.get(listing.id)
         await self._check_risks(user, prop, listing.id)
+        if self._published_hook is not None:
+            await self._published_hook(listing.id)  # збережені пошуки (FR-SRC-3)
         return await self._state(prop, fresh)
 
     async def pause(self, telegram_uid: int, property_id: uuid.UUID) -> ListingState:
@@ -216,6 +219,10 @@ class ListingsService:
     async def _with_properties(self, records: list[ListingRecord]) -> list[ListingOut]:
         props = await self._properties.property_ids_of_units([r.unit_id for r in records])
         return [_out(r, props[r.unit_id]) for r in records if r.unit_id in props]
+
+    def set_published_hook(self, hook: Callable[[uuid.UUID], Awaitable[int]]) -> None:
+        """Пошук розсилає new_match тим, чий збережений фільтр підходить (FR-SRC-3)."""
+        self._published_hook = hook
 
     async def on_units_opened(self, unit_ids: list[uuid.UUID]) -> None:
         """Оренда на об'єкті: опубліковане оголошення стає «здано» (FR-LST-3)."""

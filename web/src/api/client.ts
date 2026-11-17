@@ -48,12 +48,13 @@ export type Listing = S["ListingOut"];
 export type ListingIn = S["ListingIn"];
 export type ListingState = S["ListingState"];
 export type ListingStatus = S["ListingStatus"];
-export type SearchIn = S["SearchIn"];
+export type SearchIn = S["SearchIn-Input"];
 export type SearchOptions = S["SearchOptions"];
 export type SearchPage = S["SearchPage"];
 export type ListingSummary = S["ListingSummary"];
 export type ListingCard = S["ListingCard"];
 export type Amenity = S["Amenity"];
+export type SavedSearch = S["SavedSearchOut"];
 
 export type ApiErrorKind = "no_api" | "unauthorized" | "network" | "server" | "unavailable" | "domain";
 
@@ -198,6 +199,12 @@ export const api = {
   searchOptions: (city?: string) =>
     request<SearchOptions>("GET", `/api/v1/search/options${city ? `?city=${encodeURIComponent(city)}` : ""}`),
   search: (body: SearchIn) => request<SearchPage>("POST", "/api/v1/search", body),
+  savedSearches: () => request<SavedSearch[]>("GET", "/api/v1/search/saved"),
+  saveSearch: (name: string, criteria: SearchIn, notify = true) =>
+    request<SavedSearch>("POST", "/api/v1/search/saved", { name, criteria, notify }),
+  setSearchNotify: (id: string, notify: boolean) =>
+    request<SavedSearch>("PUT", `/api/v1/search/saved/${encodeURIComponent(id)}/notify`, { notify }),
+  deleteSavedSearch: (id: string) => request<void>("DELETE", `/api/v1/search/saved/${encodeURIComponent(id)}`),
   listingCard: (id: string) => request<ListingCard>("GET", `/api/v1/listings/${encodeURIComponent(id)}`),
   favorites: () => request<ListingSummary[]>("GET", "/api/v1/favorites"),
   addFavorite: (id: string) => request<void>("PUT", `/api/v1/favorites/${encodeURIComponent(id)}`),

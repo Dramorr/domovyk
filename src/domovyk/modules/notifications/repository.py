@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Protocol
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert
 
 from domovyk.core.tx import Tx, session_of
@@ -29,6 +29,10 @@ class NotificationsRepository(Protocol):
 
     async def claim_next(self, now: datetime, max_attempts: int) -> PendingNotification | None: ...
     async def mark_sent(self, notification_id: int, at: datetime) -> None: ...
+    async def count_since(self, user_id: uuid.UUID, type_: str, since: datetime) -> int:
+        """Скільки сповіщень цього типу людині поставлено в чергу від `since`."""
+        ...
+
     async def prefs(
         self, user_id: uuid.UUID, lease_id: uuid.UUID
     ) -> dict[str, tuple[bool, dict[str, Any]]]: ...
@@ -145,3 +149,15 @@ class SqlNotificationsRepository:
                 set_={"enabled": enabled, "params": params},
             )
         )
+
+    async def count_since(self, user_id: uuid.UUID, type_: str, since: datetime) -> int:
+        count = await self._s.scalar(
+            select(func.count())
+            .select_from(NotificationRow)
+            .where(
+                NotificationRow.user_id == user_id,
+                NotificationRow.type == type_,
+                NotificationRow.created_at >= since,
+            )
+        )
+        return int(count or 0)

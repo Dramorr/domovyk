@@ -2961,6 +2961,19 @@
         "title": "NameIn",
         "type": "object"
       },
+      "NotifyIn": {
+        "properties": {
+          "notify": {
+            "title": "Notify",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "notify"
+        ],
+        "title": "NotifyIn",
+        "type": "object"
+      },
       "OwnerPublic": {
         "description": "Що орендар бачить про власника до схвалення заявки (FR-APP-1): без контактів.",
         "properties": {
@@ -5325,7 +5338,66 @@
         "title": "ReviewIn",
         "type": "object"
       },
-      "SearchIn": {
+      "SavedSearchIn": {
+        "description": "Зберегти пошук (FR-SRC-3). Назву складає інтерфейс із фільтра, людина може змінити.",
+        "properties": {
+          "criteria": {
+            "$ref": "#/components/schemas/SearchIn-Input"
+          },
+          "name": {
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "notify": {
+            "default": true,
+            "title": "Notify",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "criteria"
+        ],
+        "title": "SavedSearchIn",
+        "type": "object"
+      },
+      "SavedSearchOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "criteria": {
+            "$ref": "#/components/schemas/SearchIn-Output"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "notify": {
+            "title": "Notify",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "criteria",
+          "notify",
+          "created_at"
+        ],
+        "title": "SavedSearchOut",
+        "type": "object"
+      },
+      "SearchIn-Input": {
         "description": "Фільтр орендаря (FR-SRC-2). Без фільтра каталогу немає (FR-SRC-1): місто — завжди.",
         "properties": {
           "amenities": {
@@ -5341,6 +5413,128 @@
               {
                 "type": "number"
               },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area Min"
+          },
+          "children": {
+            "default": false,
+            "title": "Children",
+            "type": "boolean"
+          },
+          "city_code": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City Code"
+          },
+          "completeness_min": {
+            "default": 0,
+            "title": "Completeness Min",
+            "type": "integer"
+          },
+          "district_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 50,
+            "title": "District Ids",
+            "type": "array"
+          },
+          "floor_not_first": {
+            "default": false,
+            "title": "Floor Not First",
+            "type": "boolean"
+          },
+          "floor_not_last": {
+            "default": false,
+            "title": "Floor Not Last",
+            "type": "boolean"
+          },
+          "kinds": {
+            "items": {
+              "$ref": "#/components/schemas/PropertyKind"
+            },
+            "maxItems": 2,
+            "title": "Kinds",
+            "type": "array"
+          },
+          "offset": {
+            "default": 0,
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "pets": {
+            "default": false,
+            "title": "Pets",
+            "type": "boolean"
+          },
+          "price_max": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Max"
+          },
+          "price_min": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Min"
+          },
+          "registration": {
+            "default": false,
+            "title": "Registration",
+            "type": "boolean"
+          },
+          "rooms": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 5,
+            "title": "Rooms",
+            "type": "array"
+          }
+        },
+        "title": "SearchIn",
+        "type": "object"
+      },
+      "SearchIn-Output": {
+        "description": "Фільтр орендаря (FR-SRC-2). Без фільтра каталогу немає (FR-SRC-1): місто — завжди.",
+        "properties": {
+          "amenities": {
+            "items": {
+              "$ref": "#/components/schemas/Amenity"
+            },
+            "maxItems": 20,
+            "title": "Amenities",
+            "type": "array"
+          },
+          "area_min": {
+            "anyOf": [
               {
                 "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
@@ -12487,7 +12681,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SearchIn"
+                "$ref": "#/components/schemas/SearchIn-Input"
               }
             }
           },
@@ -12579,6 +12773,225 @@
           }
         },
         "summary": "Search Options"
+      }
+    },
+    "/api/v1/search/saved": {
+      "get": {
+        "operationId": "saved_searches_api_v1_search_saved_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SavedSearchOut"
+                  },
+                  "title": "Response Saved Searches Api V1 Search Saved Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Saved Searches"
+      },
+      "post": {
+        "operationId": "save_search_api_v1_search_saved_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavedSearchIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedSearchOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Search"
+      }
+    },
+    "/api/v1/search/saved/{filter_id}": {
+      "delete": {
+        "operationId": "delete_saved_search_api_v1_search_saved__filter_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "filter_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Filter Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Saved Search"
+      }
+    },
+    "/api/v1/search/saved/{filter_id}/notify": {
+      "put": {
+        "operationId": "saved_search_notify_api_v1_search_saved__filter_id__notify_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "filter_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Filter Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotifyIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedSearchOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Saved Search Notify"
       }
     },
     "/api/v1/users/{user_id}/avatar": {

@@ -21,6 +21,7 @@ from domovyk.core.tx import Tx, TxManager
 from domovyk.modules.notifications.repository import NotificationsRepository
 from domovyk.modules.notifications.schemas import (
     LEASE_OPTIONAL_TYPES,
+    QUIET_HOURS_DEFAULT,
     LeaseNotificationPrefs,
     NotificationType,
     PendingNotification,
@@ -71,6 +72,22 @@ class NotificationsService:
         return await self._repo(tx).add(
             user_id, type_.value, payload, dedupe_key, send_after or self._clock.now()
         )
+
+    async def count_since(
+        self, tx: Tx, user_id: uuid.UUID, type_: NotificationType, since: datetime
+    ) -> int:
+        return await self._repo(tx).count_since(user_id, type_.value, since)
+
+    def after_quiet_hours(self, at: datetime) -> datetime:
+        """Момент `at` або кінець типових тихих годин (22–8 за Києвом), якщо він у них."""
+        start, end = QUIET_HOURS_DEFAULT
+        local = to_kyiv(at)
+        if not _in_quiet_hours(local.hour, start, end):
+            return at
+        wake = local.replace(hour=end, minute=0, second=0, microsecond=0)
+        if local.hour >= start:
+            wake += timedelta(days=1)
+        return wake.astimezone(at.tzinfo)
 
     # ------------------------------------------------- налаштування (FR-NTF-1)
 

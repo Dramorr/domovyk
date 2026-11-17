@@ -398,33 +398,20 @@ CREATE TABLE favorites (
 );
 CREATE INDEX idx_favorites_user ON favorites(user_id, created_at DESC);
 
+-- Збережений пошук (FR-SRC-3, ADR 0019): поля фільтра — JSON у форматі SearchIn, щоб фільтр
+-- ріс разом з анкетою без міграцій. Дублі сповіщень відсікає notifications.dedupe_key.
 CREATE TABLE search_filters (
-    id                      uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id                 uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    name                    text,
-    city_code               text NOT NULL REFERENCES cities(code),  -- пошук завжди в одному місті
-    property_kinds          property_kind[] NOT NULL DEFAULT '{}',
-    unit_kinds              unit_kind[]     NOT NULL DEFAULT '{}',
-    district_ids            int[] NOT NULL DEFAULT '{}',
-    rooms_min               smallint,
-    rooms_max               smallint,
-    price_min               integer,
-    price_max               integer,
-    currency                currency_code NOT NULL DEFAULT 'UAH',
-    area_min                numeric(7,1),
-    floor_not_first         boolean NOT NULL DEFAULT false,
-    floor_not_last          boolean NOT NULL DEFAULT false,
-    need_pets_allowed       boolean NOT NULL DEFAULT false,
-    need_children_allowed   boolean NOT NULL DEFAULT false,
-    need_registration       boolean NOT NULL DEFAULT false,
-    required_amenity_ids    int[] NOT NULL DEFAULT '{}',
-    notify                  boolean NOT NULL DEFAULT true,
-    is_active               boolean NOT NULL DEFAULT true,
-    last_notified_at        timestamptz,
-    created_at              timestamptz NOT NULL DEFAULT now(),
-    updated_at              timestamptz NOT NULL DEFAULT now()
+    id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id     uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name        text NOT NULL CHECK (char_length(name) BETWEEN 1 AND 60),
+    city_code   text NOT NULL REFERENCES cities(code),  -- пошук завжди в одному місті
+    criteria    jsonb NOT NULL DEFAULT '{}',
+    notify      boolean NOT NULL DEFAULT true,
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    updated_at  timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_search_filters_active ON search_filters(is_active, notify);
+CREATE INDEX idx_search_filters_user ON search_filters(user_id, created_at);
+CREATE INDEX idx_search_filters_notify ON search_filters(city_code) WHERE notify;
 CREATE TRIGGER trg_search_filters_updated BEFORE UPDATE ON search_filters
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 

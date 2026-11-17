@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -94,6 +94,7 @@ class _Notification:
     sent_at: datetime | None = None
     attempts: int = 0
     last_error: str | None = None
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 LVIV = CityOut(code="lviv", name="Львів", region="Львівська область", status="active")
@@ -110,6 +111,8 @@ class PropDb:
     documents: dict[uuid.UUID, StoredDocument] = field(default_factory=dict)
     photos: dict[uuid.UUID, StoredPhoto] = field(default_factory=dict)
     phashes: dict[uuid.UUID, int] = field(default_factory=dict)
+    # «Зараз» для created_at в outbox: make_fake_services підставляє годинник тесту.
+    now: Callable[[], datetime] = field(default=lambda: datetime.now(UTC))
     districts: dict[str, int] = field(
         default_factory=lambda: {"Галицький район": 1, "Шевченківський район": 2}
     )
@@ -479,10 +482,23 @@ class FakeNotificationsRepository:
             return False
         self.db.notifications.append(
             _Notification(
-                len(self.db.notifications) + 1, user_id, type_, payload, dedupe_key, send_after
+                len(self.db.notifications) + 1,
+                user_id,
+                type_,
+                payload,
+                dedupe_key,
+                send_after,
+                created_at=self.db.now(),
             )
         )
         return True
+
+    async def count_since(self, user_id: uuid.UUID, type_: str, since: datetime) -> int:
+        return sum(
+            1
+            for n in self.db.notifications
+            if n.user_id == user_id and n.type == type_ and n.created_at >= since
+        )
 
     async def claim_next(self, now: datetime, max_attempts: int) -> PendingNotification | None:
         for n in self.db.notifications:

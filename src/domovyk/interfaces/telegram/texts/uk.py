@@ -301,6 +301,19 @@ UTILITIES_EVENTS = {
 
 # Лічильники (BOT_FLOWS §11, FR-UTL-2). Передати показник постачальнику людина має сама.
 BTN_SUBMIT_READINGS = "📟 Подати показники"
+
+# Збережені пошуки (FR-SRC-3, BOT_FLOWS §5)
+NOTIFY_NEW_MATCH = (
+    "🔔 Новий варіант під твій пошук «{name}»:\n<b>{price} ₴/міс</b> · {rooms}\n{place}"
+)
+NOTIFY_NEW_MATCH_DIGEST = (
+    "🔔 Сьогодні під твої пошуки з'явилось ще кілька нових варіантів. "
+    "Заглянь — поки їх не розібрали."
+)
+ROOMS_STUDIO = "студія"
+ROOMS_N = "{n}-кімн."
+BTN_OPEN_LISTING = "🏠 Подивитись"
+BTN_MY_SEARCHES = "🔎 Мої пошуки"
 METER_KINDS_GENITIVE = {
     "electricity": "світла",
     "water_cold": "холодної води",

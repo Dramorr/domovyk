@@ -309,6 +309,7 @@ def make_services(
 ) -> tuple[UsersService, FakeDb]:
     db = db or FakeDb()
     clock = clock or FixedClock(datetime(2026, 11, 4, 12, 0, tzinfo=UTC))
+    db.prop.now = clock.now
 
     def users_repo(_: Tx) -> FakeUsersRepository:
         return FakeUsersRepository(db)
@@ -439,11 +440,15 @@ def make_fake_services(
         users,
         properties,
         listings,
+        notifications,
+        analytics,
+        clock,
         SearchConfig(),
     )
     wire_guards(users, properties, leases)
     wire_contracts(leases, contracts)
     wire_listings(properties, leases, listings)
+    listings.set_published_hook(search.on_published)
     services = Services(
         users=users,
         moderation=moderation,

@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from "react";
 
-import { api, type Amenity, type ListingCard, type ListingSummary, type SearchIn, type SearchOptions, type SearchPage } from "../api/client";
+import { api, ApiFailure, type Amenity, type ListingCard, type ListingSummary, type SavedSearch, type SearchIn, type SearchOptions, type SearchPage } from "../api/client";
 import { t, type TextKey } from "../i18n";
 import { Icon } from "../icons";
 import { PROFILE_SECTIONS, type FieldSpec } from "../profileSpec";
@@ -72,18 +72,43 @@ function placeText(x: Pick<ListingSummary, "district" | "street">): string {
   return [x.district, shortStreet(x.street)].filter(Boolean).join(" · ");
 }
 
+/** Назва збереженого пошуку з фільтра: «1–2 кімн., до 20 000 ₴, Галицький». Людина може змінити. */
+function filterSummary(f: Filter, options: SearchOptions | null): string {
+  const parts: string[] = [];
+  const rooms = [...(f.rooms ?? [])].sort();
+  if (rooms.length) parts.push(k("src_sum_rooms", { rooms: rooms.map(roomsLabel).join("/") }));
+  if (f.price_min) parts.push(k("src_sum_from", { n: money(f.price_min) }));
+  if (f.price_max) parts.push(k("src_sum_to", { n: money(f.price_max) }));
+  const names = (options?.districts ?? []).filter((d) => f.district_ids?.includes(d.id)).map((d) => d.name.replace(/ район$/, ""));
+  if (names.length) parts.push(names.length > 2 ? `${names.slice(0, 2).join(", ")}…` : names.join(", "));
+  const text = parts.join(", ") || t("src_sum_any");
+  return text.length > 60 ? `${text.slice(0, 59)}…` : text;
+}
+
 // ------------------------------------------------------------- SRC: фільтр і результати
 
 // Екран розмонтовується, коли відкриваємо картку; повертаючись, людина чекає ті самі результати.
-type Session = { page: SearchPage; items: ListingSummary[]; view: "form" | "results" };
+type View = "form" | "results" | "saved";
+type Session = { page: SearchPage; items: ListingSummary[]; view: View };
 let lastSession: Session | null = null;
 
-export function SearchScreen({ onOpen, onFavorites }: { onOpen: (id: string) => void; onFavorites: () => void }) {
+export function SearchScreen({
+  onOpen,
+  onFavorites,
+  initialView,
+}: {
+  onOpen: (id: string) => void;
+  onFavorites: () => void;
+  initialView?: View;
+}) {
   const [options, setOptions] = useState<SearchOptions | null>(null);
   const [filter, setFilter] = useState<Filter>(loadFilter);
   const [page, setPage] = useState<SearchPage | null>(lastSession?.page ?? null);
   const [items, setItems] = useState<ListingSummary[]>(lastSession?.items ?? []);
-  const [view, setView] = useState<"form" | "results">(lastSession?.view ?? "form");
+  const [view, setView] = useState<View>(initialView ?? lastSession?.view ?? "form");
+  const [saved, setSaved] = useState<SavedSearch[] | null>(null);
+  const [savedNow, setSavedNow] = useState(false);
+  const [saveName, setSaveName] = useState("");
 
   useEffect(() => {
     lastSession = page ? { page, items, view } : null;
@@ -93,20 +118,31 @@ export function SearchScreen({ onOpen, onFavorites }: { onOpen: (id: string) => 
 
   useEffect(() => {
     api
+      .savedSearches()
+      .then(setSaved)
+      .catch(() => setSaved([]));
+  }, []);
+
+  useEffect(() => {
+    api
       .searchOptions(filter.city_code ?? undefined)
       .then(setOptions)
       .catch((e: unknown) => setError(errorText(e)));
   }, [filter.city_code]);
 
-  async function run(offset: number) {
+  async function run(offset: number, f: Filter = filter) {
     setBusy(true);
     setError(null);
     try {
-      const result = await api.search({ ...filter, offset });
+      const result = await api.search({ ...f, offset });
       setPage(result);
       setItems((prev) => (offset === 0 ? result.items : [...prev, ...result.items]));
       setView("results");
-      if (offset === 0) saveFilter(filter);
+      if (offset === 0) {
+        saveFilter(f);
+        setSavedNow(false);
+        setSaveName(filterSummary(f, options));
+      }
     } catch (e) {
       setError(errorText(e));
     } finally {
@@ -115,6 +151,86 @@ export function SearchScreen({ onOpen, onFavorites }: { onOpen: (id: string) => 
   }
 
   const patch = (p: Partial<Filter>) => setFilter((f) => ({ ...f, ...p }));
+
+  async function saveSearch() {
+    setBusy(true);
+    setError(null);
+    try {
+      const item = await api.saveSearch(saveName.trim() || filterSummary(filter, options), { ...filter, offset: 0 });
+      setSaved((xs) => [...(xs ?? []), item]);
+      setSavedNow(true);
+    } catch (e) {
+      setError(e instanceof ApiFailure && e.reason === "limit" ? t("src_saved_limit") : errorText(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function savedAction(action: () => Promise<void>) {
+    setBusy(true);
+    setError(null);
+    try {
+      await action();
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (view === "saved") {
+    return (
+      <Screen onBack={() => setView("form")}>
+        <h1 className="left">{t("src_saved_title")}</h1>
+        <p className="hint left">{t("src_saved_intro")}</p>
+        {saved && saved.length === 0 && <MascotTip tone="calm">{t("src_saved_empty")}</MascotTip>}
+        {(saved ?? []).map((x) => (
+          <section key={x.id} className="card">
+            <p className="row-title">{x.name}</p>
+            <div className="buttons">
+              <button
+                className="button"
+                disabled={busy}
+                onClick={() => {
+                  const next = { ...EMPTY, ...x.criteria };
+                  setFilter(next);
+                  void run(0, next);
+                }}
+              >
+                <Icon name="search" size={20} />
+                {t("src_saved_show")}
+              </button>
+              <button
+                className="button secondary"
+                disabled={busy}
+                onClick={() =>
+                  savedAction(async () => {
+                    const item = await api.setSearchNotify(x.id, !x.notify);
+                    setSaved((xs) => xs?.map((y) => (y.id === x.id ? item : y)) ?? null);
+                  })
+                }
+              >
+                {x.notify ? t("src_saved_notify_on") : t("src_saved_notify_off")}
+              </button>
+            </div>
+            <button
+              className="link danger"
+              disabled={busy}
+              onClick={() =>
+                savedAction(async () => {
+                  await api.deleteSavedSearch(x.id);
+                  setSaved((xs) => xs?.filter((y) => y.id !== x.id) ?? null);
+                })
+              }
+            >
+              {t("src_saved_delete")}
+            </button>
+          </section>
+        ))}
+        {error && <p className="error">{error}</p>}
+      </Screen>
+    );
+  }
   const floor = options?.completeness_min ?? 40;
   const completeness = Math.max(filter.completeness_min ?? 0, floor);
 
@@ -135,6 +251,23 @@ export function SearchScreen({ onOpen, onFavorites }: { onOpen: (id: string) => 
             ))}
           </div>
         )}
+        <section className="card">
+          {savedNow ? (
+            <p className="hint small">{t("src_saved_done")}</p>
+          ) : (
+            <>
+              <h2>{t("src_save_title")}</h2>
+              <p className="hint small">{items.length === 0 ? t("src_save_hint_empty") : t("src_save_hint")}</p>
+              <label className="field">
+                {t("src_save_name")}
+                <input className="input" maxLength={60} value={saveName} onChange={(e) => setSaveName(e.target.value)} />
+              </label>
+              <button className="button" disabled={busy} onClick={saveSearch}>
+                {t("src_save")}
+              </button>
+            </>
+          )}
+        </section>
         {items.length < page.total && (
           <button className="button secondary" disabled={busy} onClick={() => run(items.length)}>
             {t("src_more")}
@@ -149,9 +282,15 @@ export function SearchScreen({ onOpen, onFavorites }: { onOpen: (id: string) => 
     <Screen>
       <h1 className="left">{t("search_title")}</h1>
       <p className="hint left">{t("src_intro")}</p>
-      <button className="link" onClick={onFavorites}>
-        <Icon name="star" size={18} /> {t("fav_title")}
-      </button>
+      <div className="buttons">
+        <button className="link" onClick={onFavorites}>
+          <Icon name="star" size={18} /> {t("fav_title")}
+        </button>
+        <button className="link" onClick={() => setView("saved")}>
+          <Icon name="search" size={18} /> {t("src_saved_title")}
+          {saved && saved.length > 0 && ` (${saved.length})`}
+        </button>
+      </div>
 
       <section className="card">
         <div className="field">

@@ -1488,6 +1488,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/search/saved": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Saved Searches */
+        get: operations["saved_searches_api_v1_search_saved_get"];
+        put?: never;
+        /** Save Search */
+        post: operations["save_search_api_v1_search_saved_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/search/saved/{filter_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Saved Search */
+        delete: operations["delete_saved_search_api_v1_search_saved__filter_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/search/saved/{filter_id}/notify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Saved Search Notify */
+        put: operations["saved_search_notify_api_v1_search_saved__filter_id__notify_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/{user_id}/avatar": {
         parameters: {
             query?: never;
@@ -2629,6 +2681,11 @@ export interface components {
             /** Display Name */
             display_name: string;
         };
+        /** NotifyIn */
+        NotifyIn: {
+            /** Notify */
+            notify: boolean;
+        };
         /**
          * OwnerPublic
          * @description Що орендар бачить про власника до схвалення заявки (FR-APP-1): без контактів.
@@ -3291,14 +3348,103 @@ export interface components {
             reason?: string | null;
         };
         /**
+         * SavedSearchIn
+         * @description Зберегти пошук (FR-SRC-3). Назву складає інтерфейс із фільтра, людина може змінити.
+         */
+        SavedSearchIn: {
+            criteria: components["schemas"]["SearchIn-Input"];
+            /** Name */
+            name: string;
+            /**
+             * Notify
+             * @default true
+             */
+            notify: boolean;
+        };
+        /** SavedSearchOut */
+        SavedSearchOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            criteria: components["schemas"]["SearchIn-Output"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Notify */
+            notify: boolean;
+        };
+        /**
          * SearchIn
          * @description Фільтр орендаря (FR-SRC-2). Без фільтра каталогу немає (FR-SRC-1): місто — завжди.
          */
-        SearchIn: {
+        "SearchIn-Input": {
             /** Amenities */
             amenities?: components["schemas"]["Amenity"][];
             /** Area Min */
             area_min?: number | string | null;
+            /**
+             * Children
+             * @default false
+             */
+            children: boolean;
+            /** City Code */
+            city_code?: string | null;
+            /**
+             * Completeness Min
+             * @default 0
+             */
+            completeness_min: number;
+            /** District Ids */
+            district_ids?: number[];
+            /**
+             * Floor Not First
+             * @default false
+             */
+            floor_not_first: boolean;
+            /**
+             * Floor Not Last
+             * @default false
+             */
+            floor_not_last: boolean;
+            /** Kinds */
+            kinds?: components["schemas"]["PropertyKind"][];
+            /**
+             * Offset
+             * @default 0
+             */
+            offset: number;
+            /**
+             * Pets
+             * @default false
+             */
+            pets: boolean;
+            /** Price Max */
+            price_max?: number | null;
+            /** Price Min */
+            price_min?: number | null;
+            /**
+             * Registration
+             * @default false
+             */
+            registration: boolean;
+            /** Rooms */
+            rooms?: number[];
+        };
+        /**
+         * SearchIn
+         * @description Фільтр орендаря (FR-SRC-2). Без фільтра каталогу немає (FR-SRC-1): місто — завжди.
+         */
+        "SearchIn-Output": {
+            /** Amenities */
+            amenities?: components["schemas"]["Amenity"][];
+            /** Area Min */
+            area_min?: string | null;
             /**
              * Children
              * @default false
@@ -7259,7 +7405,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SearchIn"];
+                "application/json": components["schemas"]["SearchIn-Input"];
             };
         };
         responses: {
@@ -7303,6 +7449,140 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SearchOptions"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    saved_searches_api_v1_search_saved_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedSearchOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_search_api_v1_search_saved_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SavedSearchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedSearchOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_saved_search_api_v1_search_saved__filter_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                filter_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    saved_search_notify_api_v1_search_saved__filter_id__notify_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                filter_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotifyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedSearchOut"];
                 };
             };
             /** @description Validation Error */

@@ -124,6 +124,32 @@ def make_renderer(base_url: str) -> Renderer:
                         )
                     ],
                 )
+            case NotificationType.NEW_MATCH:
+                if p.get("digest"):
+                    return RenderedMessage(
+                        uk.NOTIFY_NEW_MATCH_DIGEST,
+                        [
+                            Button(
+                                uk.BTN_MY_SEARCHES, web_app_url=mini_app_url(base_url, "searches")
+                            )
+                        ],
+                    )
+                rooms = int(p.get("rooms") or 0)
+                place = ", ".join(escape(str(x)) for x in (p.get("district"), p.get("street")) if x)
+                return RenderedMessage(
+                    uk.NOTIFY_NEW_MATCH.format(
+                        name=escape(str(p.get("search_name") or "")),
+                        price=f"{int(p.get('price') or 0):,}".replace(",", " "),
+                        rooms=uk.ROOMS_STUDIO if rooms == 0 else uk.ROOMS_N.format(n=rooms),
+                        place=place,
+                    ),
+                    [
+                        Button(
+                            uk.BTN_OPEN_LISTING,
+                            web_app_url=mini_app_url(base_url, f"lst_{p.get('listing_id')}"),
+                        )
+                    ],
+                )
             case NotificationType.OWNERSHIP_VERIFIED:
                 return RenderedMessage(
                     uk.NOTIFY_OWNERSHIP_VERIFIED.format(address=format_address(p)),

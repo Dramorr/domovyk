@@ -15,7 +15,7 @@ from domovyk.domain.listings import ListingStatus
 from domovyk.domain.properties import PropertyKind
 from domovyk.modules.listings.schemas import ListingIn, PublishIn
 from domovyk.modules.properties.schemas import AddressIn, PropertyCreate
-from domovyk.modules.search.schemas import SearchIn
+from domovyk.modules.search.schemas import SavedSearchIn, SearchIn
 from tests.integration.test_leases_db import OWNER, TENANT, _setup
 from tests.unit.test_property_profile import FULL
 
@@ -122,3 +122,29 @@ async def test_search_and_favorites_db(services: Services, engine: AsyncEngine) 
     assert not fav.actual
     await s.search.remove_favorite(TENANT, listing_id)
     assert await s.search.favorites(TENANT) == []
+
+
+async def test_saved_search_db(services: Services, engine: AsyncEngine) -> None:
+    s = services
+    data = await _setup(s, engine)
+    pid = data.property_id
+    saved = await s.search.save_search(
+        TENANT, SavedSearchIn(name="2к до 20 000", criteria=SearchIn(rooms=[2], price_max=20000))
+    )
+    assert saved.criteria.rooms == [2] and saved.criteria.city_code == "lviv"
+    await s.properties.update_profile(OWNER, pid, FULL)
+    await s.listings.save(OWNER, pid, TERMS)
+    await s.listings.publish(OWNER, pid, YES)
+    async with engine.connect() as conn:
+        rows = (
+            await conn.execute(
+                text(
+                    "SELECT payload->>'search_name', dedupe_key FROM notifications "
+                    "WHERE type = 'new_match'"
+                )
+            )
+        ).all()
+    assert len(rows) == 1 and rows[0][0] == "2к до 20 000"
+    assert (await s.search.set_notify(TENANT, saved.id, False)).notify is False
+    await s.search.delete_search(TENANT, saved.id)
+    assert await s.search.saved(TENANT) == []

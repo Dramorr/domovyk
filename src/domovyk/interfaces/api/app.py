@@ -93,6 +93,8 @@ from domovyk.modules.properties.service import (
 from domovyk.modules.search.service import (
     ListingCard,
     ListingSummary,
+    SavedSearchIn,
+    SavedSearchOut,
     SearchIn,
     SearchOptions,
     SearchPage,
@@ -121,6 +123,10 @@ _ERROR_STATUS: list[tuple[type[DomainError], int]] = [
     (Conflict, status.HTTP_409_CONFLICT),
     (ServiceUnavailable, status.HTTP_503_SERVICE_UNAVAILABLE),
 ]
+
+
+class NotifyIn(BaseModel):
+    notify: bool
 
 
 class HealthOut(BaseModel):
@@ -432,6 +438,25 @@ def create_app(
     @app.post("/api/v1/search")
     async def search(auth: Auth, body: SearchIn) -> SearchPage:
         return await svc.search.search(auth.user.id, body)
+
+    @app.get("/api/v1/search/saved")
+    async def saved_searches(auth: Auth) -> list[SavedSearchOut]:
+        return await svc.search.saved(auth.user.id)
+
+    @app.post("/api/v1/search/saved", status_code=status.HTTP_201_CREATED)
+    async def save_search(auth: Auth, body: SavedSearchIn) -> SavedSearchOut:
+        return await svc.search.save_search(auth.user.id, body)
+
+    @app.put("/api/v1/search/saved/{filter_id}/notify")
+    async def saved_search_notify(
+        auth: Auth, filter_id: uuid.UUID, body: NotifyIn
+    ) -> SavedSearchOut:
+        return await svc.search.set_notify(auth.user.id, filter_id, body.notify)
+
+    @app.delete("/api/v1/search/saved/{filter_id}", status_code=status.HTTP_204_NO_CONTENT)
+    async def delete_saved_search(auth: Auth, filter_id: uuid.UUID) -> Response:
+        await svc.search.delete_search(auth.user.id, filter_id)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     @app.get("/api/v1/listings/{listing_id}")
     async def listing_card(auth: Auth, listing_id: uuid.UUID) -> ListingCard:

@@ -91,3 +91,19 @@ class ListingCard(ListingSummary):
     photos: list[PhotoOut]
     owner: OwnerPublic
     is_mine: bool
+
+
+class SavedSearchIn(BaseModel):
+    """Зберегти пошук (FR-SRC-3). Назву складає інтерфейс із фільтра, людина може змінити."""
+
+    name: str = Field(min_length=1, max_length=60)
+    criteria: SearchIn
+    notify: bool = True
+
+
+class SavedSearchOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    criteria: SearchIn
+    notify: bool
+    created_at: datetime

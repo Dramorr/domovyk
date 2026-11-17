@@ -5,11 +5,12 @@ from __future__ import annotations
 import dataclasses
 import uuid
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from domovyk.domain.listings import LIVE, ListingStatus
 from domovyk.modules.listings.repository import ListingRecord, ListingTerms
+from domovyk.modules.search.repository import FilterRecord
 
 
 @dataclass
@@ -98,6 +99,7 @@ class FakeListingsRepository:
 @dataclass
 class SearchDb:
     favorites: list[tuple[uuid.UUID, uuid.UUID]] = field(default_factory=list)
+    filters: dict[uuid.UUID, FilterRecord] = field(default_factory=dict)
 
 
 class FakeSearchRepository:
@@ -114,3 +116,34 @@ class FakeSearchRepository:
 
     async def favorite_ids(self, user_id: uuid.UUID) -> list[uuid.UUID]:
         return [lid for uid, lid in reversed(self.db.favorites) if uid == user_id]
+
+    async def filters(self, user_id: uuid.UUID) -> list[FilterRecord]:
+        return sorted(
+            (f for f in self.db.filters.values() if f.user_id == user_id),
+            key=lambda f: f.created_at,
+        )
+
+    async def filter(self, filter_id: uuid.UUID) -> FilterRecord | None:
+        return self.db.filters.get(filter_id)
+
+    async def count_filters(self, user_id: uuid.UUID) -> int:
+        return len(await self.filters(user_id))
+
+    async def add_filter(
+        self, user_id: uuid.UUID, name: str, city_code: str, criteria: dict[str, Any], notify: bool
+    ) -> uuid.UUID:
+        fid = uuid.uuid4()
+        created = datetime.now(UTC) + timedelta(microseconds=len(self.db.filters))
+        self.db.filters[fid] = FilterRecord(
+            fid, user_id, name, city_code, criteria, notify, created
+        )
+        return fid
+
+    async def update_filter(self, filter_id: uuid.UUID, **values: Any) -> None:
+        self.db.filters[filter_id] = dataclasses.replace(self.db.filters[filter_id], **values)
+
+    async def delete_filter(self, filter_id: uuid.UUID) -> None:
+        self.db.filters.pop(filter_id, None)
+
+    async def notify_filters(self, city_code: str) -> list[FilterRecord]:
+        return [f for f in self.db.filters.values() if f.city_code == city_code and f.notify]

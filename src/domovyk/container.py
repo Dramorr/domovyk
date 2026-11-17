@@ -240,11 +240,15 @@ class Container:
             users,
             properties,
             listings,
+            notifications,
+            analytics,
+            clock,
             SearchConfig(default_city=settings.default_city),
         )
         wire_guards(users, properties, leases)
         wire_contracts(leases, contracts)
         wire_listings(properties, leases, listings)
+        listings.set_published_hook(search.on_published)
         self.services = Services(
             users=users,
             moderation=moderation,
