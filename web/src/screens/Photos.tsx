@@ -12,11 +12,13 @@ import { errorText } from "../ui";
 
 export const PHOTO_MAX = 15; // як PropertiesConfig.max_photos на бекенді
 
-/** Звідки брати файли: власник — через об'єкт, учасники оренди — через оренду. */
-export type PhotoSource = { kind: "property" | "lease"; id: string };
+/** Звідки брати файли: власник — через об'єкт, учасники оренди — через оренду, орендар у пошуку — через оголошення. */
+export type PhotoSource = { kind: "property" | "lease" | "listing"; id: string };
+
+const PHOTO_BASE = { property: "properties", lease: "leases", listing: "listings" } as const;
 
 function photoPath(src: PhotoSource, photoId: string): string {
-  const base = src.kind === "property" ? "properties" : "leases";
+  const base = PHOTO_BASE[src.kind];
   return `/api/v1/${base}/${encodeURIComponent(src.id)}/photos/${encodeURIComponent(photoId)}`;
 }
 
@@ -33,7 +35,7 @@ function photoUrl(path: string): Promise<string> {
 }
 
 /** Фото в рамці. `frame`: горизонтальне заповнює рамку, вертикальне — цілком на розмитому тлі з себе ж. */
-function PhotoImage({ src, photo, mode }: { src: PhotoSource; photo: Photo; mode: "frame" | "cover" | "contain" }) {
+export function PhotoImage({ src, photo, mode }: { src: PhotoSource; photo: Photo; mode: "frame" | "cover" | "contain" }) {
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const path = photoPath(src, photo.id);

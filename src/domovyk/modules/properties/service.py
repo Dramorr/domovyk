@@ -69,6 +69,7 @@ from domovyk.modules.properties.schemas import (
     AddressCandidate,
     CityOut,
     CompletenessOut,
+    DistrictOut,
     OwnershipOut,
     OwnerSummary,
     PhotoOut,
@@ -86,6 +87,7 @@ from domovyk.modules.users.service import UserOut, UsersService
 __all__ = [
     "AddressCandidate",
     "CityOut",
+    "DistrictOut",
     "OwnershipOut",
     "PhotoOut",
     "PropertiesConfig",
@@ -165,6 +167,12 @@ class PropertiesService:
         """Довідник міст: де Домовик працює (active) і куди йде (soon). ADR 0008."""
         async with self._tx.begin() as tx:
             return await self._repo(tx).list_cities()
+
+    async def districts(self, city_code: str) -> list[DistrictOut]:
+        """Райони міста для фільтра пошуку (FR-SRC-2)."""
+        code = validate_city_code(city_code)
+        async with self._tx.begin() as tx:
+            return await self._repo(tx).list_districts(code)
 
     async def has_city(self, code: str) -> bool:
         """Чи є місто в довіднику (для міста в профілі користувача)."""
@@ -425,6 +433,22 @@ class PropertiesService:
         """Для інших модулів (лічильники): права перевіряє модуль, що викликає."""
         async with self._tx.begin() as tx:
             return await self._repo(tx).get_property(property_id)
+
+    @property
+    def listing_min_completeness(self) -> int:
+        """Мінімальна заповненість анкети для публікації — нижня межа фільтра (FR-SRC-6)."""
+        return self._config.listing_min_completeness
+
+    async def properties_by_ids(self, property_ids: list[uuid.UUID]) -> list[PropertyOut]:
+        """Для пошуку (M6): об'єкти з анкетою й заповненістю. Права перевіряє модуль, що кличе."""
+        async with self._tx.begin() as tx:
+            props = await self._repo(tx).properties_by_ids(property_ids)
+        return [self._with_completeness(p) for p in props]
+
+    async def property_ids_of_units(self, unit_ids: list[uuid.UUID]) -> dict[uuid.UUID, uuid.UUID]:
+        """Юніт → об'єкт (для оголошень, які прив'язані до юнітів)."""
+        async with self._tx.begin() as tx:
+            return await self._repo(tx).property_ids_of_units(unit_ids)
 
     async def property_of_unit(self, unit_id: uuid.UUID) -> PropertyOut | None:
         """Для оренд: адреса й юніти об'єкта, до якого належить юніт."""

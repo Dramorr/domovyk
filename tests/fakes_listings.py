@@ -32,6 +32,13 @@ class FakeListingsRepository:
     async def live_on_units(self, unit_ids: list[uuid.UUID]) -> list[ListingRecord]:
         return [r for r in self.db.listings.values() if r.unit_id in unit_ids and r.status in LIVE]
 
+    async def with_status(self, statuses: list[ListingStatus]) -> list[ListingRecord]:
+        out = [r for r in self.db.listings.values() if r.status in statuses]
+        return sorted(out, key=lambda r: r.published_at or r.created_at, reverse=True)
+
+    async def many(self, listing_ids: list[uuid.UUID]) -> list[ListingRecord]:
+        return [self.db.listings[i] for i in listing_ids if i in self.db.listings]
+
     async def by_author(self, user_id: uuid.UUID) -> list[ListingRecord]:
         best: dict[uuid.UUID, ListingRecord] = {}
         for r in self.db.listings.values():
@@ -86,3 +93,24 @@ class FakeListingsRepository:
                 and r.published_at >= since
             }
         )
+
+
+@dataclass
+class SearchDb:
+    favorites: list[tuple[uuid.UUID, uuid.UUID]] = field(default_factory=list)
+
+
+class FakeSearchRepository:
+    def __init__(self, db: SearchDb) -> None:
+        self.db = db
+
+    async def add_favorite(self, user_id: uuid.UUID, listing_id: uuid.UUID) -> None:
+        if (user_id, listing_id) not in self.db.favorites:
+            self.db.favorites.append((user_id, listing_id))
+
+    async def remove_favorite(self, user_id: uuid.UUID, listing_id: uuid.UUID) -> None:
+        if (user_id, listing_id) in self.db.favorites:
+            self.db.favorites.remove((user_id, listing_id))
+
+    async def favorite_ids(self, user_id: uuid.UUID) -> list[uuid.UUID]:
+        return [lid for uid, lid in reversed(self.db.favorites) if uid == user_id]

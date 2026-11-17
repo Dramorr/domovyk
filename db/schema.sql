@@ -162,6 +162,8 @@ CREATE TABLE cities (
 );
 ALTER TABLE users ADD CONSTRAINT users_city_code_fkey FOREIGN KEY (city_code) REFERENCES cities(code);
 
+-- Райони: адміністративні райони міста (міграція 0018 — усі 6 для Львова, назви як у
+-- Nominatim) плюс ті, що приходять з адрес геокодера. Фільтр пошуку бере їх звідси.
 CREATE TABLE districts (
     id          serial PRIMARY KEY,
     city_code   text NOT NULL REFERENCES cities(code),
@@ -394,6 +396,7 @@ CREATE TABLE favorites (
     created_at  timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (user_id, listing_id)
 );
+CREATE INDEX idx_favorites_user ON favorites(user_id, created_at DESC);
 
 CREATE TABLE search_filters (
     id                      uuid PRIMARY KEY DEFAULT gen_random_uuid(),

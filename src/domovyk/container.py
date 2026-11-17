@@ -39,6 +39,8 @@ from domovyk.modules.payments.repository import SqlPaymentsRepository
 from domovyk.modules.payments.service import PaymentsConfig, PaymentsService
 from domovyk.modules.properties.repository import SqlPropertiesRepository
 from domovyk.modules.properties.service import PropertiesConfig, PropertiesService
+from domovyk.modules.search.repository import SqlSearchRepository
+from domovyk.modules.search.service import SearchConfig, SearchService
 from domovyk.modules.users.repository import SqlUsersRepository
 from domovyk.modules.users.service import UsersConfig, UsersService
 from domovyk.modules.utilities.repository import SqlUtilitiesRepository
@@ -58,6 +60,7 @@ class Services:
     payments: PaymentsService
     utilities: UtilitiesService
     listings: ListingsService
+    search: SearchService
 
 
 def users_config(settings: Settings) -> UsersConfig:
@@ -231,6 +234,14 @@ class Container:
             clock,
             ListingsConfig(),
         )
+        search = SearchService(
+            tx,
+            SqlSearchRepository,
+            users,
+            properties,
+            listings,
+            SearchConfig(default_city=settings.default_city),
+        )
         wire_guards(users, properties, leases)
         wire_contracts(leases, contracts)
         wire_listings(properties, leases, listings)
@@ -246,6 +257,7 @@ class Container:
             payments=payments,
             utilities=utilities,
             listings=listings,
+            search=search,
         )
 
     async def close(self) -> None:

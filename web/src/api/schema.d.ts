@@ -208,6 +208,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/favorites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Favorites */
+        get: operations["favorites_api_v1_favorites_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/favorites/{listing_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Add Favorite */
+        put: operations["add_favorite_api_v1_favorites__listing_id__put"];
+        post?: never;
+        /** Remove Favorite */
+        delete: operations["remove_favorite_api_v1_favorites__listing_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/invites/{token}": {
         parameters: {
             query?: never;
@@ -684,6 +719,40 @@ export interface paths {
         };
         /** My Listings */
         get: operations["my_listings_api_v1_listings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/listings/{listing_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listing Card */
+        get: operations["listing_card_api_v1_listings__listing_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/listings/{listing_id}/photos/{photo_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listing Photo */
+        get: operations["listing_photo_api_v1_listings__listing_id__photos__photo_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1385,6 +1454,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Search */
+        post: operations["search_api_v1_search_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/search/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search Options */
+        get: operations["search_options_api_v1_search_options_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/{user_id}/avatar": {
         parameters: {
             query?: never;
@@ -1487,6 +1590,12 @@ export interface components {
              */
             tenant: "none" | "agreed" | "proposed" | "declined";
         };
+        /**
+         * Amenity
+         * @description Зручності для фільтра — найчастіші запитання орендарів, а не весь перелік анкети.
+         * @enum {string}
+         */
+        Amenity: "furnished" | "washing_machine" | "dishwasher" | "air_conditioner" | "internet" | "backup_power" | "shelter" | "elevator" | "parking";
         /**
          * ApartmentBackupPower
          * @description Резервне живлення самої квартири (ЛУН: «резервне живлення квартири»).
@@ -1769,6 +1878,16 @@ export interface components {
             accept: boolean;
             /** Reason */
             reason?: string | null;
+        };
+        /**
+         * DistrictOut
+         * @description Район міста — для фільтра пошуку (FR-SRC-2).
+         */
+        DistrictOut: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
         };
         /** DocumentOut */
         DocumentOut: {
@@ -2152,6 +2271,59 @@ export interface components {
             full_name: string;
         };
         /**
+         * ListingCard
+         * @description Картка оголошення для орендаря: умови, анкета, фото. Адреса — лише вулиця й район.
+         */
+        ListingCard: {
+            /** Actual */
+            actual: boolean;
+            /** Area */
+            area: string | null;
+            /** Available From */
+            available_from: string | null;
+            /** City */
+            city: string;
+            /** Completeness */
+            completeness: number;
+            /** Cover Photo Id */
+            cover_photo_id: string | null;
+            /** Deposit Amount */
+            deposit_amount: number | null;
+            details: components["schemas"]["PropertyDetails-Output"];
+            /** District */
+            district: string | null;
+            /** Floors Total */
+            floors_total: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Favorite */
+            is_favorite: boolean;
+            /** Is Mine */
+            is_mine: boolean;
+            kind: components["schemas"]["PropertyKind"];
+            /** Min Term Months */
+            min_term_months: number | null;
+            owner: components["schemas"]["OwnerPublic"];
+            /** Photos */
+            photos: components["schemas"]["PhotoOut"][];
+            /** Photos Count */
+            photos_count: number;
+            /** Price Amount */
+            price_amount: number;
+            /** Published At */
+            published_at: string | null;
+            /** Rooms */
+            rooms: number;
+            status: components["schemas"]["ListingStatus"];
+            /** Street */
+            street: string;
+            /** Utilities Included */
+            utilities_included: boolean;
+        };
+        /**
          * ListingIn
          * @description Умови угоди (FR-LST-1). Решту — опис, тварин, дітей, мешканців — бере з анкети.
          */
@@ -2255,6 +2427,47 @@ export interface components {
          * @enum {string}
          */
         ListingStatus: "draft" | "active" | "paused" | "rented" | "archived" | "blocked";
+        /**
+         * ListingSummary
+         * @description Рядок у результатах і в обраному. Без номера будинку, квартири й поверху (FR-LST-4).
+         */
+        ListingSummary: {
+            /** Actual */
+            actual: boolean;
+            /** Area */
+            area: string | null;
+            /** Available From */
+            available_from: string | null;
+            /** City */
+            city: string;
+            /** Completeness */
+            completeness: number;
+            /** Cover Photo Id */
+            cover_photo_id: string | null;
+            /** District */
+            district: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Favorite */
+            is_favorite: boolean;
+            kind: components["schemas"]["PropertyKind"];
+            /** Photos Count */
+            photos_count: number;
+            /** Price Amount */
+            price_amount: number;
+            /** Published At */
+            published_at: string | null;
+            /** Rooms */
+            rooms: number;
+            status: components["schemas"]["ListingStatus"];
+            /** Street */
+            street: string;
+            /** Utilities Included */
+            utilities_included: boolean;
+        };
         /** MeOut */
         MeOut: {
             consent: components["schemas"]["ConsentInfo"];
@@ -2415,6 +2628,26 @@ export interface components {
         NameIn: {
             /** Display Name */
             display_name: string;
+        };
+        /**
+         * OwnerPublic
+         * @description Що орендар бачить про власника до схвалення заявки (FR-APP-1): без контактів.
+         */
+        OwnerPublic: {
+            /** Avatar Version */
+            avatar_version: string | null;
+            /** Display Name */
+            display_name: string;
+            /**
+             * Member Since
+             * Format: date-time
+             */
+            member_since: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
         };
         /**
          * OwnerSummary
@@ -3056,6 +3289,88 @@ export interface components {
             approve: boolean;
             /** Reason */
             reason?: string | null;
+        };
+        /**
+         * SearchIn
+         * @description Фільтр орендаря (FR-SRC-2). Без фільтра каталогу немає (FR-SRC-1): місто — завжди.
+         */
+        SearchIn: {
+            /** Amenities */
+            amenities?: components["schemas"]["Amenity"][];
+            /** Area Min */
+            area_min?: number | string | null;
+            /**
+             * Children
+             * @default false
+             */
+            children: boolean;
+            /** City Code */
+            city_code?: string | null;
+            /**
+             * Completeness Min
+             * @default 0
+             */
+            completeness_min: number;
+            /** District Ids */
+            district_ids?: number[];
+            /**
+             * Floor Not First
+             * @default false
+             */
+            floor_not_first: boolean;
+            /**
+             * Floor Not Last
+             * @default false
+             */
+            floor_not_last: boolean;
+            /** Kinds */
+            kinds?: components["schemas"]["PropertyKind"][];
+            /**
+             * Offset
+             * @default 0
+             */
+            offset: number;
+            /**
+             * Pets
+             * @default false
+             */
+            pets: boolean;
+            /** Price Max */
+            price_max?: number | null;
+            /** Price Min */
+            price_min?: number | null;
+            /**
+             * Registration
+             * @default false
+             */
+            registration: boolean;
+            /** Rooms */
+            rooms?: number[];
+        };
+        /**
+         * SearchOptions
+         * @description Що потрібно формі фільтра: райони міста й нижня межа повзунка заповненості.
+         */
+        SearchOptions: {
+            /** Amenities */
+            amenities: components["schemas"]["Amenity"][];
+            /** City Code */
+            city_code: string;
+            /** Completeness Min */
+            completeness_min: number;
+            /** Districts */
+            districts: components["schemas"]["DistrictOut"][];
+        };
+        /** SearchPage */
+        SearchPage: {
+            /** Items */
+            items: components["schemas"]["ListingSummary"][];
+            /** Offset */
+            offset: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
         };
         /** SendFilesIn */
         SendFilesIn: {
@@ -3832,6 +4147,99 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ContractState"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    favorites_api_v1_favorites_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListingSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_favorite_api_v1_favorites__listing_id__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                listing_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_favorite_api_v1_favorites__listing_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                listing_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -4963,6 +5371,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ListingOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listing_card_api_v1_listings__listing_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                listing_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListingCard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listing_photo_api_v1_listings__listing_id__photos__photo_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                listing_id: string;
+                photo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -6760,6 +7235,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_api_v1_search_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SearchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_options_api_v1_search_options_get: {
+        parameters: {
+            query?: {
+                city?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchOptions"];
                 };
             };
             /** @description Validation Error */

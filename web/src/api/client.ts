@@ -48,6 +48,12 @@ export type Listing = S["ListingOut"];
 export type ListingIn = S["ListingIn"];
 export type ListingState = S["ListingState"];
 export type ListingStatus = S["ListingStatus"];
+export type SearchIn = S["SearchIn"];
+export type SearchOptions = S["SearchOptions"];
+export type SearchPage = S["SearchPage"];
+export type ListingSummary = S["ListingSummary"];
+export type ListingCard = S["ListingCard"];
+export type Amenity = S["Amenity"];
 
 export type ApiErrorKind = "no_api" | "unauthorized" | "network" | "server" | "unavailable" | "domain";
 
@@ -187,6 +193,15 @@ export const api = {
   deleteProperty: (id: string) => request<void>("DELETE", p(id)),
   updateProfile: (id: string, body: PropertyDetails) => request<Property>("PUT", `${p(id)}/details`, body),
   photos: (id: string) => request<Photo[]>("GET", `${p(id)}/photos`),
+
+  // Пошук і обране (M6, FR-SRC-1..6)
+  searchOptions: (city?: string) =>
+    request<SearchOptions>("GET", `/api/v1/search/options${city ? `?city=${encodeURIComponent(city)}` : ""}`),
+  search: (body: SearchIn) => request<SearchPage>("POST", "/api/v1/search", body),
+  listingCard: (id: string) => request<ListingCard>("GET", `/api/v1/listings/${encodeURIComponent(id)}`),
+  favorites: () => request<ListingSummary[]>("GET", "/api/v1/favorites"),
+  addFavorite: (id: string) => request<void>("PUT", `/api/v1/favorites/${encodeURIComponent(id)}`),
+  removeFavorite: (id: string) => request<void>("DELETE", `/api/v1/favorites/${encodeURIComponent(id)}`),
 
   // Оголошення (M6, FR-LST-1..5)
   myListings: () => request<Listing[]>("GET", "/api/v1/listings"),

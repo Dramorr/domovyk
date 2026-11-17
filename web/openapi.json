@@ -200,6 +200,22 @@
         "title": "Agreement",
         "type": "object"
       },
+      "Amenity": {
+        "description": "Зручності для фільтра — найчастіші запитання орендарів, а не весь перелік анкети.",
+        "enum": [
+          "furnished",
+          "washing_machine",
+          "dishwasher",
+          "air_conditioner",
+          "internet",
+          "backup_power",
+          "shelter",
+          "elevator",
+          "parking"
+        ],
+        "title": "Amenity",
+        "type": "string"
+      },
       "ApartmentBackupPower": {
         "description": "Резервне живлення самої квартири (ЛУН: «резервне живлення квартири»).",
         "enum": [
@@ -927,6 +943,25 @@
           "accept"
         ],
         "title": "DecisionIn",
+        "type": "object"
+      },
+      "DistrictOut": {
+        "description": "Район міста — для фільтра пошуку (FR-SRC-2).",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "DistrictOut",
         "type": "object"
       },
       "DocumentOut": {
@@ -1823,6 +1858,195 @@
         "title": "LegalNameIn",
         "type": "object"
       },
+      "ListingCard": {
+        "description": "Картка оголошення для орендаря: умови, анкета, фото. Адреса — лише вулиця й район.",
+        "properties": {
+          "actual": {
+            "title": "Actual",
+            "type": "boolean"
+          },
+          "area": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area"
+          },
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available From"
+          },
+          "city": {
+            "title": "City",
+            "type": "string"
+          },
+          "completeness": {
+            "title": "Completeness",
+            "type": "integer"
+          },
+          "cover_photo_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover Photo Id"
+          },
+          "deposit_amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deposit Amount"
+          },
+          "details": {
+            "$ref": "#/components/schemas/PropertyDetails-Output"
+          },
+          "district": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "District"
+          },
+          "floors_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Floors Total"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_favorite": {
+            "title": "Is Favorite",
+            "type": "boolean"
+          },
+          "is_mine": {
+            "title": "Is Mine",
+            "type": "boolean"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/PropertyKind"
+          },
+          "min_term_months": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Term Months"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/OwnerPublic"
+          },
+          "photos": {
+            "items": {
+              "$ref": "#/components/schemas/PhotoOut"
+            },
+            "title": "Photos",
+            "type": "array"
+          },
+          "photos_count": {
+            "title": "Photos Count",
+            "type": "integer"
+          },
+          "price_amount": {
+            "title": "Price Amount",
+            "type": "integer"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "rooms": {
+            "title": "Rooms",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ListingStatus"
+          },
+          "street": {
+            "title": "Street",
+            "type": "string"
+          },
+          "utilities_included": {
+            "title": "Utilities Included",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "actual",
+          "price_amount",
+          "utilities_included",
+          "kind",
+          "rooms",
+          "area",
+          "city",
+          "district",
+          "street",
+          "completeness",
+          "cover_photo_id",
+          "photos_count",
+          "available_from",
+          "published_at",
+          "is_favorite",
+          "deposit_amount",
+          "min_term_months",
+          "floors_total",
+          "details",
+          "photos",
+          "owner",
+          "is_mine"
+        ],
+        "title": "ListingCard",
+        "type": "object"
+      },
       "ListingIn": {
         "description": "Умови угоди (FR-LST-1). Решту — опис, тварин, дітей, мешканців — бере з анкети.",
         "properties": {
@@ -2086,6 +2310,138 @@
         ],
         "title": "ListingStatus",
         "type": "string"
+      },
+      "ListingSummary": {
+        "description": "Рядок у результатах і в обраному. Без номера будинку, квартири й поверху (FR-LST-4).",
+        "properties": {
+          "actual": {
+            "title": "Actual",
+            "type": "boolean"
+          },
+          "area": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area"
+          },
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available From"
+          },
+          "city": {
+            "title": "City",
+            "type": "string"
+          },
+          "completeness": {
+            "title": "Completeness",
+            "type": "integer"
+          },
+          "cover_photo_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover Photo Id"
+          },
+          "district": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "District"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_favorite": {
+            "title": "Is Favorite",
+            "type": "boolean"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/PropertyKind"
+          },
+          "photos_count": {
+            "title": "Photos Count",
+            "type": "integer"
+          },
+          "price_amount": {
+            "title": "Price Amount",
+            "type": "integer"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "rooms": {
+            "title": "Rooms",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ListingStatus"
+          },
+          "street": {
+            "title": "Street",
+            "type": "string"
+          },
+          "utilities_included": {
+            "title": "Utilities Included",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "actual",
+          "price_amount",
+          "utilities_included",
+          "kind",
+          "rooms",
+          "area",
+          "city",
+          "district",
+          "street",
+          "completeness",
+          "cover_photo_id",
+          "photos_count",
+          "available_from",
+          "published_at",
+          "is_favorite"
+        ],
+        "title": "ListingSummary",
+        "type": "object"
       },
       "MeOut": {
         "properties": {
@@ -2603,6 +2959,44 @@
           "display_name"
         ],
         "title": "NameIn",
+        "type": "object"
+      },
+      "OwnerPublic": {
+        "description": "Що орендар бачить про власника до схвалення заявки (FR-APP-1): без контактів.",
+        "properties": {
+          "avatar_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Version"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "member_since": {
+            "format": "date-time",
+            "title": "Member Since",
+            "type": "string"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "display_name",
+          "member_since",
+          "avatar_version"
+        ],
+        "title": "OwnerPublic",
         "type": "object"
       },
       "OwnerSummary": {
@@ -4931,6 +5325,197 @@
         "title": "ReviewIn",
         "type": "object"
       },
+      "SearchIn": {
+        "description": "Фільтр орендаря (FR-SRC-2). Без фільтра каталогу немає (FR-SRC-1): місто — завжди.",
+        "properties": {
+          "amenities": {
+            "items": {
+              "$ref": "#/components/schemas/Amenity"
+            },
+            "maxItems": 20,
+            "title": "Amenities",
+            "type": "array"
+          },
+          "area_min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area Min"
+          },
+          "children": {
+            "default": false,
+            "title": "Children",
+            "type": "boolean"
+          },
+          "city_code": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City Code"
+          },
+          "completeness_min": {
+            "default": 0,
+            "title": "Completeness Min",
+            "type": "integer"
+          },
+          "district_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 50,
+            "title": "District Ids",
+            "type": "array"
+          },
+          "floor_not_first": {
+            "default": false,
+            "title": "Floor Not First",
+            "type": "boolean"
+          },
+          "floor_not_last": {
+            "default": false,
+            "title": "Floor Not Last",
+            "type": "boolean"
+          },
+          "kinds": {
+            "items": {
+              "$ref": "#/components/schemas/PropertyKind"
+            },
+            "maxItems": 2,
+            "title": "Kinds",
+            "type": "array"
+          },
+          "offset": {
+            "default": 0,
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "pets": {
+            "default": false,
+            "title": "Pets",
+            "type": "boolean"
+          },
+          "price_max": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Max"
+          },
+          "price_min": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Min"
+          },
+          "registration": {
+            "default": false,
+            "title": "Registration",
+            "type": "boolean"
+          },
+          "rooms": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 5,
+            "title": "Rooms",
+            "type": "array"
+          }
+        },
+        "title": "SearchIn",
+        "type": "object"
+      },
+      "SearchOptions": {
+        "description": "Що потрібно формі фільтра: райони міста й нижня межа повзунка заповненості.",
+        "properties": {
+          "amenities": {
+            "items": {
+              "$ref": "#/components/schemas/Amenity"
+            },
+            "title": "Amenities",
+            "type": "array"
+          },
+          "city_code": {
+            "title": "City Code",
+            "type": "string"
+          },
+          "completeness_min": {
+            "title": "Completeness Min",
+            "type": "integer"
+          },
+          "districts": {
+            "items": {
+              "$ref": "#/components/schemas/DistrictOut"
+            },
+            "title": "Districts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "city_code",
+          "districts",
+          "completeness_min",
+          "amenities"
+        ],
+        "title": "SearchOptions",
+        "type": "object"
+      },
+      "SearchPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ListingSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "offset",
+          "page_size"
+        ],
+        "title": "SearchPage",
+        "type": "object"
+      },
       "SendFilesIn": {
         "properties": {
           "what": {
@@ -6616,6 +7201,152 @@
           }
         },
         "summary": "Contract Signature"
+      }
+    },
+    "/api/v1/favorites": {
+      "get": {
+        "operationId": "favorites_api_v1_favorites_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ListingSummary"
+                  },
+                  "title": "Response Favorites Api V1 Favorites Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Favorites"
+      }
+    },
+    "/api/v1/favorites/{listing_id}": {
+      "delete": {
+        "operationId": "remove_favorite_api_v1_favorites__listing_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listing_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Listing Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Remove Favorite"
+      },
+      "put": {
+        "operationId": "add_favorite_api_v1_favorites__listing_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listing_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Listing Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Favorite"
       }
     },
     "/api/v1/invites/{token}": {
@@ -8579,6 +9310,126 @@
           }
         },
         "summary": "My Listings"
+      }
+    },
+    "/api/v1/listings/{listing_id}": {
+      "get": {
+        "operationId": "listing_card_api_v1_listings__listing_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listing_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Listing Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingCard"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Listing Card"
+      }
+    },
+    "/api/v1/listings/{listing_id}/photos/{photo_id}": {
+      "get": {
+        "operationId": "listing_photo_api_v1_listings__listing_id__photos__photo_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listing_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Listing Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "photo_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Photo Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Listing Photo"
       }
     },
     "/api/v1/me": {
@@ -11609,6 +12460,125 @@
           }
         },
         "summary": "Register"
+      }
+    },
+    "/api/v1/search": {
+      "post": {
+        "operationId": "search_api_v1_search_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Search"
+      }
+    },
+    "/api/v1/search/options": {
+      "get": {
+        "operationId": "search_options_api_v1_search_options_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "city",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 32,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "City"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchOptions"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Search Options"
       }
     },
     "/api/v1/users/{user_id}/avatar": {

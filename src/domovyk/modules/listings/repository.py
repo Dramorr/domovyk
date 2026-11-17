@@ -48,6 +48,8 @@ class ListingsRepository(Protocol):
         ...
 
     async def live_on_units(self, unit_ids: list[uuid.UUID]) -> list[ListingRecord]: ...
+    async def with_status(self, statuses: list[ListingStatus]) -> list[ListingRecord]: ...
+    async def many(self, listing_ids: list[uuid.UUID]) -> list[ListingRecord]: ...
     async def by_author(self, user_id: uuid.UUID) -> list[ListingRecord]:
         """Живі оголошення автора й останні з історії — по одному на юніт."""
         ...
@@ -109,6 +111,25 @@ class SqlListingsRepository:
         rows = await self._s.scalars(
             select(ListingRow)
             .where(ListingRow.unit_id.in_(unit_ids), ListingRow.status.in_(list(LIVE)))
+            .execution_options(populate_existing=True)
+        )
+        return [_record(r) for r in rows]
+
+    async def with_status(self, statuses: list[ListingStatus]) -> list[ListingRecord]:
+        rows = await self._s.scalars(
+            select(ListingRow)
+            .where(ListingRow.status.in_(statuses))
+            .order_by(ListingRow.published_at.desc(), ListingRow.id)
+            .execution_options(populate_existing=True)
+        )
+        return [_record(r) for r in rows]
+
+    async def many(self, listing_ids: list[uuid.UUID]) -> list[ListingRecord]:
+        if not listing_ids:
+            return []
+        rows = await self._s.scalars(
+            select(ListingRow)
+            .where(ListingRow.id.in_(listing_ids))
             .execution_options(populate_existing=True)
         )
         return [_record(r) for r in rows]

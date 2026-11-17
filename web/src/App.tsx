@@ -8,12 +8,13 @@ import { InviteAccept, InviteShare, LeaseCard, LeaseForm, LeaseNotifications, Te
 import { ModerationCase, ModerationQueue, SignatureReview } from "./screens/Moderation";
 import { ConsentAndName, ModeChoice, PhoneStep } from "./screens/Onboarding";
 import { ListingScreen } from "./screens/Listing";
+import { FavoritesScreen, ListingView, SearchScreen } from "./screens/Search";
 import { MetersScreen } from "./screens/Meters";
 import { Profile } from "./screens/Profile";
 import { PropertyProfile } from "./screens/PropertyProfile";
 import { NewProperty, OwnershipScreen, PropertyCard, PropertyList } from "./screens/Properties";
 import { getWebApp, openLink, openTelegramLink, startParam } from "./telegram";
-import { errorText, Mascot, MascotTip, type Mode, NavContext, Screen, type Tab, useArt } from "./ui";
+import { errorText, Mascot, type Mode, NavContext, Screen, type Tab, useArt } from "./ui";
 
 type State =
   | { kind: "loading" }
@@ -41,7 +42,9 @@ type Route =
   | { name: "chat"; id: string }
   | { name: "lease-notify"; id: string }
   | { name: "meters"; leaseId?: string; propertyId?: string }
-  | { name: "listing"; id: string };
+  | { name: "listing"; id: string }
+  | { name: "listing-view"; id: string }
+  | { name: "favorites" };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -252,14 +255,17 @@ export function App() {
       break;
     case "search":
       screen = (
-        <Screen>
-          <h1>{t("search_title")}</h1>
-          <Mascot size="md" />
-          <MascotTip>
-            <p>{t("search_soon")}</p>
-          </MascotTip>
-        </Screen>
+        <SearchScreen
+          onOpen={(id) => push({ name: "listing-view", id })}
+          onFavorites={() => push({ name: "favorites" })}
+        />
       );
+      break;
+    case "listing-view":
+      screen = <ListingView key={route.id} id={route.id} webApp={webApp} onBack={back} />;
+      break;
+    case "favorites":
+      screen = <FavoritesScreen onBack={back} onOpen={(id) => push({ name: "listing-view", id })} />;
       break;
     case "new-property":
       screen = <NewProperty onBack={back} onCreated={(p) => replace({ name: "property", id: p.id })} />;

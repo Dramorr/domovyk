@@ -15,6 +15,7 @@ from domovyk.domain.listings import ListingStatus
 from domovyk.domain.properties import PropertyKind
 from domovyk.modules.listings.schemas import ListingIn, PublishIn
 from domovyk.modules.properties.schemas import AddressIn, PropertyCreate
+from domovyk.modules.search.schemas import SearchIn
 from tests.integration.test_leases_db import OWNER, TENANT, _setup
 from tests.unit.test_property_profile import FULL
 
@@ -92,3 +93,32 @@ async def test_photo_twins_db(services: Services, engine: AsyncEngine) -> None:
     # 0x0F0F і 0x0F0C різняться на 2 біти; -1 (усі одиниці) — далеко.
     assert await s.properties.photo_twins(data.property_id) == [other.id]
     assert await s.properties.photo_twins(other.id) == [data.property_id]
+
+
+async def test_search_and_favorites_db(services: Services, engine: AsyncEngine) -> None:
+    s = services
+    data = await _setup(s, engine)
+    pid = data.property_id
+    await s.properties.update_profile(OWNER, pid, FULL)
+    await s.listings.save(OWNER, pid, TERMS)
+    state = await s.listings.publish(OWNER, pid, YES)
+    assert state.listing is not None
+    listing_id = state.listing.id
+
+    options = await s.search.options(TENANT, "lviv")
+    names = {d.name for d in options.districts}
+    assert {"Личаківський район", "Сихівський район"} <= names  # з міграції 0018
+
+    page = await s.search.search(TENANT, SearchIn(rooms=[2], price_max=20000))
+    assert [i.id for i in page.items] == [listing_id]
+    assert (await s.search.search(TENANT, SearchIn(price_max=10000))).total == 0
+
+    await s.search.add_favorite(TENANT, listing_id)
+    await s.search.add_favorite(TENANT, listing_id)  # ON CONFLICT DO NOTHING
+    (fav,) = await s.search.favorites(TENANT)
+    assert fav.id == listing_id and fav.actual
+    await s.listings.close(OWNER, pid)
+    (fav,) = await s.search.favorites(TENANT)
+    assert not fav.actual
+    await s.search.remove_favorite(TENANT, listing_id)
+    assert await s.search.favorites(TENANT) == []

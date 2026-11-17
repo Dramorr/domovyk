@@ -40,6 +40,8 @@ from domovyk.modules.payments.repository import SqlPaymentsRepository
 from domovyk.modules.payments.service import PaymentsConfig, PaymentsService
 from domovyk.modules.properties.repository import SqlPropertiesRepository
 from domovyk.modules.properties.service import PropertiesConfig, PropertiesService
+from domovyk.modules.search.repository import SqlSearchRepository
+from domovyk.modules.search.service import SearchConfig, SearchService
 from domovyk.modules.users.repository import SqlUsersRepository
 from domovyk.modules.users.service import UsersService
 from domovyk.modules.utilities.repository import SqlUtilitiesRepository
@@ -82,7 +84,7 @@ async def engine(migrated_url: str) -> AsyncIterator[AsyncEngine]:
                 "TRUNCATE notification_preferences, conversation_reads, messages, "
                 "conversations, lease_invites, lease_members, leases, "
                 "notifications, risk_signals, verification_documents, "
-                "user_verifications, units, properties, buildings, districts, "
+                "user_verifications, units, properties, buildings, "
                 "events, audit_log, bans, user_consents, tenant_profiles, "
                 "auth_identities, users RESTART IDENTITY CASCADE"
             )
@@ -191,6 +193,14 @@ def services(engine: AsyncEngine, it_clock: FixedClock) -> Services:
         it_clock,
         ListingsConfig(),
     )
+    search = SearchService(
+        tx,
+        SqlSearchRepository,
+        users,
+        properties,
+        listings,
+        SearchConfig(),
+    )
     wire_guards(users, properties, leases)
     wire_contracts(leases, contracts)
     wire_listings(properties, leases, listings)
@@ -206,4 +216,5 @@ def services(engine: AsyncEngine, it_clock: FixedClock) -> Services:
         payments=payments,
         utilities=utilities,
         listings=listings,
+        search=search,
     )

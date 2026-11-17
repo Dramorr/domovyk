@@ -26,6 +26,7 @@ from domovyk.modules.properties.models import (
 )
 from domovyk.modules.properties.schemas import (
     CityOut,
+    DistrictOut,
     DocumentOut,
     PropertyDetails,
     PropertyOut,
@@ -94,6 +95,14 @@ class PendingRow:
 class PropertiesRepository(Protocol):
     async def list_cities(self) -> list[CityOut]: ...
     async def get_city(self, code: str) -> CityOut | None: ...
+    async def list_districts(self, city_code: str) -> list[DistrictOut]: ...
+    async def properties_by_ids(self, property_ids: list[uuid.UUID]) -> list[PropertyOut]:
+        """Неархівовані об'єкти з юнітами — пакетом (пошук, M6)."""
+        ...
+
+    async def property_ids_of_units(
+        self, unit_ids: list[uuid.UUID]
+    ) -> dict[uuid.UUID, uuid.UUID]: ...
     async def find_building(self, normalized_key: str) -> uuid.UUID | None: ...
     async def create_building(self, building: NewBuilding) -> uuid.UUID: ...
     async def find_property_at(
@@ -217,6 +226,36 @@ class SqlPropertiesRepository:
     async def get_city(self, code: str) -> CityOut | None:
         row = await self._s.get(CityRow, code)
         return _city(row) if row else None
+
+    async def list_districts(self, city_code: str) -> list[DistrictOut]:
+        rows = await self._s.scalars(
+            select(DistrictRow)
+            .where(DistrictRow.city_code == city_code, DistrictRow.parent_id.is_(None))
+            .order_by(DistrictRow.name)
+        )
+        return [DistrictOut(id=r.id, name=r.name) for r in rows]
+
+    async def properties_by_ids(self, property_ids: list[uuid.UUID]) -> list[PropertyOut]:
+        if not property_ids:
+            return []
+        rows = (
+            await self._s.execute(
+                _property_query()
+                .where(PropertyRow.id.in_(property_ids))
+                .where(PropertyRow.archived_at.is_(None))
+                .execution_options(populate_existing=True)
+            )
+        ).all()
+        units = await self._units([r[0].id for r in rows])
+        return [self._to_out(r, units[r[0].id]) for r in rows]
+
+    async def property_ids_of_units(self, unit_ids: list[uuid.UUID]) -> dict[uuid.UUID, uuid.UUID]:
+        if not unit_ids:
+            return {}
+        rows = await self._s.execute(
+            select(UnitRow.id, UnitRow.property_id).where(UnitRow.id.in_(unit_ids))
+        )
+        return {r[0]: r[1] for r in rows}
 
     # -------------------------------------------------------------- будинки
 

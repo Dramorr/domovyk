@@ -26,6 +26,7 @@ from domovyk.modules.properties.repository import (
 )
 from domovyk.modules.properties.schemas import (
     CityOut,
+    DistrictOut,
     DocumentOut,
     PropertyDetails,
     PropertyOut,
@@ -109,6 +110,9 @@ class PropDb:
     documents: dict[uuid.UUID, StoredDocument] = field(default_factory=dict)
     photos: dict[uuid.UUID, StoredPhoto] = field(default_factory=dict)
     phashes: dict[uuid.UUID, int] = field(default_factory=dict)
+    districts: dict[str, int] = field(
+        default_factory=lambda: {"Галицький район": 1, "Шевченківський район": 2}
+    )
     notifications: list[_Notification] = field(default_factory=list)
     prefs: dict[tuple[uuid.UUID, uuid.UUID, str], tuple[bool, dict[str, Any]]] = field(
         default_factory=dict
@@ -124,6 +128,20 @@ class FakePropertiesRepository:
 
     async def get_city(self, code: str) -> CityOut | None:
         return self.db.cities.get(code)
+
+    async def list_districts(self, city_code: str) -> list[DistrictOut]:
+        for b in self.db.buildings.values():
+            name = b.data.district
+            if name and b.data.city_code == city_code and name not in self.db.districts:
+                self.db.districts[name] = len(self.db.districts) + 1
+        return [DistrictOut(id=i, name=n) for n, i in sorted(self.db.districts.items())]
+
+    async def properties_by_ids(self, property_ids: list[uuid.UUID]) -> list[PropertyOut]:
+        out = [await self.get_property(pid) for pid in property_ids]
+        return [p for p in out if p is not None]
+
+    async def property_ids_of_units(self, unit_ids: list[uuid.UUID]) -> dict[uuid.UUID, uuid.UUID]:
+        return {u: self.db.units[u].property_id for u in unit_ids if u in self.db.units}
 
     async def find_building(self, normalized_key: str) -> uuid.UUID | None:
         b = self.db.buildings.get(normalized_key)

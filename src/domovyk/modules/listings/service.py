@@ -196,6 +196,27 @@ class ListingsService:
 
     # ------------------------------------------------------- для інших модулів
 
+    async def active(self) -> list[ListingOut]:
+        """Опубліковані оголошення, новіші спершу — для пошуку (FR-SRC-5)."""
+        async with self._tx.begin() as tx:
+            records = await self._repo(tx).with_status([ListingStatus.ACTIVE])
+        return await self._with_properties(records)
+
+    async def by_ids(self, listing_ids: list[uuid.UUID]) -> list[ListingOut]:
+        """Будь-які стани (обране показує «вже неактуальне»). Права — на модулі, що кличе."""
+        async with self._tx.begin() as tx:
+            records = await self._repo(tx).many(listing_ids)
+        return await self._with_properties(records)
+
+    async def author_of(self, listing_id: uuid.UUID) -> uuid.UUID | None:
+        async with self._tx.begin() as tx:
+            record = await self._repo(tx).get(listing_id)
+        return record.created_by if record else None
+
+    async def _with_properties(self, records: list[ListingRecord]) -> list[ListingOut]:
+        props = await self._properties.property_ids_of_units([r.unit_id for r in records])
+        return [_out(r, props[r.unit_id]) for r in records if r.unit_id in props]
+
     async def on_units_opened(self, unit_ids: list[uuid.UUID]) -> None:
         """Оренда на об'єкті: опубліковане оголошення стає «здано» (FR-LST-3)."""
         now = self._clock.now()

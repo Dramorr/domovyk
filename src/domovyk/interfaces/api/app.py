@@ -90,6 +90,13 @@ from domovyk.modules.properties.service import (
     QueueItem,
     VerificationCase,
 )
+from domovyk.modules.search.service import (
+    ListingCard,
+    ListingSummary,
+    SearchIn,
+    SearchOptions,
+    SearchPage,
+)
 from domovyk.modules.users.service import (
     AppMode,
     ConsentInfo,
@@ -413,6 +420,41 @@ def create_app(
     @app.post("/api/v1/properties/{property_id}/listing/close")
     async def close_listing(auth: Auth, property_id: uuid.UUID) -> ListingState:
         return await svc.listings.close(auth.user.id, property_id)
+
+    # ------------------------------------------------- пошук (M6, FR-SRC-1..6)
+
+    @app.get("/api/v1/search/options")
+    async def search_options(
+        auth: Auth, city: Annotated[str | None, Query(max_length=32)] = None
+    ) -> SearchOptions:
+        return await svc.search.options(auth.user.id, city)
+
+    @app.post("/api/v1/search")
+    async def search(auth: Auth, body: SearchIn) -> SearchPage:
+        return await svc.search.search(auth.user.id, body)
+
+    @app.get("/api/v1/listings/{listing_id}")
+    async def listing_card(auth: Auth, listing_id: uuid.UUID) -> ListingCard:
+        return await svc.search.card(auth.user.id, listing_id)
+
+    @app.get("/api/v1/listings/{listing_id}/photos/{photo_id}")
+    async def listing_photo(auth: Auth, listing_id: uuid.UUID, photo_id: uuid.UUID) -> Response:
+        data = await svc.search.photo(auth.user.id, listing_id, photo_id)
+        return _photo(data)
+
+    @app.get("/api/v1/favorites")
+    async def favorites(auth: Auth) -> list[ListingSummary]:
+        return await svc.search.favorites(auth.user.id)
+
+    @app.put("/api/v1/favorites/{listing_id}", status_code=status.HTTP_204_NO_CONTENT)
+    async def add_favorite(auth: Auth, listing_id: uuid.UUID) -> Response:
+        await svc.search.add_favorite(auth.user.id, listing_id)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    @app.delete("/api/v1/favorites/{listing_id}", status_code=status.HTTP_204_NO_CONTENT)
+    async def remove_favorite(auth: Auth, listing_id: uuid.UUID) -> Response:
+        await svc.search.remove_favorite(auth.user.id, listing_id)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     # ------------------------------------------------- фото об'єкта (FR-PRP-10)
 

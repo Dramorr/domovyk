@@ -97,7 +97,10 @@ async def test_full_ownership_cycle(
             text("SELECT count(*) FROM verification_documents WHERE deleted_at IS NOT NULL")
         )
         assert deleted == 2
-        districts = await conn.scalar(text("SELECT count(*) FROM districts"))
+        # Район з адреси геокодера — той самий рядок, що й з міграції 0018, без дубля.
+        districts = await conn.scalar(
+            text("SELECT count(*) FROM districts WHERE name = 'Шевченківський район'")
+        )
         assert districts == 1
 
 

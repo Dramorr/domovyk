@@ -52,6 +52,13 @@ class CityOut(BaseModel):
     status: Literal["active", "soon"]
 
 
+class DistrictOut(BaseModel):
+    """Район міста — для фільтра пошуку (FR-SRC-2)."""
+
+    id: int
+    name: str
+
+
 class AddressCandidate(BaseModel):
     """Будинок, знайдений геокодером (PRP-ADDR-CONFIRM)."""
 

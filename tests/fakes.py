@@ -35,12 +35,13 @@ from domovyk.modules.moderation.service import ModerationService
 from domovyk.modules.notifications.service import NotificationsService
 from domovyk.modules.payments.service import PaymentsConfig, PaymentsService
 from domovyk.modules.properties.service import PropertiesConfig, PropertiesService
+from domovyk.modules.search.service import SearchConfig, SearchService
 from domovyk.modules.users.schemas import PersonalIn, TenantProfile, UserOut
 from domovyk.modules.users.service import UsersConfig, UsersService
 from domovyk.modules.utilities.service import UtilitiesConfig, UtilitiesService
 from tests.fakes_contracts import ContractDb, FakeContractsRepository, FakePdfRenderer
 from tests.fakes_leases import FakeChatRepository, FakeLeasesRepository, LeaseDb
-from tests.fakes_listings import FakeListingsRepository, ListingDb
+from tests.fakes_listings import FakeListingsRepository, FakeSearchRepository, ListingDb, SearchDb
 from tests.fakes_payments import FakePaymentsRepository, PaymentDb
 from tests.fakes_properties import (
     FakeNotificationsRepository,
@@ -99,6 +100,7 @@ class FakeDb:
         self.payment = PaymentDb()
         self.utility = UtilityDb()
         self.listing = ListingDb()
+        self.search = SearchDb()
         self.pdf = FakePdfRenderer()
         self.cipher = Cipher(Fernet.generate_key().decode())
         self.storage = MemoryStorage()
@@ -431,6 +433,14 @@ def make_fake_services(
         clock,
         ListingsConfig(),
     )
+    search = SearchService(
+        NullTxManager(),
+        lambda _: FakeSearchRepository(db.search),
+        users,
+        properties,
+        listings,
+        SearchConfig(),
+    )
     wire_guards(users, properties, leases)
     wire_contracts(leases, contracts)
     wire_listings(properties, leases, listings)
@@ -446,5 +456,6 @@ def make_fake_services(
         payments=payments,
         utilities=utilities,
         listings=listings,
+        search=search,
     )
     return services, db
