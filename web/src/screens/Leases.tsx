@@ -25,7 +25,7 @@ import { PaymentsBlock } from "./Payments";
 import { PhotoSlider } from "./Photos";
 import { Stepper, type Step } from "./Stepper";
 import { confirm, openTelegramLink, type WebApp } from "../telegram";
-import { Chip, errorCode, errorField, errorText, formatAddress, formatDate, ListRow, MascotTip, Screen } from "../ui";
+import { Chip, errorCode, errorField, errorText, Fold, formatAddress, formatDate, ListRow, MascotTip, Screen } from "../ui";
 
 const k = (key: string) => t(key as TextKey);
 
@@ -1260,15 +1260,18 @@ export function LeaseCard({
         )}
       </div>
 
-      <section className="card">
-        <h2>{t("ls_sec_money")}</h2>
+      <Fold
+        id={`lease:${l.id}:money`}
+        icon="key"
+        title={t("ls_sec_money")}
+        summary={t("ls_rent_line", { rent: money(l.rent_amount), day: String(l.rent_due_day) })}
+      >
         <p>{t("ls_rent_line", { rent: money(l.rent_amount), day: String(l.rent_due_day) })}</p>
         {l.deposit_amount ? <p className="hint">{t("ls_deposit_line", { sum: money(l.deposit_amount) })}</p> : null}
         <p className="hint">{t("ls_pay_line", { method: payText })}</p>
-      </section>
+      </Fold>
 
-      <section className="card">
-        <h2>{t("ls_terms_title")}</h2>
+      <Fold id={`lease:${l.id}:terms`} icon="doc" title={t("ls_terms_title")} summary={termsLines(l.terms).slice(0, 2).join(" · ")}>
         <ul className="plain">
           {termsLines(l.terms).map((line) => (
             <li key={line}>{line}</li>
@@ -1280,10 +1283,9 @@ export function LeaseCard({
             {t("ls_edit")}
           </button>
         )}
-      </section>
+      </Fold>
 
-      <section className="card">
-        <h2>{t("ls_members")}</h2>
+      <Fold id={`lease:${l.id}:members`} icon="user" title={t("ls_members")} summary={l.members.map((m) => m.display_name).join(", ")}>
         {l.members.map((m) => (
           <div key={m.user_id} className="unit">
             <span>{m.display_name}</span>
@@ -1306,7 +1308,7 @@ export function LeaseCard({
             {t("ls_invite_co")}
           </button>
         )}
-      </section>
+      </Fold>
 
       {error && <p className="error">{error}</p>}
 

@@ -12,6 +12,7 @@ import {
   errorCode,
   errorField,
   errorText,
+  Fold,
   formatAddress,
   formatDate,
   ListRow,
@@ -687,8 +688,12 @@ export function PropertyCard({
 
       {!current && listing !== undefined && <ListingBlock listing={listing} onOpen={onListing} />}
 
-      <section className="card">
-        <h2>{t("pf_title")}</h2>
+      <Fold
+        id={`prop:${id}:profile`}
+        icon="edit"
+        title={t("pf_title")}
+        summary={prop.completeness ? t("prp_profile_summary", { percent: String(prop.completeness.percent) }) : undefined}
+      >
         <CompletenessBar p={prop} />
         <PublishHint p={prop} />
         <button className="button secondary" onClick={onProfile}>
@@ -699,13 +704,16 @@ export function PropertyCard({
           <Icon name="meter" size={20} />
           {t("mt_title")}
         </button>
-      </section>
+      </Fold>
 
-      <section className="card">
-        <div className="stat">
-          <h2 style={{ margin: 0, flex: 1 }}>{t("prp_card_ownership")}</h2>
-          <OwnershipChip status={prop.ownership_status} />
-        </div>
+      <Fold
+        id={`prop:${id}:ownership`}
+        icon="shield"
+        title={t("prp_card_ownership")}
+        aside={<OwnershipChip status={prop.ownership_status} />}
+        // Непідтверджена власність блокує оренду й оголошення — показуємо відкритою.
+        defaultOpen={prop.ownership_status !== "verified"}
+      >
         {prop.ownership_status === "pending" ? (
           <p className="hint small">{t("prp_card_pending_hint")}</p>
         ) : (
@@ -715,11 +723,10 @@ export function PropertyCard({
           <Icon name="shield" size={20} />
           {prop.ownership_status === "unverified" ? t("prp_card_verify") : t("prp_card_verify_status")}
         </button>
-      </section>
+      </Fold>
 
       {history.length > 0 && (
-        <section className="card">
-          <h2>{t("prp_card_history")}</h2>
+        <Fold id={`prop:${id}:history`} icon="clock" title={t("prp_card_history")} summary={t("prp_history_summary", { n: String(history.length) })}>
           <LeaseRows
             items={history}
             webApp={webApp}
@@ -727,11 +734,15 @@ export function PropertyCard({
             onOpen={onOpenLease}
             onHidden={(lid) => setLeases((xs) => xs?.filter((x) => x.id !== lid) ?? null)}
           />
-        </section>
+        </Fold>
       )}
 
-      <section className="card">
-        <h2>{t("prp_details")}</h2>
+      <Fold
+        id={`prop:${id}:details`}
+        icon="building"
+        title={t("prp_details")}
+        summary={[roomsText(prop.rooms), prop.floor != null ? `${t("prp_floor")} ${prop.floor}` : null].filter(Boolean).join(" · ")}
+      >
         {!edit ? (
           <>
             <p className="small">
@@ -789,7 +800,7 @@ export function PropertyCard({
             </button>
           </>
         )}
-      </section>
+      </Fold>
 
       {error && <p className="error">{error}</p>}
       <button className="link danger" onClick={remove} disabled={busy}>

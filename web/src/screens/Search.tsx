@@ -9,7 +9,7 @@ import { t, type TextKey } from "../i18n";
 import { Icon } from "../icons";
 import { PROFILE_SECTIONS, type FieldSpec } from "../profileSpec";
 import { type WebApp } from "../telegram";
-import { Chip, errorText, formatDate, MascotTip, roomsText, Screen, shortStreet } from "../ui";
+import { Chip, errorText, Fold, formatDate, MascotTip, roomsText, Screen, shortStreet } from "../ui";
 import { PhotoImage, PhotoSlider } from "./Photos";
 
 const k = (key: string, vars?: Record<string, string>) => t(key as TextKey, vars);
@@ -532,25 +532,30 @@ export function ListingView({ id, onBack }: { id: string; webApp: WebApp; onBack
         </section>
       )}
 
-      <section className="card">
-        <div className="stat">
-          <h2 style={{ margin: 0, flex: 1 }}>{t("src_profile")}</h2>
-          <Chip tone={card.completeness >= 75 ? "ok" : "neutral"}>{k("src_filled", { n: String(card.completeness) })}</Chip>
-        </div>
-        {sections.map((s) => (
-          <div key={s.key} className="facts">
-            <h3>{k(`pf_section_${s.key}`)}</h3>
-            <dl>
-              {s.rows.map(([key, value]) => (
-                <div key={key} className="fact">
-                  <dt>{k(`pf_${key}`)}</dt>
-                  <dd>{value}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        ))}
-      </section>
+      <div className="stat section-head">
+        <h2 style={{ margin: 0, flex: 1 }}>{t("src_profile")}</h2>
+        <Chip tone={card.completeness >= 75 ? "ok" : "neutral"}>{k("src_filled", { n: String(card.completeness) })}</Chip>
+      </div>
+      {sections.map((sec) => (
+        <Fold
+          key={sec.key}
+          id={`listing-view:${sec.key}`}
+          title={k(`pf_section_${sec.key}`)}
+          summary={sec.rows
+            .slice(0, 2)
+            .map(([, value]) => value)
+            .join(" · ")}
+        >
+          <dl className="facts">
+            {sec.rows.map(([key, value]) => (
+              <div key={key} className="fact">
+                <dt>{k(`pf_${key}`)}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </Fold>
+      ))}
 
       <section className="card">
         <h2>{t("src_owner")}</h2>

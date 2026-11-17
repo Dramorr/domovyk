@@ -1,5 +1,5 @@
 // PROF-1 (BOT_FLOWS §16, FR-USR-3, FR-USR-5, ADR 0016).
-// Шапка з аватаром (тап — завантажити фото), розділи «клавішами» збоку:
+// Шапка з аватаром (тап — завантажити фото), розділи акордеонами:
 // Персональні дані · Відгуки · Акаунт. Одна кнопка «Зберегти» внизу — для всіх змін.
 
 import { useEffect, useRef, useState } from "react";
@@ -8,10 +8,8 @@ import { api, type City, type Personal, type User } from "../api/client";
 import { t } from "../i18n";
 import { confirm, type WebApp } from "../telegram";
 import { Icon } from "../icons";
-import { Avatar, errorCode, errorField, errorText, MascotTip, Screen } from "../ui";
+import { Avatar, errorCode, errorField, errorText, Fold, MascotTip, Screen } from "../ui";
 import { isValidName } from "./Onboarding";
-
-type ProfileTab = "personal" | "reviews" | "account";
 
 const AVATAR_MAX_MB = 15; // як avatar_max_bytes на бекенді
 
@@ -40,7 +38,6 @@ export function Profile({
   onUserChange: (user: User) => void;
   onDeleted: () => void;
 }) {
-  const [tab, setTab] = useState<ProfileTab>("personal");
   const [name, setName] = useState(user.display_name);
   const [personal, setPersonal] = useState<Personal | null>(null);
   const [form, setForm] = useState<Form>(toForm(null));
@@ -74,11 +71,10 @@ export function Profile({
     (form.legal_name.trim() !== saved.legal_name || form.birth_date !== saved.birth_date || form.city_code !== saved.city_code);
   const dirty = nameChanged || personalChanged;
 
-  const tabs: { key: ProfileTab; label: string; dirty: boolean }[] = [
-    { key: "personal", label: t("prof_tab_personal"), dirty },
-    { key: "reviews", label: t("prof_tab_reviews"), dirty: false },
-    { key: "account", label: t("prof_tab_account"), dirty: false },
-  ];
+  // Що видно в заголовку згорнутого розділу: заповнене коротко, порожнє — підказкою.
+  const cityName = cities.find((c) => c.code === form.city_code)?.name;
+  const personalSummary =
+    [form.legal_name.trim(), cityName].filter(Boolean).join(" · ") || t("prof_personal_summary_empty");
 
   function edit(patch: Partial<Form>) {
     setForm((f) => ({ ...f, ...patch }));
@@ -209,121 +205,104 @@ export function Profile({
         </div>
       </section>
 
-      {/* Розділи — «клавіші» збоку: активна висувається й зливається з карткою. */}
-      <div className="piano">
-        <div className="piano-keys" role="tablist" aria-orientation="vertical" aria-label={t("prof_title")}>
-          {tabs.map((x) => (
-            <button
-              key={x.key}
-              type="button"
-              role="tab"
-              aria-selected={tab === x.key}
-              className={`piano-key${tab === x.key ? " active" : ""}`}
-              onClick={() => setTab(x.key)}
-            >
-              <span>{x.label}</span>
-              {x.dirty && <span className="tab-dot" aria-label={t("pf_unsaved")} />}
-            </button>
-          ))}
-        </div>
-
-        <div className="piano-panel">
-          {tab === "personal" && (
-            <section className="card group tab-panel" key="personal">
-              <label className="field">
-                {t("prof_name")}
-                <input
-                  className="input"
-                  value={name}
-                  maxLength={40}
-                  autoComplete="nickname"
-                  onChange={(e) => {
-                    setName(e.target.value);
-                    setMessage(null);
-                  }}
-                />
-              </label>
-              <p className="hint small">{t("prof_name_hint")}</p>
-              {!personal && !error && <div className="skeleton" />}
-              {personal && (
-                <>
-                  <label className="field">
-                    {t("prof_legal_name")}
-                    <input
-                      className="input"
-                      value={form.legal_name}
-                      maxLength={150}
-                      autoComplete="name"
-                      placeholder={t("prof_legal_name_placeholder")}
-                      onChange={(e) => edit({ legal_name: e.target.value })}
-                    />
-                  </label>
-                  <p className="hint small">{t("prof_legal_name_hint")}</p>
-                  <label className="field">
-                    {t("prof_birth_date")}
-                    <input
-                      className="input"
-                      type="date"
-                      value={form.birth_date}
-                      min="1900-01-01"
-                      max={new Date().toISOString().slice(0, 10)}
-                      onChange={(e) => edit({ birth_date: e.target.value })}
-                    />
-                  </label>
-                  <p className="hint small">{t("prof_birth_date_hint")}</p>
-                  <label className="field">
-                    {t("prof_city")}
-                    <select className="input" value={form.city_code} onChange={(e) => edit({ city_code: e.target.value })}>
-                      <option value="">{t("prof_city_none")}</option>
-                      {cities.map((c) => (
-                        <option key={c.code} value={c.code}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <div className="info-row phone-row">
-                    <span className="info-label">{t("prof_phone_row")}</span>
-                    <span className="phone-value">{personal.phone ? formatPhone(personal.phone) : "—"}</span>
-                    {user.has_phone ? (
-                      <span className="phone-ok" title={t("prof_phone_yes")} aria-label={t("prof_phone_yes")}>
-                        <Icon name="check" size={18} />
-                      </span>
-                    ) : (
-                      <span className="phone-bad" title={t("prof_phone_no")} aria-label={t("prof_phone_no")}>
-                        <Icon name="alert" size={18} />
-                      </span>
-                    )}
-                  </div>
-                  {!user.has_phone && <p className="hint small">{t("prof_phone_need")}</p>}
-                </>
+      {/* Розділи — акордеони: заголовок з підсумком, вміст по тапу. */}
+      <Fold
+        id="profile:personal"
+        icon="user"
+        defaultOpen
+        title={t("prof_tab_personal")}
+        summary={personalSummary}
+        aside={dirty ? <span className="tab-dot" aria-label={t("pf_unsaved")} /> : undefined}
+      >
+        <label className="field">
+          {t("prof_name")}
+          <input
+            className="input"
+            value={name}
+            maxLength={40}
+            autoComplete="nickname"
+            onChange={(e) => {
+              setName(e.target.value);
+              setMessage(null);
+            }}
+          />
+        </label>
+        <p className="hint small">{t("prof_name_hint")}</p>
+        {!personal && !error && <div className="skeleton" />}
+        {personal && (
+          <>
+            <label className="field">
+              {t("prof_legal_name")}
+              <input
+                className="input"
+                value={form.legal_name}
+                maxLength={150}
+                autoComplete="name"
+                placeholder={t("prof_legal_name_placeholder")}
+                onChange={(e) => edit({ legal_name: e.target.value })}
+              />
+            </label>
+            <p className="hint small">{t("prof_legal_name_hint")}</p>
+            <label className="field">
+              {t("prof_birth_date")}
+              <input
+                className="input"
+                type="date"
+                value={form.birth_date}
+                min="1900-01-01"
+                max={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => edit({ birth_date: e.target.value })}
+              />
+            </label>
+            <p className="hint small">{t("prof_birth_date_hint")}</p>
+            <label className="field">
+              {t("prof_city")}
+              <select className="input" value={form.city_code} onChange={(e) => edit({ city_code: e.target.value })}>
+                <option value="">{t("prof_city_none")}</option>
+                {cities.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="info-row phone-row">
+              <span className="info-label">{t("prof_phone_row")}</span>
+              <span className="phone-value">{personal.phone ? formatPhone(personal.phone) : "—"}</span>
+              {user.has_phone ? (
+                <span className="phone-ok" title={t("prof_phone_yes")} aria-label={t("prof_phone_yes")}>
+                  <Icon name="check" size={18} />
+                </span>
+              ) : (
+                <span className="phone-bad" title={t("prof_phone_no")} aria-label={t("prof_phone_no")}>
+                  <Icon name="alert" size={18} />
+                </span>
               )}
-            </section>
-          )}
+            </div>
+            {!user.has_phone && <p className="hint small">{t("prof_phone_need")}</p>}
+          </>
+        )}
+      </Fold>
 
-          {tab === "reviews" && (
-            <section className="card group tab-panel" key="reviews">
-              <MascotTip>
-                <p>{t("prof_reviews_empty")}</p>
-              </MascotTip>
-            </section>
-          )}
+      <Fold id="profile:reviews" icon="star" title={t("prof_tab_reviews")} summary={t("prof_reviews_summary")}>
+        <MascotTip>
+          <p>{t("prof_reviews_empty")}</p>
+        </MascotTip>
+      </Fold>
 
-          {tab === "account" && (
-            <section className="card group tab-panel account-panel" key="account">
-              <div className="info-row">
-                <Icon name="send" size={20} />
-                <span>{t("prof_login_telegram")}</span>
-              </div>
-              <p className="hint small">{t("prof_login_hint")}</p>
-              <button className="info-row danger account-delete" onClick={deleteAccount} disabled={busy}>
-                <Icon name="trash" size={20} />
-                <span>{t("prof_delete")}</span>
-              </button>
-            </section>
-          )}
+      <Fold id="profile:account" icon="shield" title={t("prof_tab_account")} summary={t("prof_login_telegram")}>
+        <div className="account-panel">
+          <div className="info-row">
+            <Icon name="send" size={20} />
+            <span>{t("prof_login_telegram")}</span>
+          </div>
+          <p className="hint small">{t("prof_login_hint")}</p>
+          <button className="info-row danger account-delete" onClick={deleteAccount} disabled={busy}>
+            <Icon name="trash" size={20} />
+            <span>{t("prof_delete")}</span>
+          </button>
         </div>
-      </div>
+      </Fold>
 
       {(dirty || message || error) && (
         <div className="sticky-actions">

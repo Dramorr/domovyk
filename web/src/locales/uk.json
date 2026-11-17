@@ -1077,5 +1077,9 @@
   "src_saved_show": "Показати",
   "src_saved_notify_on": "🔔 Сповіщення увімкнені",
   "src_saved_notify_off": "🔕 Без сповіщень",
-  "src_saved_delete": "Видалити пошук"
+  "src_saved_delete": "Видалити пошук",
+  "prof_personal_summary_empty": "ПІБ, дата народження, місто — для договору",
+  "prof_reviews_summary": "Поки немає",
+  "prp_profile_summary": "Заповнено на {percent}% · фото, опис, лічильники",
+  "prp_history_summary": "Завершених оренд: {n}"
 }

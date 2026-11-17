@@ -308,6 +308,76 @@ export function MascotTip({ children, tone = "default" }: { children: ReactNode;
 
 // ------------------------------------------------------------- дрібні компоненти
 
+/** Розгорнутий чи згорнутий блок — пам'ятаємо в межах сесії, щоб «Назад» не скидав вибір. */
+function readFold(id: string): boolean | null {
+  try {
+    const v = sessionStorage.getItem(`fold:${id}`);
+    return v === null ? null : v === "1";
+  } catch {
+    return null;
+  }
+}
+
+function writeFold(id: string, open: boolean): void {
+  try {
+    sessionStorage.setItem(`fold:${id}`, open ? "1" : "0");
+  } catch {
+    // Немає сховища — просто не пам'ятаємо.
+  }
+}
+
+/**
+ * Блок-акордеон: заголовок з коротким підсумком, вміст — по кліку.
+ * Довідкове ховаємо, а те, що чекає дії людини, лишаємо звичайною карткою.
+ */
+export function Fold({
+  id,
+  title,
+  summary,
+  aside,
+  icon,
+  defaultOpen = false,
+  children,
+}: {
+  id: string;
+  title: ReactNode;
+  summary?: ReactNode;
+  aside?: ReactNode;
+  icon?: IconName;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(() => readFold(id) ?? defaultOpen);
+  const toggle = () => {
+    setOpen((o) => {
+      writeFold(id, !o);
+      return !o;
+    });
+  };
+  return (
+    <section className={`card fold${open ? " open" : ""}`}>
+      <button type="button" className="fold-head" aria-expanded={open} onClick={toggle}>
+        {icon && (
+          <span className="fold-icon" aria-hidden>
+            <Icon name={icon} size={20} />
+          </span>
+        )}
+        <span className="fold-text">
+          <span className="fold-title">{title}</span>
+          {summary && <span className="fold-summary">{summary}</span>}
+        </span>
+        {aside && <span className="fold-aside">{aside}</span>}
+        <span className="fold-chevron" aria-hidden>
+          <Icon name="chevron" size={20} />
+        </span>
+      </button>
+      <div className="fold-body" {...(open ? {} : { inert: "" })}>
+        <div className="fold-inner">{children}</div>
+      </div>
+    </section>
+  );
+}
+
 export function Chip({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "ok" | "warn" | "info" | "bad" }) {
   return <span className={`chip-status ${tone}`}>{children}</span>;
 }
