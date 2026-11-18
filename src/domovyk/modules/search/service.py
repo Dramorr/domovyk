@@ -1,9 +1,9 @@
 """Публічний інтерфейс модуля search: пошук, обране, збережені пошуки (FR-SRC-1..6, ADR 0019).
 
-Повного каталогу немає: спершу фільтр, потім результати (FR-SRC-1). Оголошення й
-анкета беруться через сервіси listings і properties — чужі таблиці тут не читаємо.
-Адреса для орендаря — лише вулиця й район; будинок, квартира й поверх відкриються
-після схвалення заявки (FR-LST-4).
+Без фільтра — усе житло міста, новіші спершу (FR-SRC-1). Оголошення й анкета беруться
+через сервіси listings і properties — чужі таблиці тут не читаємо. Адреса для орендаря —
+вулиця й будинок; квартира, під'їзд і поверх відкриються після схвалення заявки
+(FR-LST-4, ADR 0021).
 """
 
 from __future__ import annotations
@@ -138,7 +138,6 @@ class SearchService:
             min_term_months=listing.min_term_months,
             floors_total=prop.details.floors_total,
             details=prop.details,
-            photos=await self._properties.photos_of(prop.id),
             owner=OwnerPublic(
                 user_id=owner.id,
                 display_name=owner.display_name,
@@ -399,9 +398,11 @@ class SearchService:
             city=prop.city,
             district=prop.district,
             street=prop.street,
+            house_number=prop.house_number,
             completeness=prop.completeness.percent if prop.completeness else 0,
             cover_photo_id=photos[0].id if photos else None,
             photos_count=len(photos),
+            photos=photos,
             available_from=listing.available_from,
             published_at=listing.published_at,
             is_favorite=listing.id in favorites,

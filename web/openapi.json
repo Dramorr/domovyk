@@ -2301,7 +2301,7 @@
         "type": "object"
       },
       "ListingCard": {
-        "description": "Картка оголошення для орендаря: умови, анкета, фото. Адреса — лише вулиця й район.",
+        "description": "Картка оголошення для орендаря: умови, анкета, фото. Адреса — без квартири й поверху.",
         "properties": {
           "actual": {
             "title": "Actual",
@@ -2386,6 +2386,10 @@
               }
             ],
             "title": "Floors Total"
+          },
+          "house_number": {
+            "title": "House Number",
+            "type": "string"
           },
           "id": {
             "format": "uuid",
@@ -2472,9 +2476,11 @@
           "city",
           "district",
           "street",
+          "house_number",
           "completeness",
           "cover_photo_id",
           "photos_count",
+          "photos",
           "available_from",
           "published_at",
           "is_favorite",
@@ -2482,7 +2488,6 @@
           "min_term_months",
           "floors_total",
           "details",
-          "photos",
           "owner",
           "is_mine"
         ],
@@ -2754,7 +2759,7 @@
         "type": "string"
       },
       "ListingSummary": {
-        "description": "Рядок у результатах і в обраному. Без номера будинку, квартири й поверху (FR-LST-4).",
+        "description": "Рядок у результатах і в обраному. Вулиця й будинок — так; квартира, під'їзд і поверх —\nлише після схвалення заявки (FR-LST-4, ADR 0021).",
         "properties": {
           "actual": {
             "title": "Actual",
@@ -2815,6 +2820,10 @@
             ],
             "title": "District"
           },
+          "house_number": {
+            "title": "House Number",
+            "type": "string"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -2826,6 +2835,13 @@
           },
           "kind": {
             "$ref": "#/components/schemas/PropertyKind"
+          },
+          "photos": {
+            "items": {
+              "$ref": "#/components/schemas/PhotoOut"
+            },
+            "title": "Photos",
+            "type": "array"
           },
           "photos_count": {
             "title": "Photos Count",
@@ -2875,9 +2891,11 @@
           "city",
           "district",
           "street",
+          "house_number",
           "completeness",
           "cover_photo_id",
           "photos_count",
+          "photos",
           "available_from",
           "published_at",
           "is_favorite"

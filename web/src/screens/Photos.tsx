@@ -85,7 +85,18 @@ function Dots({ count, index }: { count: number; index: number }) {
 }
 
 /** Міні-слайдер: гортання пальцем, крапки, лічильник; тап — на весь екран. `compact` — нижча рамка 16:9. */
-export function PhotoSlider({ photos, source, compact = false }: { photos: Photo[]; source: PhotoSource; compact?: boolean }) {
+/** `onTap` — замість повноекранного перегляду (картка в результатах відкриває оголошення). */
+export function PhotoSlider({
+  photos,
+  source,
+  compact = false,
+  onTap,
+}: {
+  photos: Photo[];
+  source: PhotoSource;
+  compact?: boolean;
+  onTap?: () => void;
+}) {
   const { ref, index, onScroll } = useSlideIndex();
   const [full, setFull] = useState<number | null>(null);
   if (photos.length === 0) return null;
@@ -98,7 +109,7 @@ export function PhotoSlider({ photos, source, compact = false }: { photos: Photo
             type="button"
             className="photo-slide"
             aria-label={t("ph_open", { n: String(i + 1), total: String(photos.length) })}
-            onClick={() => setFull(i)}
+            onClick={() => (onTap ? onTap() : setFull(i))}
           >
             {Math.abs(i - index) <= 1 ? <PhotoImage src={source} photo={p} mode="frame" /> : <span className="photo-ph" />}
           </button>

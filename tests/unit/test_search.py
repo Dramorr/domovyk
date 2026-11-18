@@ -155,11 +155,13 @@ async def test_search_filters_and_hides_exact_address(env: tuple[Services, FakeD
     assert [i.id for i in page.items] == [cheap] and page.total == 1
     assert (await s.search.search(TENANT, SearchIn(rooms=[3]))).total == 1
 
-    # FR-LST-4: ні номера будинку, ні квартири, ні поверху.
+    # FR-LST-4 (ADR 0021): вулиця й будинок — так; квартира, під'їзд і поверх — ні.
     card = await s.search.card(TENANT, cheap)
     dumped = card.model_dump()
-    assert card.street == "вул. Тестова" and card.district == "Галицький район"
-    assert not {"house_number", "apartment", "floor", "entrance"} & dumped.keys()
+    assert card.street == "вул. Тестова" and card.house_number == "1"
+    assert card.district == "Галицький район"
+    assert not {"apartment", "floor", "entrance"} & dumped.keys()
+    assert page.items[0].house_number == "1"
     assert card.owner.display_name == "Ірина" and not card.is_mine
     # Власник себе в пошуку не бачить.
     assert (await s.search.search(OWNER, SearchIn())).total == 0

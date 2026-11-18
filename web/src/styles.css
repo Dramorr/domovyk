@@ -3521,44 +3521,6 @@ a.button {
   text-decoration: none;
 }
 
-/* SRC: шапка пошуку з кнопкою фільтрів і швидкі посилання */
-.search-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.search-head h1 {
-  flex: 1;
-  min-width: 0;
-  margin-bottom: 0;
-  font-size: 21px;
-  white-space: nowrap;
-}
-
-.filter-button {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  color: var(--brand-ink);
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.filter-button .count {
-  min-width: 22px;
-  height: 22px;
-  line-height: 22px;
-}
-
 /* Один рядок; не влізло — гортається вбік до краю екрана, без смуги прокрутки. */
 .quick-links {
   flex-wrap: nowrap;
@@ -3580,6 +3542,255 @@ a.button {
   white-space: nowrap;
 }
 
-.filter-actions {
-  margin-top: 18px;
+
+/* Заголовок з дією праворуч (фільтри: «Скинути»; оголошення без фото: серце) */
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.title-row h1 {
+  flex: 1;
+  min-width: 0;
+}
+
+.pill-button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--brand-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pill-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Дія, прибита до низу екрана (фільтри: «Зберегти») */
+.sticky-action {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  z-index: 19;
+  width: min(560px, 100%);
+  padding: 10px 16px calc(12px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid var(--line);
+  transform: translateX(-50%);
+}
+
+.sticky-action .button {
+  width: 100%;
+  margin: 0;
+}
+
+.sticky-action .button .count {
+  background: var(--on-brand);
+  color: var(--brand);
+}
+
+.sticky-spacer {
+  height: 64px;
+}
+
+/* Плаваюча панель пошуку: мої пошуки · фільтри (згодом — мапа) */
+.float-bar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  z-index: 19;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 18%);
+  transform: translateX(-50%);
+}
+
+.float-bar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.float-bar .count {
+  min-width: 22px;
+  height: 22px;
+  line-height: 22px;
+}
+
+.float-sep {
+  width: 1px;
+  height: 24px;
+  background: var(--line);
+}
+
+.float-spacer {
+  height: 72px;
+}
+
+/* Картка оголошення в результатах: фото на всю ширину, ціна й адреса поверх */
+.listing-card {
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.listing-card.stale {
+  opacity: 0.7;
+}
+
+.lc-media,
+.lv-media {
+  position: relative;
+}
+
+.lc-media .photo-slider {
+  margin: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.lc-media .photo-count {
+  display: none;
+}
+
+.lc-media .photo-dots {
+  bottom: 8px;
+}
+
+.lc-nophoto {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  background: var(--surface-2);
+  color: var(--text-3);
+  cursor: pointer;
+}
+
+.lc-over {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 36px 14px 24px;
+  background: linear-gradient(to top, rgb(0 0 0 / 62%), transparent);
+  color: #fff;
+  pointer-events: none;
+}
+
+.lc-price {
+  font-family: Unbounded, sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.lc-address {
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 40%);
+}
+
+.fav-toggle {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 32%);
+  color: #fff;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fav-toggle.on {
+  color: #ff5a6e;
+}
+
+.lv-media .photo-count {
+  top: auto;
+  bottom: 10px;
+}
+
+.lv-fav-inline .fav-toggle {
+  position: static;
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+
+.lv-fav-inline .fav-toggle.on {
+  color: #e0455a;
+}
+
+.lc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 12px 14px 14px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lc-chip {
+  padding: 3px 10px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.lc-line {
+  font-weight: 600;
+}
+
+.lv-price {
+  margin: 0 0 4px;
+  color: var(--brand-ink);
+  font-family: Unbounded, sans-serif;
+  font-size: 20px;
+  font-weight: 700;
 }

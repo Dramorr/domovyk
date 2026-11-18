@@ -44,7 +44,8 @@ class SearchOptions(BaseModel):
 
 
 class ListingSummary(BaseModel):
-    """Рядок у результатах і в обраному. Без номера будинку, квартири й поверху (FR-LST-4)."""
+    """Рядок у результатах і в обраному. Вулиця й будинок — так; квартира, під'їзд і поверх —
+    лише після схвалення заявки (FR-LST-4, ADR 0021)."""
 
     id: uuid.UUID
     status: ListingStatus
@@ -57,9 +58,11 @@ class ListingSummary(BaseModel):
     city: str
     district: str | None
     street: str
+    house_number: str
     completeness: int
     cover_photo_id: uuid.UUID | None
     photos_count: int
+    photos: list[PhotoOut]  # слайдер у картці результату; самі файли — окремими запитами
     available_from: date | None
     published_at: datetime | None
     is_favorite: bool
@@ -82,13 +85,12 @@ class OwnerPublic(BaseModel):
 
 
 class ListingCard(ListingSummary):
-    """Картка оголошення для орендаря: умови, анкета, фото. Адреса — лише вулиця й район."""
+    """Картка оголошення для орендаря: умови, анкета, фото. Адреса — без квартири й поверху."""
 
     deposit_amount: int | None
     min_term_months: int | None
     floors_total: int | None
     details: PropertyDetails
-    photos: list[PhotoOut]
     owner: OwnerPublic
     is_mine: bool
 

@@ -1,6 +1,7 @@
 // Пошук для орендаря (M6, BOT_FLOWS §5, FR-SRC-1..6). Спершу житло міста, новіші спершу;
-// фільтри — окремою сторінкою, глобальні й зберігаються на пристрої одразу (FR-SRC-1). Адреса — лише вулиця й район; будинок, квартира й поверх відкриються
-// після схвалення заявки (FR-LST-4). 
+// фільтри — окремою сторінкою, глобальні й зберігаються на пристрої одразу (FR-SRC-1).
+// Адреса — вулиця й будинок; квартира, під'їзд і поверх — після схвалення заявки
+// (FR-LST-4, ADR 0021).
 
 import { useEffect, useState } from "react";
 
@@ -9,9 +10,9 @@ import { t, type TextKey } from "../i18n";
 import { Icon } from "../icons";
 import { PROFILE_SECTIONS, type FieldSpec } from "../profileSpec";
 import { type WebApp } from "../telegram";
-import { Chip, errorText, Fold, formatDate, MascotTip, roomsText, Screen, shortStreet } from "../ui";
+import { Chip, errorText, Fold, formatAddress, formatDate, MascotTip, roomsText, Screen } from "../ui";
 import { ApplicationChip, ApplySheet } from "./Applications";
-import { PhotoImage, PhotoSlider } from "./Photos";
+import { PhotoSlider } from "./Photos";
 
 const OPEN_APP: Application["status"][] = ["pending", "approved", "showing_scheduled"];
 
@@ -76,10 +77,6 @@ function Picked({ n }: { n: number }) {
 function roomsLabel(r: number): string {
   if (r === 0) return t("rooms_studio");
   return r === 4 ? "4+" : String(r);
-}
-
-function placeText(x: Pick<ListingSummary, "district" | "street">): string {
-  return [x.district, shortStreet(x.street)].filter(Boolean).join(" · ");
 }
 
 /** Назва збереженого пошуку з фільтра: «1–2 кімн., до 20 000 ₴, Галицький». Людина може змінити. */
@@ -273,7 +270,13 @@ export function SearchScreen({
   if (view === "filter") {
     return (
       <Screen onBack={() => setView("results")}>
-        <h1 className="left">{t("src_filter_title")}</h1>
+        <div className="title-row">
+          <h1 className="left">{t("src_filter_title")}</h1>
+          <button type="button" className="pill-button" disabled={c.total === 0} onClick={() => setFilter({ ...EMPTY, city_code: filter.city_code })}>
+            <Icon name="close" size={18} />
+            {t("src_reset")}
+          </button>
+        </div>
         <p className="hint left">{t("src_filter_intro")}</p>
 
         <Fold id="search:place" icon="home" title={t("src_fold_place")} aside={<Picked n={c.place} />} defaultOpen>
@@ -379,14 +382,12 @@ export function SearchScreen({
           <p className="hint small">{t("src_completeness_hint")}</p>
         </Fold>
 
-        <div className="buttons filter-actions">
-          <button className="button secondary" disabled={c.total === 0} onClick={() => setFilter({ ...EMPTY, city_code: filter.city_code })}>
-            <Icon name="close" size={20} />
-            {t("src_reset")}
-          </button>
+        <div className="sticky-spacer" />
+        <div className="sticky-action">
           <button className="button" onClick={() => setView("results")}>
             <Icon name="check" size={20} />
             {t("src_go")}
+            {c.total > 0 && <span className="count">{c.total}</span>}
           </button>
         </div>
       </Screen>
@@ -395,22 +396,11 @@ export function SearchScreen({
 
   return (
     <Screen>
-      <div className="search-head">
-        <h1 className="left">{t("search_title")}</h1>
-        <button className="filter-button" onClick={() => setView("filter")} aria-label={t("src_filters")}>
-          <Icon name="filter" size={20} />
-          {t("src_filters")}
-          {c.total > 0 && <span className="count">{c.total}</span>}
-        </button>
-      </div>
+      <h1 className="left">{t("search_title")}</h1>
       <p className="hint left">{t("src_intro")}</p>
       <div className="chips quick-links">
         <button type="button" className="chip" onClick={onFavorites}>
-          <Icon name="star" size={16} /> {t("fav_title")}
-        </button>
-        <button type="button" className="chip" onClick={() => setView("saved")}>
-          <Icon name="search" size={16} /> {t("src_saved_title")}
-          {saved && saved.length > 0 && ` · ${saved.length}`}
+          <Icon name="heart" size={16} /> {t("fav_title")}
         </button>
         <button type="button" className="chip" onClick={onApplications}>
           <Icon name="send" size={16} /> {t("ap_my_title")}
@@ -427,7 +417,7 @@ export function SearchScreen({
           ) : (
             <div className="result-list">
               {items.map((x) => (
-                <ResultRow key={x.id} item={x} onOpen={() => onOpen(x.id)} />
+                <ResultCard key={x.id} item={x} onOpen={() => onOpen(x.id)} onChange={(y) => setItems((xs) => xs.map((z) => (z.id === y.id ? y : z)))} />
               ))}
             </div>
           )}
@@ -458,44 +448,96 @@ export function SearchScreen({
         </>
       )}
       {error && <p className="error">{error}</p>}
+
+      <div className="float-spacer" />
+      <nav className="float-bar" aria-label={t("src_filters")}>
+        <button type="button" onClick={() => setView("saved")} aria-label={t("src_saved_title")}>
+          <Icon name="search" size={20} />
+          {saved && saved.length > 0 && <span className="count">{saved.length}</span>}
+        </button>
+        <span className="float-sep" aria-hidden />
+        <button type="button" onClick={() => setView("filter")}>
+          <Icon name="filter" size={20} />
+          {t("src_filters")}
+          {c.total > 0 && <span className="count">{c.total}</span>}
+        </button>
+      </nav>
     </Screen>
   );
 }
 
-function ResultRow({ item, onOpen }: { item: ListingSummary; onOpen: () => void }) {
+function addressText(x: Pick<ListingSummary, "street" | "house_number">): string {
+  return formatAddress({ street: x.street, house_number: x.house_number });
+}
+
+/** Серце «в обране» поверх фото; ставить і знімає без переходу на картку (FR-SRC-4). */
+function FavoriteToggle({ item, onChange }: { item: ListingSummary; onChange: (x: ListingSummary) => void }) {
+  const [busy, setBusy] = useState(false);
+  if (!item.actual && !item.is_favorite) return null;
+  async function toggleFavorite() {
+    setBusy(true);
+    try {
+      if (item.is_favorite) await api.removeFavorite(item.id);
+      else await api.addFavorite(item.id);
+      onChange({ ...item, is_favorite: !item.is_favorite });
+    } catch {
+      // Не вийшло — серце лишається як було; людина просто натисне ще раз.
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
-    <button type="button" className={`result-row${item.actual ? "" : " stale"}`} onClick={onOpen}>
-      <span className="result-photo">
-        {item.cover_photo_id ? (
-          <PhotoImage src={{ kind: "listing", id: item.id }} photo={{ id: item.cover_photo_id, position: 0, width: 4, height: 3 }} mode="cover" />
+    <button
+      type="button"
+      className={`fav-toggle${item.is_favorite ? " on" : ""}`}
+      aria-pressed={item.is_favorite}
+      aria-label={item.is_favorite ? t("fav_remove") : t("fav_add")}
+      disabled={busy}
+      onClick={toggleFavorite}
+    >
+      <Icon name="heart" size={22} filled={item.is_favorite} />
+    </button>
+  );
+}
+
+function ResultCard({ item, onOpen, onChange }: { item: ListingSummary; onOpen: () => void; onChange: (x: ListingSummary) => void }) {
+  return (
+    <article className={`listing-card${item.actual ? "" : " stale"}`}>
+      <div className="lc-media">
+        {item.photos.length > 0 ? (
+          <PhotoSlider photos={item.photos} source={{ kind: "listing", id: item.id }} onTap={onOpen} />
         ) : (
-          <Icon name="photo" size={24} />
+          <button type="button" className="lc-nophoto" onClick={onOpen} aria-label={addressText(item)}>
+            <Icon name="photo" size={32} />
+          </button>
         )}
-      </span>
-      <span className="result-body">
-        <span className="result-price">
-          {k("ls_rent_month", { rent: money(item.price_amount) })}
-          {item.is_favorite && <Icon name="star" size={16} />}
+        <div className="lc-over">
+          <span className="lc-price">{k("ls_rent_month", { rent: money(item.price_amount) })}</span>
+          <span className="lc-address">{addressText(item)}</span>
+        </div>
+        <FavoriteToggle item={item} onChange={onChange} />
+      </div>
+      <button type="button" className="lc-body" onClick={onOpen}>
+        <span className="lc-chips">
+          {item.district && <span className="lc-chip">{item.district.replace(/ район$/, "")}</span>}
+          <span className="lc-chip">{item.city}</span>
+          {item.utilities_included && <span className="lc-chip">{t("src_utilities_in")}</span>}
         </span>
-        <span className="result-line">
+        <span className="lc-line">
           {roomsText(item.rooms)}
           {item.area && ` · ${t("sqm", { area: item.area })}`}
-          {item.utilities_included && ` · ${t("src_utilities_in")}`}
         </span>
-        <span className="result-line hint">{placeText(item)}</span>
-        <span className="result-meta">
+        <span className="lc-meta">
           {item.actual ? (
             <Chip tone={item.completeness >= 75 ? "ok" : "neutral"}>{k("src_filled", { n: String(item.completeness) })}</Chip>
           ) : (
             <Chip tone="warn">{t("fav_stale")}</Chip>
           )}
         </span>
-      </span>
-    </button>
+      </button>
+    </article>
   );
 }
-
-// ------------------------------------------------------------- SRC-CARD: оголошення для орендаря
 
 function answerText(spec: FieldSpec, value: unknown): string | null {
   if (value === null || value === undefined) return null;
@@ -529,7 +571,6 @@ export function ListingView({
   // Відкрита заявка на це оголошення — замість «Відгукнутись» показуємо її.
   const [mine, setMine] = useState<Application | null | undefined>(undefined);
   const [applying, setApplying] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -547,21 +588,6 @@ export function ListingView({
     return <Screen onBack={onBack}>{error ? <p className="error">{error}</p> : <p className="hint">{t("loading")}</p>}</Screen>;
   }
 
-  async function favorite() {
-    if (!card) return;
-    setBusy(true);
-    setError(null);
-    try {
-      if (card.is_favorite) await api.removeFavorite(card.id);
-      else await api.addFavorite(card.id);
-      setCard({ ...card, is_favorite: !card.is_favorite });
-    } catch (e) {
-      setError(errorText(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-
   const details = card.details as Record<string, unknown>;
   const sections = PROFILE_SECTIONS.map((s) => ({
     key: s.key,
@@ -570,15 +596,28 @@ export function ListingView({
 
   return (
     <Screen onBack={onBack}>
-      {card.photos.length > 0 && <PhotoSlider photos={card.photos} source={{ kind: "listing", id: card.id }} />}
+      {card.photos.length > 0 ? (
+        <div className="lv-media">
+          <PhotoSlider photos={card.photos} source={{ kind: "listing", id: card.id }} />
+          {!card.is_mine && <FavoriteToggle item={card} onChange={(x) => setCard({ ...card, is_favorite: x.is_favorite })} />}
+        </div>
+      ) : null}
       {!card.actual && <MascotTip tone="calm">{t("fav_stale_hint")}</MascotTip>}
-      <h1 className="left">{k("ls_rent_month", { rent: money(card.price_amount) })}</h1>
+      <div className="title-row">
+        <h1 className="left">{addressText(card)}</h1>
+        {card.photos.length === 0 && !card.is_mine && (
+          <span className="lv-fav-inline">
+            <FavoriteToggle item={card} onChange={(x) => setCard({ ...card, is_favorite: x.is_favorite })} />
+          </span>
+        )}
+      </div>
+      <p className="lv-price">{k("ls_rent_month", { rent: money(card.price_amount) })}</p>
       <p className="hint left">
         {roomsText(card.rooms)}
         {card.area && ` · ${t("sqm", { area: card.area })}`}
         {card.floors_total && ` · ${k("src_floors_total", { n: String(card.floors_total) })}`}
       </p>
-      <p className="left">{placeText(card)}</p>
+      <p className="left">{[card.district, card.city].filter(Boolean).join(" · ")}</p>
       <p className="hint small left">{t("src_address_hidden")}</p>
 
       <section className="card">
@@ -589,17 +628,6 @@ export function ListingView({
           {card.min_term_months != null && <li>{k("src_min_term", { n: String(card.min_term_months) })}</li>}
           <li>{card.available_from ? k("src_available_from", { date: formatDate(card.available_from) }) : t("src_available_now")}</li>
         </ul>
-        {card.actual && !card.is_mine && (
-          <button className={card.is_favorite ? "button secondary" : "button"} disabled={busy} onClick={favorite}>
-            <Icon name="star" size={20} />
-            {card.is_favorite ? t("fav_remove") : t("fav_add")}
-          </button>
-        )}
-        {!card.actual && card.is_favorite && (
-          <button className="link" disabled={busy} onClick={favorite}>
-            {t("fav_remove")}
-          </button>
-        )}
         {error && <p className="error">{error}</p>}
       </section>
 
@@ -689,7 +717,7 @@ export function FavoritesScreen({ onBack, onOpen }: { onBack: () => void; onOpen
       {items && items.length > 0 && (
         <div className="result-list">
           {items.map((x) => (
-            <ResultRow key={x.id} item={x} onOpen={() => onOpen(x.id)} />
+            <ResultCard key={x.id} item={x} onOpen={() => onOpen(x.id)} onChange={(y) => setItems((xs) => xs?.map((z) => (z.id === y.id ? y : z)) ?? null)} />
           ))}
         </div>
       )}

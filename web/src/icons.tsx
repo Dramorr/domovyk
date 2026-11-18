@@ -29,7 +29,8 @@ type IconName =
   | "info"
   | "minus"
   | "meter"
-  | "filter";
+  | "filter"
+  | "heart";
 
 const PATHS: Record<IconName, string> = {
   home: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z",
@@ -39,6 +40,7 @@ const PATHS: Record<IconName, string> = {
   chevron: "m9 6 6 6-6 6",
   back: "M15 6l-6 6 6 6",
   check: "m5 12.5 4.5 4.5L19 7.5",
+  heart: "M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.2a4.3 4.3 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z",
   filter: "M4 7h9M17 7h3M15 5v4M4 17h3M11 17h9M9 15v4",
   doc: "M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM14 3v5h5M9 13h6M9 17h6",
   plus: "M12 5v14M5 12h14",
@@ -63,14 +65,14 @@ const PATHS: Record<IconName, string> = {
   more: "M6.5 12a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zM13.5 12a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zM20.5 12a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z",
 };
 
-export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
+export function Icon({ name, size = 22, filled = false }: { name: IconName; size?: number; filled?: boolean }) {
   return (
     <svg
       className="icon"
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill="none"
+      fill={filled ? "currentColor" : "none"}
       stroke="currentColor"
       strokeWidth={1.8}
       strokeLinecap="round"

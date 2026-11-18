@@ -341,7 +341,7 @@ def meter_kinds_label(kinds: list[str]) -> str:
     return ", ".join(names[:-1]) + " й " + names[-1]
 
 
-# Заявки (FR-APP-1..3, BOT_FLOWS §6). Адреса — лише вулиця: будинок відкриється після схвалення.
+# Заявки (FR-APP-1..3, BOT_FLOWS §6). Адреса в сповіщенні — лише вулиця, коротко.
 APPLICATION_EVENTS = {
     "new": "📨 Нова заявка від {name}: <b>{place}</b>. Відповідай протягом 72 годин.",
     "approved": (

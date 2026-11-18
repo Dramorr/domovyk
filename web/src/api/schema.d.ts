@@ -2645,7 +2645,7 @@ export interface components {
         };
         /**
          * ListingCard
-         * @description Картка оголошення для орендаря: умови, анкета, фото. Адреса — лише вулиця й район.
+         * @description Картка оголошення для орендаря: умови, анкета, фото. Адреса — без квартири й поверху.
          */
         ListingCard: {
             /** Actual */
@@ -2667,6 +2667,8 @@ export interface components {
             district: string | null;
             /** Floors Total */
             floors_total: number | null;
+            /** House Number */
+            house_number: string;
             /**
              * Id
              * Format: uuid
@@ -2802,7 +2804,8 @@ export interface components {
         ListingStatus: "draft" | "active" | "paused" | "rented" | "archived" | "blocked";
         /**
          * ListingSummary
-         * @description Рядок у результатах і в обраному. Без номера будинку, квартири й поверху (FR-LST-4).
+         * @description Рядок у результатах і в обраному. Вулиця й будинок — так; квартира, під'їзд і поверх —
+         *     лише після схвалення заявки (FR-LST-4, ADR 0021).
          */
         ListingSummary: {
             /** Actual */
@@ -2819,6 +2822,8 @@ export interface components {
             cover_photo_id: string | null;
             /** District */
             district: string | null;
+            /** House Number */
+            house_number: string;
             /**
              * Id
              * Format: uuid
@@ -2827,6 +2832,8 @@ export interface components {
             /** Is Favorite */
             is_favorite: boolean;
             kind: components["schemas"]["PropertyKind"];
+            /** Photos */
+            photos: components["schemas"]["PhotoOut"][];
             /** Photos Count */
             photos_count: number;
             /** Price Amount */
