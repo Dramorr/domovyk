@@ -1272,14 +1272,13 @@ export function LeaseCard({
         id={`lease:${l.id}:money`}
         icon="key"
         title={t("ls_sec_money")}
-        summary={t("ls_rent_line", { rent: money(l.rent_amount), day: String(l.rent_due_day) })}
       >
         <p>{t("ls_rent_line", { rent: money(l.rent_amount), day: String(l.rent_due_day) })}</p>
         {l.deposit_amount ? <p className="hint">{t("ls_deposit_line", { sum: money(l.deposit_amount) })}</p> : null}
         <p className="hint">{t("ls_pay_line", { method: payText })}</p>
       </Fold>
 
-      <Fold id={`lease:${l.id}:terms`} icon="doc" title={t("ls_terms_title")} summary={termsLines(l.terms).slice(0, 2).join(" · ")}>
+      <Fold id={`lease:${l.id}:terms`} icon="doc" title={t("ls_terms_title")}>
         <ul className="plain">
           {termsLines(l.terms).map((line) => (
             <li key={line}>{line}</li>
@@ -1293,7 +1292,7 @@ export function LeaseCard({
         )}
       </Fold>
 
-      <Fold id={`lease:${l.id}:members`} icon="user" title={t("ls_members")} summary={l.members.map((m) => m.display_name).join(", ")}>
+      <Fold id={`lease:${l.id}:members`} icon="user" title={t("ls_members")}>
         {l.members.map((m) => (
           <div key={m.user_id} className="unit">
             <span>{m.display_name}</span>

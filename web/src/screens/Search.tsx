@@ -66,6 +66,13 @@ function toggle<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((x) => x !== value) : [...list, value];
 }
 
+const LIVING = ["pets", "children", "registration", "floor_not_first", "floor_not_last"] as const;
+
+/** Лічильник вибраного в заголовку акордеона; нуль не показуємо. */
+function Picked({ n }: { n: number }) {
+  return n > 0 ? <span className="count">{n}</span> : null;
+}
+
 function roomsLabel(r: number): string {
   if (r === 0) return t("rooms_studio");
   return r === 4 ? "4+" : String(r);
@@ -283,6 +290,11 @@ export function SearchScreen({
     );
   }
 
+  // Скільки вибрано в кожному блоці: згорнутий блок показує це лічильником.
+  const placeCount = (filter.kinds?.length ?? 0) + (filter.rooms?.length ?? 0) + (filter.area_min != null ? 1 : 0);
+  const priceCount = (filter.price_min != null ? 1 : 0) + (filter.price_max != null ? 1 : 0);
+  const livingCount = LIVING.filter((key) => Boolean(filter[key])).length;
+
   return (
     <Screen>
       <h1 className="left">{t("search_title")}</h1>
@@ -300,7 +312,7 @@ export function SearchScreen({
         </button>
       </div>
 
-      <section className="card">
+      <Fold id="search:place" icon="home" title={t("src_fold_place")} aside={<Picked n={placeCount} />} defaultOpen>
         <div className="field">
           {t("src_kind")}
           <div className="chips">
@@ -327,6 +339,13 @@ export function SearchScreen({
             })}
           </div>
         </div>
+        <label className="field">
+          {t("src_area_min")}
+          <input className="input" inputMode="decimal" maxLength={6} value={filter.area_min ?? ""} onChange={(e) => patch({ area_min: numOrNull(e.target.value) })} />
+        </label>
+      </Fold>
+
+      <Fold id="search:price" icon="key" title={t("src_fold_price")} aside={<Picked n={priceCount} />} defaultOpen>
         <div className="pair">
           <label className="field">
             {t("src_price_min")}
@@ -337,31 +356,26 @@ export function SearchScreen({
             <input className="input" inputMode="numeric" maxLength={9} value={filter.price_max ?? ""} onChange={(e) => patch({ price_max: numOrNull(e.target.value) })} />
           </label>
         </div>
-        <label className="field">
-          {t("src_area_min")}
-          <input className="input" inputMode="decimal" maxLength={6} value={filter.area_min ?? ""} onChange={(e) => patch({ area_min: numOrNull(e.target.value) })} />
-        </label>
-        {options && options.districts.length > 0 && (
-          <div className="field">
-            {t("src_districts")}
-            <div className="chips">
-              {options.districts.map((d) => {
-                const on = filter.district_ids?.includes(d.id) ?? false;
-                return (
-                  <button key={d.id} type="button" className={`chip${on ? " active" : ""}`} aria-pressed={on} onClick={() => patch({ district_ids: toggle(filter.district_ids ?? [], d.id) })}>
-                    {d.name.replace(/ район$/, "")}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </section>
+      </Fold>
 
-      <section className="card">
-        <h2>{t("src_living")}</h2>
+      {options && options.districts.length > 0 && (
+        <Fold id="search:districts" icon="building" title={t("src_districts")} aside={<Picked n={filter.district_ids?.length ?? 0} />}>
+          <div className="chips">
+            {options.districts.map((d) => {
+              const on = filter.district_ids?.includes(d.id) ?? false;
+              return (
+                <button key={d.id} type="button" className={`chip${on ? " active" : ""}`} aria-pressed={on} onClick={() => patch({ district_ids: toggle(filter.district_ids ?? [], d.id) })}>
+                  {d.name.replace(/ район$/, "")}
+                </button>
+              );
+            })}
+          </div>
+        </Fold>
+      )}
+
+      <Fold id="search:living" icon="user" title={t("src_living")} aside={<Picked n={livingCount} />}>
         <div className="chips">
-          {(["pets", "children", "registration", "floor_not_first", "floor_not_last"] as const).map((key) => {
+          {LIVING.map((key) => {
             const on = Boolean(filter[key]);
             return (
               <button key={key} type="button" className={`chip${on ? " active" : ""}`} aria-pressed={on} onClick={() => patch({ [key]: !on })}>
@@ -370,7 +384,9 @@ export function SearchScreen({
             );
           })}
         </div>
-        <h2>{t("src_amenities")}</h2>
+      </Fold>
+
+      <Fold id="search:amenities" icon="check" title={t("src_amenities")} aside={<Picked n={filter.amenities?.length ?? 0} />}>
         <div className="chips">
           {(options?.amenities ?? []).map((a: Amenity) => {
             const on = filter.amenities?.includes(a) ?? false;
@@ -381,6 +397,9 @@ export function SearchScreen({
             );
           })}
         </div>
+      </Fold>
+
+      <Fold id="search:completeness" icon="doc" title={t("src_fold_profile")} aside={<Picked n={completeness > floor ? 1 : 0} />}>
         <label className="field">
           {completeness <= floor ? t("src_completeness_any") : k("src_completeness_from", { n: String(completeness) })}
           <input
@@ -394,7 +413,7 @@ export function SearchScreen({
           />
         </label>
         <p className="hint small">{t("src_completeness_hint")}</p>
-      </section>
+      </Fold>
 
       {error && <p className="error">{error}</p>}
       <button className="button" disabled={busy || !options} onClick={() => run(0)}>
@@ -565,10 +584,6 @@ export function ListingView({
           key={sec.key}
           id={`listing-view:${sec.key}`}
           title={k(`pf_section_${sec.key}`)}
-          summary={sec.rows
-            .slice(0, 2)
-            .map(([, value]) => value)
-            .join(" · ")}
         >
           <dl className="facts">
             {sec.rows.map(([key, value]) => (

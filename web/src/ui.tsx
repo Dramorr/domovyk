@@ -327,13 +327,13 @@ function writeFold(id: string, open: boolean): void {
 }
 
 /**
- * Блок-акордеон: заголовок з коротким підсумком, вміст — по кліку.
+ * Блок-акордеон: заголовок, вміст — по кліку. Підсумку в заголовку немає: при
+ * перемиканні він стрибав. Те, що треба бачити згорнутим, — у `aside` (лічильник).
  * Довідкове ховаємо, а те, що чекає дії людини, лишаємо звичайною карткою.
  */
 export function Fold({
   id,
   title,
-  summary,
   aside,
   icon,
   defaultOpen = false,
@@ -341,7 +341,6 @@ export function Fold({
 }: {
   id: string;
   title: ReactNode;
-  summary?: ReactNode;
   aside?: ReactNode;
   icon?: IconName;
   defaultOpen?: boolean;
@@ -362,10 +361,7 @@ export function Fold({
             <Icon name={icon} size={20} />
           </span>
         )}
-        <span className="fold-text">
-          <span className="fold-title">{title}</span>
-          {summary && <span className="fold-summary">{summary}</span>}
-        </span>
+        <span className="fold-title">{title}</span>
         {aside && <span className="fold-aside">{aside}</span>}
         <span className="fold-chevron" aria-hidden>
           <Icon name="chevron" size={20} />

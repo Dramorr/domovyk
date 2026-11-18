@@ -3386,10 +3386,12 @@ button.info-row {
   text-align: right;
 }
 
-/* акордеон (Fold): довідкові блоки згорнуті, у заголовку — короткий підсумок */
+/* акордеон (Fold): довідкові блоки згорнуті; радіус і відступ між ними менші, ніж у картки */
 .card.fold {
+  margin: 9px 0;
   padding: 0;
   overflow: hidden;
+  border-radius: var(--radius);
 }
 
 .fold-head {
@@ -3419,31 +3421,13 @@ button.info-row {
   color: var(--brand-ink);
 }
 
-.fold-text {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
 .fold-title {
+  flex: 1;
+  min-width: 0;
   font-family: Unbounded, sans-serif;
   font-size: 16px;
   font-weight: 600;
   line-height: 1.25;
-}
-
-.fold-summary {
-  overflow: hidden;
-  color: var(--text-2);
-  font-size: 14px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fold.open .fold-summary {
-  display: none; /* відкритий блок показує все сам */
 }
 
 .fold-aside {

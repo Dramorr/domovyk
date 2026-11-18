@@ -204,7 +204,6 @@ export function IncomingApplications({ propertyId, onOpen }: { propertyId: strin
       id={`incoming:${propertyId}`}
       icon="send"
       title={t("ap_incoming_title")}
-      summary={items.length ? k("ap_incoming_summary", { n: String(items.length), p: String(pending) }) : t("ap_incoming_none")}
       aside={pending > 0 ? <span className="count">{pending}</span> : undefined}
       defaultOpen={pending > 0}
     >

@@ -71,11 +71,6 @@ export function Profile({
     (form.legal_name.trim() !== saved.legal_name || form.birth_date !== saved.birth_date || form.city_code !== saved.city_code);
   const dirty = nameChanged || personalChanged;
 
-  // Що видно в заголовку згорнутого розділу: заповнене коротко, порожнє — підказкою.
-  const cityName = cities.find((c) => c.code === form.city_code)?.name;
-  const personalSummary =
-    [form.legal_name.trim(), cityName].filter(Boolean).join(" · ") || t("prof_personal_summary_empty");
-
   function edit(patch: Partial<Form>) {
     setForm((f) => ({ ...f, ...patch }));
     setMessage(null);
@@ -211,7 +206,6 @@ export function Profile({
         icon="user"
         defaultOpen
         title={t("prof_tab_personal")}
-        summary={personalSummary}
         aside={dirty ? <span className="tab-dot" aria-label={t("pf_unsaved")} /> : undefined}
       >
         <label className="field">
@@ -284,13 +278,13 @@ export function Profile({
         )}
       </Fold>
 
-      <Fold id="profile:reviews" icon="star" title={t("prof_tab_reviews")} summary={t("prof_reviews_summary")}>
+      <Fold id="profile:reviews" icon="star" title={t("prof_tab_reviews")}>
         <MascotTip>
           <p>{t("prof_reviews_empty")}</p>
         </MascotTip>
       </Fold>
 
-      <Fold id="profile:account" icon="shield" title={t("prof_tab_account")} summary={t("prof_login_telegram")}>
+      <Fold id="profile:account" icon="shield" title={t("prof_tab_account")}>
         <div className="account-panel">
           <div className="info-row">
             <Icon name="send" size={20} />

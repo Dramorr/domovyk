@@ -692,7 +692,6 @@ export function PropertyCard({
         id={`prop:${id}:profile`}
         icon="edit"
         title={t("pf_title")}
-        summary={prop.completeness ? t("prp_profile_summary", { percent: String(prop.completeness.percent) }) : undefined}
       >
         <CompletenessBar p={prop} />
         <PublishHint p={prop} />
@@ -726,7 +725,7 @@ export function PropertyCard({
       </Fold>
 
       {history.length > 0 && (
-        <Fold id={`prop:${id}:history`} icon="clock" title={t("prp_card_history")} summary={t("prp_history_summary", { n: String(history.length) })}>
+        <Fold id={`prop:${id}:history`} icon="clock" title={t("prp_card_history")}>
           <LeaseRows
             items={history}
             webApp={webApp}
@@ -741,7 +740,6 @@ export function PropertyCard({
         id={`prop:${id}:details`}
         icon="building"
         title={t("prp_details")}
-        summary={[roomsText(prop.rooms), prop.floor != null ? `${t("prp_floor")} ${prop.floor}` : null].filter(Boolean).join(" · ")}
       >
         {!edit ? (
           <>
