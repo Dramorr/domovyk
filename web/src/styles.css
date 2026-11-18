@@ -3794,3 +3794,73 @@ a.button {
   font-size: 20px;
   font-weight: 700;
 }
+
+/* Покази (M6.5) */
+.slot-list {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.slot-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.slot-row:last-child {
+  border-bottom: 0;
+}
+
+.slot-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.slot-when {
+  margin: 6px 0;
+  font-size: 17px;
+}
+
+.answer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.answer-list .button {
+  margin: 0;
+}
+
+.slot-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.slot-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.slot-choice.mine {
+  border-color: var(--brand);
+  background: var(--brand-50);
+  cursor: default;
+}

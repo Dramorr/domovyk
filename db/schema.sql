@@ -359,7 +359,7 @@ CREATE TABLE showing_slots (
 );
 CREATE INDEX idx_slots_listing_time ON showing_slots(listing_id, starts_at);
 
--- Заявка (FR-APP-1..3, M6.4). Слот показу (slot_id) з'явиться з показами в M6.5.
+-- Заявка (FR-APP-1..7, M6.4–6.5). slot_id — запис на показ, відповіді сторін — після нього.
 CREATE TABLE applications (
     id                      uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     listing_id              uuid NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
@@ -369,15 +369,21 @@ CREATE TABLE applications (
     decline_reason          text CHECK (decline_reason IS NULL
                                         OR decline_reason IN ('rented', 'terms', 'other')),
     lease_id                uuid REFERENCES leases(id) ON DELETE SET NULL,  -- оренда із заявки
+    slot_id                 uuid REFERENCES showing_slots(id) ON DELETE SET NULL,
+    showing_tenant_answer   text CHECK (showing_tenant_answer IN ('done', 'no_show', 'moved')),
+    showing_landlord_answer text CHECK (showing_landlord_answer IN ('done', 'no_show', 'moved')),
     contacts_revealed_at    timestamptz,
     decided_at              timestamptz,
     expires_at              timestamptz NOT NULL,   -- FR-APP-3: без відповіді 72 год → expired
     created_at              timestamptz NOT NULL DEFAULT now(),
-    updated_at              timestamptz NOT NULL DEFAULT now()
+    updated_at              timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT applications_slot_status
+        CHECK (slot_id IS NULL OR status NOT IN ('pending', 'approved'))
 );
 CREATE UNIQUE INDEX uq_one_open_application
     ON applications(listing_id, tenant_user_id)
-    WHERE status IN ('pending', 'approved', 'showing_scheduled');
+    WHERE status IN ('pending', 'approved', 'showing_scheduled', 'showing_done');
+CREATE INDEX idx_applications_slot ON applications(slot_id) WHERE slot_id IS NOT NULL;
 CREATE INDEX idx_applications_listing ON applications(listing_id, status);
 CREATE INDEX idx_applications_tenant ON applications(tenant_user_id, created_at DESC);
 CREATE INDEX idx_applications_expiry ON applications(expires_at) WHERE status = 'pending';

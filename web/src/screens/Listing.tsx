@@ -10,6 +10,7 @@ import { confirm, type WebApp } from "../telegram";
 import { Chip, errorCode, errorText, formatAddress, formatDate, MascotTip, Screen } from "../ui";
 import { IncomingApplications } from "./Applications";
 import { Chips } from "./Leases";
+import { ShowingsBlock } from "./Showings";
 
 const k = (key: string, vars?: Record<string, string>) => t(key as TextKey, vars);
 
@@ -190,6 +191,7 @@ export function ListingScreen({
       )}
 
       {listing && <IncomingApplications propertyId={id} onOpen={onApplication} />}
+      {listing && <ShowingsBlock propertyId={id} webApp={webApp} />}
 
       {editing && status !== "active" && (
         <section className="card">

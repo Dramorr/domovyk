@@ -158,6 +158,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/applications/{application_id}/showing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Book Showing */
+        post: operations["book_showing_api_v1_applications__application_id__showing_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/showing/answer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Answer Showing */
+        post: operations["answer_showing_api_v1_applications__application_id__showing_answer_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/showing/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Showing */
+        post: operations["cancel_showing_api_v1_applications__application_id__showing_cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/{application_id}/slots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Application Slots */
+        get: operations["application_slots_api_v1_applications__application_id__slots_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/applications/{application_id}/withdraw": {
         parameters: {
             query?: never;
@@ -1557,6 +1625,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/properties/{property_id}/showings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Showings Board */
+        get: operations["showings_board_api_v1_properties__property_id__showings_get"];
+        put?: never;
+        /** Add Showing Slot */
+        post: operations["add_showing_slot_api_v1_properties__property_id__showings_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/readings/{reading_id}": {
         parameters: {
             query?: never;
@@ -1711,6 +1797,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/showings/{slot_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Showing Slot */
+        post: operations["cancel_showing_slot_api_v1_showings__slot_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/{user_id}/avatar": {
         parameters: {
             query?: never;
@@ -1840,6 +1943,16 @@ export interface components {
         ApplicationCard: {
             /** Can Approve */
             can_approve: boolean;
+            /**
+             * Can Book
+             * @default false
+             */
+            can_book: boolean;
+            /**
+             * Can Cancel Showing
+             * @default false
+             */
+            can_cancel_showing: boolean;
             /** Can Chat */
             can_chat: boolean;
             /** Can Create Lease */
@@ -1878,6 +1991,7 @@ export interface components {
              */
             my_role: "tenant" | "landlord";
             other: components["schemas"]["PartyProfile"];
+            showing?: components["schemas"]["ShowingOut"] | null;
             status: components["schemas"]["ApplicationStatus"];
             /** Unread */
             unread: number;
@@ -1921,6 +2035,7 @@ export interface components {
              */
             my_role: "tenant" | "landlord";
             other: components["schemas"]["PartyProfile"];
+            showing?: components["schemas"]["ShowingOut"] | null;
             status: components["schemas"]["ApplicationStatus"];
             /** Unread */
             unread: number;
@@ -1946,6 +2061,31 @@ export interface components {
          * @enum {string}
          */
         BlackoutReady: "elevator" | "water" | "heating" | "internet" | "lighting";
+        /**
+         * BoardSlot
+         * @description Слот у списку власника: хто записався.
+         */
+        BoardSlot: {
+            /** Booked */
+            booked: components["schemas"]["BookingOut"][];
+            /** Capacity */
+            capacity: number;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+        };
         /** Body_add_property_photo_api_v1_properties__property_id__photos_post */
         Body_add_property_photo_api_v1_properties__property_id__photos_post: {
             /** File */
@@ -1986,6 +2126,16 @@ export interface components {
         Body_upload_ownership_document_api_v1_properties__property_id__ownership_documents_post: {
             /** File */
             file: string;
+        };
+        /** BookingOut */
+        BookingOut: {
+            /**
+             * Application Id
+             * Format: uuid
+             */
+            application_id: string;
+            /** Display Name */
+            display_name: string;
         };
         /**
          * BuildingFeature
@@ -3889,6 +4039,67 @@ export interface components {
          */
         Shelter: "none" | "basement" | "underground_parking" | "dedicated" | "nearby";
         /**
+         * ShowingAnswer
+         * @enum {string}
+         */
+        ShowingAnswer: "done" | "no_show" | "moved";
+        /**
+         * ShowingAnswerIn
+         * @description Як пройшов показ (FR-APP-5).
+         */
+        ShowingAnswerIn: {
+            answer: components["schemas"]["ShowingAnswer"];
+        };
+        /**
+         * ShowingIn
+         * @description Записатись на слот показу (FR-APP-4).
+         */
+        ShowingIn: {
+            /**
+             * Slot Id
+             * Format: uuid
+             */
+            slot_id: string;
+        };
+        /**
+         * ShowingOut
+         * @description Запис на показ у заявці.
+         */
+        ShowingOut: {
+            /** Can Answer */
+            can_answer: boolean;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /** Group */
+            group: boolean;
+            my_answer: components["schemas"]["ShowingAnswer"] | null;
+            /**
+             * Slot Id
+             * Format: uuid
+             */
+            slot_id: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+        };
+        /**
+         * ShowingsBoard
+         * @description Покази оголошення (власнику): майбутні слоти й записані.
+         */
+        ShowingsBoard: {
+            /** Can Add */
+            can_add: boolean;
+            /** Listing Id */
+            listing_id: string | null;
+            /** Slots */
+            slots: components["schemas"]["BoardSlot"][];
+        };
+        /**
          * SignatureCase
          * @description Підпис на перевірці в модератора (ADR 0010).
          */
@@ -3980,6 +4191,59 @@ export interface components {
              * Format: date-time
              */
             uploaded_at: string;
+        };
+        /**
+         * SlotChoice
+         * @description Вільний час для запису (орендарю).
+         */
+        SlotChoice: {
+            /** Capacity */
+            capacity: number;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /** Free */
+            free: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Mine */
+            mine: boolean;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+        };
+        /**
+         * SlotIn
+         * @description Новий слот: день і час за Києвом, тривалість у хвилинах, місткість (FR-APP-4).
+         */
+        SlotIn: {
+            /**
+             * Capacity
+             * @default 1
+             */
+            capacity: number;
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /**
+             * Minutes
+             * @default 30
+             */
+            minutes: number;
+            /**
+             * Start
+             * Format: time
+             */
+            start: string;
         };
         /**
          * SmokingPolicy
@@ -4570,6 +4834,146 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    book_showing_api_v1_applications__application_id__showing_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShowingIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationCard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    answer_showing_api_v1_applications__application_id__showing_answer_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShowingAnswerIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationCard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_showing_api_v1_applications__application_id__showing_cancel_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationCard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    application_slots_api_v1_applications__application_id__slots_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlotChoice"][];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -7992,6 +8396,76 @@ export interface operations {
             };
         };
     };
+    showings_board_api_v1_properties__property_id__showings_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShowingsBoard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_showing_slot_api_v1_properties__property_id__showings_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SlotIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShowingsBoard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     delete_reading_api_v1_readings__reading_id__delete: {
         parameters: {
             query?: never;
@@ -8316,6 +8790,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SavedSearchOut"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_showing_slot_api_v1_showings__slot_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                slot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

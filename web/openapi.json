@@ -261,6 +261,16 @@
             "title": "Can Approve",
             "type": "boolean"
           },
+          "can_book": {
+            "default": false,
+            "title": "Can Book",
+            "type": "boolean"
+          },
+          "can_cancel_showing": {
+            "default": false,
+            "title": "Can Cancel Showing",
+            "type": "boolean"
+          },
           "can_chat": {
             "title": "Can Chat",
             "type": "boolean"
@@ -360,6 +370,16 @@
           },
           "other": {
             "$ref": "#/components/schemas/PartyProfile"
+          },
+          "showing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ShowingOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "status": {
             "$ref": "#/components/schemas/ApplicationStatus"
@@ -487,6 +507,16 @@
           "other": {
             "$ref": "#/components/schemas/PartyProfile"
           },
+          "showing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ShowingOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "status": {
             "$ref": "#/components/schemas/ApplicationStatus"
           },
@@ -560,6 +590,46 @@
         ],
         "title": "BlackoutReady",
         "type": "string"
+      },
+      "BoardSlot": {
+        "description": "Слот у списку власника: хто записався.",
+        "properties": {
+          "booked": {
+            "items": {
+              "$ref": "#/components/schemas/BookingOut"
+            },
+            "title": "Booked",
+            "type": "array"
+          },
+          "capacity": {
+            "title": "Capacity",
+            "type": "integer"
+          },
+          "ends_at": {
+            "format": "date-time",
+            "title": "Ends At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "starts_at": {
+            "format": "date-time",
+            "title": "Starts At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "starts_at",
+          "ends_at",
+          "capacity",
+          "booked"
+        ],
+        "title": "BoardSlot",
+        "type": "object"
       },
       "Body_add_property_photo_api_v1_properties__property_id__photos_post": {
         "properties": {
@@ -695,6 +765,25 @@
           "file"
         ],
         "title": "Body_upload_ownership_document_api_v1_properties__property_id__ownership_documents_post",
+        "type": "object"
+      },
+      "BookingOut": {
+        "properties": {
+          "application_id": {
+            "format": "uuid",
+            "title": "Application Id",
+            "type": "string"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_id",
+          "display_name"
+        ],
+        "title": "BookingOut",
         "type": "object"
       },
       "BuildingFeature": {
@@ -6260,6 +6349,126 @@
         "title": "Shelter",
         "type": "string"
       },
+      "ShowingAnswer": {
+        "enum": [
+          "done",
+          "no_show",
+          "moved"
+        ],
+        "title": "ShowingAnswer",
+        "type": "string"
+      },
+      "ShowingAnswerIn": {
+        "description": "Як пройшов показ (FR-APP-5).",
+        "properties": {
+          "answer": {
+            "$ref": "#/components/schemas/ShowingAnswer"
+          }
+        },
+        "required": [
+          "answer"
+        ],
+        "title": "ShowingAnswerIn",
+        "type": "object"
+      },
+      "ShowingIn": {
+        "description": "Записатись на слот показу (FR-APP-4).",
+        "properties": {
+          "slot_id": {
+            "format": "uuid",
+            "title": "Slot Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slot_id"
+        ],
+        "title": "ShowingIn",
+        "type": "object"
+      },
+      "ShowingOut": {
+        "description": "Запис на показ у заявці.",
+        "properties": {
+          "can_answer": {
+            "title": "Can Answer",
+            "type": "boolean"
+          },
+          "ends_at": {
+            "format": "date-time",
+            "title": "Ends At",
+            "type": "string"
+          },
+          "group": {
+            "title": "Group",
+            "type": "boolean"
+          },
+          "my_answer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ShowingAnswer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "slot_id": {
+            "format": "uuid",
+            "title": "Slot Id",
+            "type": "string"
+          },
+          "starts_at": {
+            "format": "date-time",
+            "title": "Starts At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slot_id",
+          "starts_at",
+          "ends_at",
+          "group",
+          "my_answer",
+          "can_answer"
+        ],
+        "title": "ShowingOut",
+        "type": "object"
+      },
+      "ShowingsBoard": {
+        "description": "Покази оголошення (власнику): майбутні слоти й записані.",
+        "properties": {
+          "can_add": {
+            "title": "Can Add",
+            "type": "boolean"
+          },
+          "listing_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Listing Id"
+          },
+          "slots": {
+            "items": {
+              "$ref": "#/components/schemas/BoardSlot"
+            },
+            "title": "Slots",
+            "type": "array"
+          }
+        },
+        "required": [
+          "listing_id",
+          "can_add",
+          "slots"
+        ],
+        "title": "ShowingsBoard",
+        "type": "object"
+      },
       "SignatureCase": {
         "description": "Підпис на перевірці в модератора (ADR 0010).",
         "properties": {
@@ -6514,6 +6723,79 @@
           "review_reason"
         ],
         "title": "SignatureOut",
+        "type": "object"
+      },
+      "SlotChoice": {
+        "description": "Вільний час для запису (орендарю).",
+        "properties": {
+          "capacity": {
+            "title": "Capacity",
+            "type": "integer"
+          },
+          "ends_at": {
+            "format": "date-time",
+            "title": "Ends At",
+            "type": "string"
+          },
+          "free": {
+            "title": "Free",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mine": {
+            "title": "Mine",
+            "type": "boolean"
+          },
+          "starts_at": {
+            "format": "date-time",
+            "title": "Starts At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "starts_at",
+          "ends_at",
+          "capacity",
+          "free",
+          "mine"
+        ],
+        "title": "SlotChoice",
+        "type": "object"
+      },
+      "SlotIn": {
+        "description": "Новий слот: день і час за Києвом, тривалість у хвилинах, місткість (FR-APP-4).",
+        "properties": {
+          "capacity": {
+            "default": 1,
+            "title": "Capacity",
+            "type": "integer"
+          },
+          "day": {
+            "format": "date",
+            "title": "Day",
+            "type": "string"
+          },
+          "minutes": {
+            "default": 30,
+            "title": "Minutes",
+            "type": "integer"
+          },
+          "start": {
+            "format": "time",
+            "title": "Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "day",
+          "start"
+        ],
+        "title": "SlotIn",
         "type": "object"
       },
       "SmokingPolicy": {
@@ -7808,6 +8090,254 @@
           }
         },
         "summary": "Mark Application Read"
+      }
+    },
+    "/api/v1/applications/{application_id}/showing": {
+      "post": {
+        "operationId": "book_showing_api_v1_applications__application_id__showing_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShowingIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationCard"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Book Showing"
+      }
+    },
+    "/api/v1/applications/{application_id}/showing/answer": {
+      "post": {
+        "operationId": "answer_showing_api_v1_applications__application_id__showing_answer_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShowingAnswerIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationCard"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Answer Showing"
+      }
+    },
+    "/api/v1/applications/{application_id}/showing/cancel": {
+      "post": {
+        "operationId": "cancel_showing_api_v1_applications__application_id__showing_cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationCard"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Showing"
+      }
+    },
+    "/api/v1/applications/{application_id}/slots": {
+      "get": {
+        "operationId": "application_slots_api_v1_applications__application_id__slots_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SlotChoice"
+                  },
+                  "title": "Response Application Slots Api V1 Applications  Application Id  Slots Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Application Slots"
       }
     },
     "/api/v1/applications/{application_id}/withdraw": {
@@ -13635,6 +14165,126 @@
         "summary": "Property Photo Cover"
       }
     },
+    "/api/v1/properties/{property_id}/showings": {
+      "get": {
+        "operationId": "showings_board_api_v1_properties__property_id__showings_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "property_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Property Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShowingsBoard"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Showings Board"
+      },
+      "post": {
+        "operationId": "add_showing_slot_api_v1_properties__property_id__showings_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "property_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Property Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SlotIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShowingsBoard"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Showing Slot"
+      }
+    },
     "/api/v1/readings/{reading_id}": {
       "delete": {
         "operationId": "delete_reading_api_v1_readings__reading_id__delete",
@@ -14193,6 +14843,55 @@
           }
         },
         "summary": "Saved Search Notify"
+      }
+    },
+    "/api/v1/showings/{slot_id}/cancel": {
+      "post": {
+        "operationId": "cancel_showing_slot_api_v1_showings__slot_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slot_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Slot Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Showing Slot"
       }
     },
     "/api/v1/users/{user_id}/avatar": {

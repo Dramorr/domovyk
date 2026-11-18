@@ -37,6 +37,7 @@ from domovyk.modules.notifications.service import NotificationsService
 from domovyk.modules.payments.service import PaymentsConfig, PaymentsService
 from domovyk.modules.properties.service import PropertiesConfig, PropertiesService
 from domovyk.modules.search.service import SearchConfig, SearchService
+from domovyk.modules.showings.service import ShowingsConfig, ShowingsService
 from domovyk.modules.users.schemas import PersonalIn, TenantProfile, UserOut
 from domovyk.modules.users.service import UsersConfig, UsersService
 from domovyk.modules.utilities.service import UtilitiesConfig, UtilitiesService
@@ -52,6 +53,7 @@ from tests.fakes_properties import (
     MemoryStorage,
     PropDb,
 )
+from tests.fakes_showings import FakeShowingsRepository, ShowingDb
 from tests.fakes_utilities import FakeUtilitiesRepository, UtilityDb
 
 TEST_HMAC = "test-hmac-secret"
@@ -104,6 +106,7 @@ class FakeDb:
         self.listing = ListingDb()
         self.search = SearchDb()
         self.application = ApplicationDb()
+        self.showing = ShowingDb()
         self.pdf = FakePdfRenderer()
         self.cipher = Cipher(Fernet.generate_key().decode())
         self.storage = MemoryStorage()
@@ -448,6 +451,14 @@ def make_fake_services(
         clock,
         SearchConfig(),
     )
+    showings = ShowingsService(
+        NullTxManager(),
+        lambda _: FakeShowingsRepository(db.showing),
+        users,
+        listings,
+        clock,
+        ShowingsConfig(),
+    )
     applications = ApplicationsService(
         NullTxManager(),
         lambda _: FakeApplicationsRepository(db.application),
@@ -455,6 +466,7 @@ def make_fake_services(
         properties,
         listings,
         leases,
+        showings,
         chat,
         notifications,
         analytics,
@@ -466,6 +478,7 @@ def make_fake_services(
     wire_listings(properties, leases, listings)
     listings.set_published_hook(search.on_published)
     listings.set_rented_hook(applications.on_listings_rented)
+    showings.set_cancelled_hook(applications.on_slot_cancelled)
     services = Services(
         users=users,
         moderation=moderation,
@@ -479,6 +492,7 @@ def make_fake_services(
         utilities=utilities,
         listings=listings,
         search=search,
+        showings=showings,
         applications=applications,
     )
     return services, db

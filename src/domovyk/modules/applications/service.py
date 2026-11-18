@@ -1,9 +1,12 @@
-"""Публічний інтерфейс модуля applications: заявки орендарів (FR-APP-1..3, 6, 7, ADR 0020).
+"""Публічний інтерфейс модуля applications: заявки й покази (FR-APP-1..7, ADR 0020, 0022).
 
 Орендар відгукується на опубліковане оголошення. До схвалення сторони бачать одна одну
 (ім'я, вік, з якого часу на Домовику), але не контакти й не точну адресу (правило 9).
 Після схвалення відкриваються телефон, адреса й чат заявки, а власник одним кроком
 оформлює оренду. Власник мовчить 72 год — заявка закривається (FR-APP-3).
+
+Покази (M6.5): власник додає слоти (модуль showings), орендар записується, за 2 год —
+нагадування обом, після показу — «як пройшло», і за 48 год заявка отримує підсумок.
 """
 
 from __future__ import annotations
@@ -12,7 +15,7 @@ import logging
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from domovyk.core.clock import Clock
@@ -27,21 +30,30 @@ from domovyk.domain.applications import (
     clean_application_message,
 )
 from domovyk.domain.listings import ListingStatus
+from domovyk.domain.showings import ShowingAnswer, SlotStatus, resolve_showing
 from domovyk.modules.analytics.service import AnalyticsService, EventName, EventSource
 from domovyk.modules.applications.repository import ApplicationRecord, ApplicationsRepository
 from domovyk.modules.applications.schemas import (
     ApplicationCard,
     ApplicationIn,
     ApplicationOut,
+    BoardSlot,
+    BookingOut,
     ContactsOut,
     DeclineIn,
     ListingBrief,
+    ShowingAnswerIn,
+    ShowingIn,
+    ShowingOut,
+    ShowingsBoard,
+    SlotChoice,
 )
 from domovyk.modules.chat.service import ChatService, MessageOut, MessagesPage, SystemCode
 from domovyk.modules.leases.service import LeaseConditions, LeaseCreate, LeaseOut, LeasesService
 from domovyk.modules.listings.service import ListingOut, ListingsService
 from domovyk.modules.notifications.service import NotificationsService, NotificationType
 from domovyk.modules.properties.service import PropertiesService, PropertyOut
+from domovyk.modules.showings.service import ShowingsService, SlotOut
 from domovyk.modules.users.service import UserOut, UsersService
 
 __all__ = [
@@ -51,6 +63,10 @@ __all__ = [
     "ApplicationsConfig",
     "ApplicationsService",
     "DeclineIn",
+    "ShowingAnswerIn",
+    "ShowingIn",
+    "ShowingsBoard",
+    "SlotChoice",
 ]
 
 log = logging.getLogger(__name__)
@@ -62,6 +78,9 @@ CHAT_NOTIFY_BUCKET_MIN = 10  # як у чаті оренди: не частіш�
 class ApplicationsConfig:
     expire_hours: int = 72  # FR-APP-3
     max_open_per_tenant: int = 10  # одночасно відкритих заявок (захист від розсилки «всім»)
+    reminder_before_minutes: int = 120  # нагадування про показ (FR-APP-4)
+    check_after_minutes: int = 60  # «як пройшов показ?» після кінця слоту (FR-APP-5)
+    answer_window_hours: int = 48  # далі підсумок — з тих відповідей, що є
 
 
 @dataclass(frozen=True)
@@ -81,6 +100,7 @@ class ApplicationsService:
         properties: PropertiesService,
         listings: ListingsService,
         leases: LeasesService,
+        showings: ShowingsService,
         chat: ChatService,
         notifications: NotificationsService,
         analytics: AnalyticsService,
@@ -93,6 +113,7 @@ class ApplicationsService:
         self._properties = properties
         self._listings = listings
         self._leases = leases
+        self._showings = showings
         self._chat = chat
         self._notifications = notifications
         self._analytics = analytics
@@ -257,6 +278,8 @@ class ApplicationsService:
                 floor=ctx.prop.floor,
             )
         landlord = ctx.role == "landlord"
+        slot = await self._slot_of(ctx.app)
+        before_start = slot is not None and slot.starts_at > self._clock.now()
         return ApplicationCard(
             **out.model_dump(),
             contacts=contacts,
@@ -265,6 +288,8 @@ class ApplicationsService:
             can_withdraw=not landlord and APPLICATION.can(status, ApplicationStatus.WITHDRAWN),
             can_create_lease=landlord and APPLICATION.can(status, ApplicationStatus.LEASE_CREATED),
             can_chat=revealed,
+            can_book=not landlord and self._can_book(ctx.app, slot),
+            can_cancel_showing=status is ApplicationStatus.SHOWING_SCHEDULED and before_start,
         )
 
     async def messages(
@@ -321,6 +346,325 @@ class ApplicationsService:
         async with self._tx.begin() as tx:
             conversation = await self._chat.ensure_for_application(tx, application_id)
             await self._chat.mark_read(tx, conversation, user.id, message_id)
+
+    # ------------------------------------------------------- покази (M6.5)
+
+    async def board(self, telegram_uid: int, property_id: uuid.UUID) -> ShowingsBoard:
+        """Покази оголошення власника: майбутні слоти й хто записався (FR-APP-4)."""
+        await self._users.require_active(telegram_uid)
+        state = await self._listings.state(telegram_uid, property_id)  # чужий об'єкт — NotFound
+        listing = state.listing
+        if listing is None or listing.status not in (ListingStatus.ACTIVE, ListingStatus.PAUSED):
+            return ShowingsBoard(listing_id=None, can_add=False, slots=[])
+        slots = [
+            s for s in await self._showings.upcoming(listing.id) if s.status is SlotStatus.OPEN
+        ]
+        async with self._tx.begin() as tx:
+            booked = await self._repo(tx).booked_on([s.id for s in slots])
+        names: dict[uuid.UUID, str] = {}
+        for app in booked:
+            if app.tenant_user_id not in names:
+                profile = await self._users.party_profile(app.tenant_user_id)
+                names[app.tenant_user_id] = profile.display_name if profile else "—"
+        return ShowingsBoard(
+            listing_id=listing.id,
+            can_add=True,
+            slots=[
+                BoardSlot(
+                    id=s.id,
+                    starts_at=s.starts_at,
+                    ends_at=s.ends_at,
+                    capacity=s.capacity,
+                    booked=[
+                        BookingOut(application_id=a.id, display_name=names[a.tenant_user_id])
+                        for a in booked
+                        if a.slot_id == s.id
+                    ],
+                )
+                for s in slots
+            ],
+        )
+
+    async def slots(self, telegram_uid: int, application_id: uuid.UUID) -> list[SlotChoice]:
+        """Вільний час для запису: майбутні слоти, де ще є місця (і мій поточний)."""
+        user = await self._users.require_active(telegram_uid)
+        ctx = await self._ctx(user, application_id)
+        if ctx.role != "tenant" or not self._can_book(ctx.app, None):
+            return []
+        now = self._clock.now()
+        slots = [
+            s
+            for s in await self._showings.upcoming(ctx.listing.id)
+            if s.status is SlotStatus.OPEN and s.starts_at > now
+        ]
+        async with self._tx.begin() as tx:
+            booked = await self._repo(tx).booked_on([s.id for s in slots])
+        out: list[SlotChoice] = []
+        for s in slots:
+            taken = sum(1 for a in booked if a.slot_id == s.id)
+            mine = ctx.app.slot_id == s.id and ctx.app.status is ApplicationStatus.SHOWING_SCHEDULED
+            free = max(s.capacity - taken, 0)
+            if free > 0 or mine:
+                out.append(
+                    SlotChoice(
+                        id=s.id,
+                        starts_at=s.starts_at,
+                        ends_at=s.ends_at,
+                        capacity=s.capacity,
+                        free=free,
+                        mine=mine,
+                    )
+                )
+        return out
+
+    async def book(
+        self, telegram_uid: int, application_id: uuid.UUID, data: ShowingIn
+    ) -> ApplicationCard:
+        """FR-APP-4: орендар записується на слот (або змінює час до початку показу)."""
+        user = await self._users.require_active(telegram_uid)
+        ctx = await self._ctx(user, application_id)
+        if ctx.role != "tenant":
+            raise PermissionDenied("Час показу обирає орендар")
+        current = await self._slot_of(ctx.app)
+        if not self._can_book(ctx.app, current):
+            raise Conflict("Записатись на показ зараз не можна", field="status")
+        now = self._clock.now()
+        async with self._tx.begin() as tx:
+            repo = self._repo(tx)
+            fresh = await repo.get(ctx.app.id)
+            if fresh is None or fresh.status is not ctx.app.status:
+                raise Conflict("Заявку щойно змінено", field="status")
+            slot = await self._showings.lock(tx, data.slot_id)
+            if (
+                slot is None
+                or slot.listing_id != ctx.app.listing_id
+                or slot.status is not SlotStatus.OPEN
+            ):
+                raise NotFound("Показ не знайдено")
+            if slot.starts_at <= now:
+                raise Conflict("Цей показ уже почався", reason="past")
+            if fresh.slot_id == slot.id and fresh.status is ApplicationStatus.SHOWING_SCHEDULED:
+                return await self.card(telegram_uid, application_id)
+            taken = [a for a in await repo.booked_on([slot.id]) if a.id != ctx.app.id]
+            if len(taken) >= slot.capacity:
+                raise Conflict("На цей час місць уже немає", reason="full")
+            target = ApplicationStatus.SHOWING_SCHEDULED
+            if ctx.app.status is not target:
+                APPLICATION.transition(ctx.app.status, target)
+                await repo.add_history(ctx.app.id, ctx.app.status, target, user.id, now)
+            await repo.update(
+                ctx.app.id,
+                status=target,
+                slot_id=slot.id,
+                showing_tenant_answer=None,
+                showing_landlord_answer=None,
+            )
+            await self._notify(
+                tx,
+                ctx.prop.owner_user_id,
+                "showing_booked",
+                ctx.app.id,
+                ctx.prop,
+                ctx.listing,
+                {"name": user.display_name, "starts_at": slot.starts_at.isoformat()},
+                dedupe=f"application:{ctx.app.id}:showing_booked:{slot.id}",
+            )
+        return await self.card(telegram_uid, application_id)
+
+    async def cancel_showing(self, telegram_uid: int, application_id: uuid.UUID) -> ApplicationCard:
+        """«Не зможу прийти»: будь-яка сторона до початку показу; заявка знову обирає час."""
+        user = await self._users.require_active(telegram_uid)
+        ctx = await self._ctx(user, application_id)
+        slot = await self._slot_of(ctx.app)
+        if ctx.app.status is not ApplicationStatus.SHOWING_SCHEDULED or slot is None:
+            raise Conflict("Запису на показ немає", field="status")
+        if slot.starts_at <= self._clock.now():
+            raise Conflict("Показ уже почався — скажи, як він пройшов", reason="started")
+        await self._move(
+            ctx,
+            ApplicationStatus.APPROVED,
+            user.id,
+            slot_id=None,
+            showing_tenant_answer=None,
+            showing_landlord_answer=None,
+        )
+        other = ctx.prop.owner_user_id if ctx.role == "tenant" else ctx.app.tenant_user_id
+        async with self._tx.begin() as tx:
+            await self._notify(
+                tx,
+                other,
+                "showing_cancelled",
+                ctx.app.id,
+                ctx.prop,
+                ctx.listing,
+                {"name": user.display_name, "starts_at": slot.starts_at.isoformat()},
+                dedupe=f"application:{ctx.app.id}:showing_cancelled:{slot.id}:{other}",
+            )
+        return await self.card(telegram_uid, application_id)
+
+    async def answer_showing(
+        self, telegram_uid: int, application_id: uuid.UUID, data: ShowingAnswerIn
+    ) -> ApplicationCard:
+        """FR-APP-5: «відбувся» / «інша сторона не прийшла» / «перенесли»."""
+        user = await self._users.require_active(telegram_uid)
+        ctx = await self._ctx(user, application_id)
+        slot = await self._slot_of(ctx.app)
+        if ctx.app.status is not ApplicationStatus.SHOWING_SCHEDULED or slot is None:
+            raise Conflict("Запису на показ немає", field="status")
+        if slot.starts_at > self._clock.now():
+            raise Conflict("Показ ще не почався", reason="not_started")
+        column = "showing_tenant_answer" if ctx.role == "tenant" else "showing_landlord_answer"
+        async with self._tx.begin() as tx:
+            await self._repo(tx).update(ctx.app.id, **{column: data.answer.value})
+        await self._settle(ctx.app.id, deadline_passed=False, actor=user.id)
+        return await self.card(telegram_uid, application_id)
+
+    async def showings_tick(self) -> dict[str, int]:
+        """Воркер: нагадування за 2 год, опитування через 1 год після показу, підсумок за 48 год.
+
+        Дублі відсікає dedupe_key, тож запускати можна як завгодно часто.
+        """
+        now = self._clock.now()
+        cfg = self._config
+        async with self._tx.begin() as tx:
+            apps = await self._repo(tx).scheduled()
+        slots = await self._showings.by_ids([a.slot_id for a in apps if a.slot_id])
+        stats = {"reminders": 0, "checks": 0, "settled": 0}
+        for app in apps:
+            slot = slots.get(app.slot_id) if app.slot_id else None
+            if slot is None:
+                continue
+            check_at = slot.ends_at + timedelta(minutes=cfg.check_after_minutes)
+            if check_at + timedelta(hours=cfg.answer_window_hours) <= now:
+                if await self._settle(app.id, deadline_passed=True, actor=None):
+                    stats["settled"] += 1
+                continue
+            try:
+                listing = (await self._listings.by_ids([app.listing_id]))[0]
+                prop = await self._prop(listing.property_id)
+            except (IndexError, NotFound):
+                continue
+            remind_from = slot.starts_at - timedelta(minutes=cfg.reminder_before_minutes)
+            if remind_from <= now < slot.starts_at:
+                stats["reminders"] += await self._to_both(
+                    app, prop, listing, "showing_reminder", slot.starts_at, send_after=None
+                )
+            elif now >= check_at:
+                stats["checks"] += await self._to_both(
+                    app,
+                    prop,
+                    listing,
+                    "showing_check",
+                    slot.starts_at,
+                    send_after=self._notifications.after_quiet_hours(now),
+                )
+        return stats
+
+    async def on_slot_cancelled(self, slot_id: uuid.UUID) -> None:
+        """Власник скасував слот: записані повертаються до вибору часу й дізнаються про це."""
+        async with self._tx.begin() as tx:
+            booked = await self._repo(tx).booked_on([slot_id])
+        slot = (await self._showings.by_ids([slot_id])).get(slot_id)
+        for app in booked:
+            try:
+                listing = (await self._listings.by_ids([app.listing_id]))[0]
+                prop = await self._prop(listing.property_id)
+            except (IndexError, NotFound):
+                continue
+            ctx = _Ctx(app, listing, prop, "landlord")
+            try:
+                await self._move(
+                    ctx,
+                    ApplicationStatus.APPROVED,
+                    prop.owner_user_id,
+                    slot_id=None,
+                    showing_tenant_answer=None,
+                    showing_landlord_answer=None,
+                )
+            except Conflict:
+                continue
+            async with self._tx.begin() as tx:
+                await self._notify(
+                    tx,
+                    app.tenant_user_id,
+                    "slot_cancelled",
+                    app.id,
+                    prop,
+                    listing,
+                    {"starts_at": slot.starts_at.isoformat() if slot else ""},
+                    dedupe=f"application:{app.id}:slot_cancelled:{slot_id}",
+                )
+
+    def _can_book(self, app: ApplicationRecord, slot: SlotOut | None) -> bool:
+        """Обрати час: погоджено або вже був показ; змінити — до початку записаного."""
+        if app.status in (ApplicationStatus.APPROVED, ApplicationStatus.SHOWING_DONE):
+            return True
+        if app.status is ApplicationStatus.SHOWING_SCHEDULED:
+            return slot is None or slot.starts_at > self._clock.now()
+        return False
+
+    async def _slot_of(self, app: ApplicationRecord) -> SlotOut | None:
+        if app.slot_id is None:
+            return None
+        return (await self._showings.by_ids([app.slot_id])).get(app.slot_id)
+
+    async def _settle(
+        self, application_id: uuid.UUID, *, deadline_passed: bool, actor: uuid.UUID | None
+    ) -> bool:
+        """Підсумок показу з відповідей сторін (domain.showings.resolve_showing)."""
+        async with self._tx.begin() as tx:
+            app = await self._repo(tx).get(application_id)
+        if app is None or app.status is not ApplicationStatus.SHOWING_SCHEDULED:
+            return False
+        target = resolve_showing(
+            ShowingAnswer(app.showing_tenant_answer) if app.showing_tenant_answer else None,
+            ShowingAnswer(app.showing_landlord_answer) if app.showing_landlord_answer else None,
+            deadline_passed=deadline_passed,
+        )
+        if target is None:
+            return False
+        listing = (await self._listings.by_ids([app.listing_id]))[0]
+        prop = await self._prop(listing.property_id)
+        values: dict[str, Any] = {}
+        if target is ApplicationStatus.APPROVED:  # перенесли або ніхто не відповів
+            values = {
+                "slot_id": None,
+                "showing_tenant_answer": None,
+                "showing_landlord_answer": None,
+            }
+        await self._move(_Ctx(app, listing, prop, "landlord"), target, actor, **values)
+        return True
+
+    async def _to_both(
+        self,
+        app: ApplicationRecord,
+        prop: PropertyOut,
+        listing: ListingOut,
+        event: str,
+        starts_at: datetime,
+        *,
+        send_after: datetime | None,
+    ) -> int:
+        sent = 0
+        async with self._tx.begin() as tx:
+            for user_id in (app.tenant_user_id, prop.owner_user_id):
+                if await self._notify(
+                    tx,
+                    user_id,
+                    event,
+                    app.id,
+                    prop,
+                    listing,
+                    {
+                        "starts_at": starts_at.isoformat(),
+                        "address": f"{prop.street}, {prop.house_number}",
+                        "city": prop.city,
+                    },
+                    dedupe=f"application:{app.id}:{event}:{app.slot_id}:{user_id}",
+                    send_after=send_after,
+                ):
+                    sent += 1
+        return sent
 
     # ---------------------------------------------------- воркер і хуки
 
@@ -458,6 +802,27 @@ class ApplicationsService:
                 conversation = await self._chat.conversation_for_application(tx, ctx.app.id)
                 if conversation is not None:
                     unread = await self._chat.unread(tx, conversation, user.id)
+        showing = None
+        slot = await self._slot_of(ctx.app)
+        if slot is not None and ctx.app.status in (
+            ApplicationStatus.SHOWING_SCHEDULED,
+            ApplicationStatus.SHOWING_DONE,
+        ):
+            mine = (
+                ctx.app.showing_tenant_answer
+                if ctx.role == "tenant"
+                else ctx.app.showing_landlord_answer
+            )
+            showing = ShowingOut(
+                slot_id=slot.id,
+                starts_at=slot.starts_at,
+                ends_at=slot.ends_at,
+                group=slot.capacity > 1,
+                my_answer=ShowingAnswer(mine) if mine else None,
+                can_answer=ctx.app.status is ApplicationStatus.SHOWING_SCHEDULED
+                and mine is None
+                and slot.starts_at <= self._clock.now(),
+            )
         return ApplicationOut(
             id=ctx.app.id,
             status=ctx.app.status,
@@ -484,6 +849,7 @@ class ApplicationsService:
             other=other,
             unread=unread,
             lease_id=ctx.app.lease_id,
+            showing=showing,
         )
 
     async def _notify(
@@ -497,9 +863,10 @@ class ApplicationsService:
         params: dict[str, object],
         *,
         dedupe: str | None = None,
-    ) -> None:
-        """Адреса в тексті — лише вулиця (до схвалення будинку не видно)."""
-        await self._notifications.enqueue(
+        send_after: datetime | None = None,
+    ) -> bool:
+        """Коротко: вулиця. Повну адресу (з будинком) додають лише події показу."""
+        return await self._notifications.enqueue(
             tx,
             user_id,
             NotificationType.APPLICATION,
@@ -512,4 +879,5 @@ class ApplicationsService:
                 **params,
             },
             dedupe_key=dedupe or f"application:{application_id}:{event}:{user_id}",
+            send_after=send_after,
         )

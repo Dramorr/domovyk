@@ -43,6 +43,8 @@ from domovyk.modules.properties.repository import SqlPropertiesRepository
 from domovyk.modules.properties.service import PropertiesConfig, PropertiesService
 from domovyk.modules.search.repository import SqlSearchRepository
 from domovyk.modules.search.service import SearchConfig, SearchService
+from domovyk.modules.showings.repository import SqlShowingsRepository
+from domovyk.modules.showings.service import ShowingsConfig, ShowingsService
 from domovyk.modules.users.repository import SqlUsersRepository
 from domovyk.modules.users.service import UsersConfig, UsersService
 from domovyk.modules.utilities.repository import SqlUtilitiesRepository
@@ -63,6 +65,7 @@ class Services:
     utilities: UtilitiesService
     listings: ListingsService
     search: SearchService
+    showings: ShowingsService
     applications: ApplicationsService
 
 
@@ -248,6 +251,9 @@ class Container:
             clock,
             SearchConfig(default_city=settings.default_city),
         )
+        showings = ShowingsService(
+            tx, SqlShowingsRepository, users, listings, clock, ShowingsConfig()
+        )
         applications = ApplicationsService(
             tx,
             SqlApplicationsRepository,
@@ -255,6 +261,7 @@ class Container:
             properties,
             listings,
             leases,
+            showings,
             chat,
             notifications,
             analytics,
@@ -266,6 +273,7 @@ class Container:
         wire_listings(properties, leases, listings)
         listings.set_published_hook(search.on_published)
         listings.set_rented_hook(applications.on_listings_rented)
+        showings.set_cancelled_hook(applications.on_slot_cancelled)
         self.services = Services(
             users=users,
             moderation=moderation,
@@ -279,6 +287,7 @@ class Container:
             utilities=utilities,
             listings=listings,
             search=search,
+            showings=showings,
             applications=applications,
         )
 

@@ -355,5 +355,17 @@ APPLICATION_EVENTS = {
     ),
     "withdrawn": "{name} відкликав заявку: <b>{place}</b>.",
     "message": "💬 {name} у чаті заявки (<b>{place}</b>):\n{preview}",
+    # Покази (FR-APP-4, 5)
+    "showing_booked": "🗓 Новий запис на показ: {name}, <b>{when}</b> ({place}).",
+    "showing_cancelled": (
+        "{name} скасовує показ <b>{when}</b> ({place}). Інший час можна обрати в заявці."
+    ),
+    "slot_cancelled": "Власник скасував показ <b>{when}</b> ({place}). Обери інший час у заявці.",
+    "showing_reminder": (
+        "🗓 Нагадую: показ <b>{when}</b>, {address}. Не встигаєш — скасуй запис у заявці."
+    ),
+    "showing_check": "Як пройшов показ на {address}? Відповідай у заявці — це займе секунду.",
 }
 BTN_OPEN_APPLICATION = "📨 Відкрити заявку"
+BTN_ROUTE = "🗺 Маршрут"
+SHOWING_WHEN = "{date} о {time}"

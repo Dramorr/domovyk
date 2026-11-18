@@ -14,6 +14,7 @@ log = logging.getLogger(__name__)
 OUTBOX_INTERVAL_SECONDS = 15
 PURGE_INTERVAL_SECONDS = 6 * 60 * 60
 REMIND_INTERVAL_SECONDS = 30 * 60
+SHOWINGS_INTERVAL_SECONDS = 60  # нагадування про показ мають приходити вчасно
 
 
 async def send_notifications(services: Services, notifier: Notifier, mini_app_url: str) -> int:
@@ -83,10 +84,19 @@ async def remind_unsigned_contracts(services: Services) -> int:
     return queued
 
 
+async def showings_tick(services: Services) -> dict[str, int]:
+    """FR-APP-4, 5: нагадування за 2 год, «як пройшов показ», підсумок за 48 год."""
+    stats = await services.applications.showings_tick()
+    if any(stats.values()):
+        log.info("Покази: %s", stats)
+    return stats
+
+
 async def dev_background_loop(services: Services, notifier: Notifier, mini_app_url: str) -> None:
     """Для dev без окремого воркера: outbox кожні 15 с, прибирання кожні 6 год."""
     since_purge = PURGE_INTERVAL_SECONDS
     since_remind = REMIND_INTERVAL_SECONDS
+    since_showings = SHOWINGS_INTERVAL_SECONDS
     while True:
         try:
             await send_notifications(services, notifier, mini_app_url)
@@ -101,8 +111,12 @@ async def dev_background_loop(services: Services, notifier: Notifier, mini_app_u
                 await meter_reminders(services)
                 await expire_applications(services)
                 since_remind = 0
+            if since_showings >= SHOWINGS_INTERVAL_SECONDS:
+                await showings_tick(services)
+                since_showings = 0
         except Exception:  # фонова петля не має падати через один збій
             log.exception("Помилка фонової задачі")
         await asyncio.sleep(OUTBOX_INTERVAL_SECONDS)
         since_purge += OUTBOX_INTERVAL_SECONDS
         since_remind += OUTBOX_INTERVAL_SECONDS
+        since_showings += OUTBOX_INTERVAL_SECONDS

@@ -297,6 +297,7 @@ export function App() {
           onChat={() => push({ name: "app-chat", id: route.id })}
           onListing={(id) => push({ name: "listing-view", id })}
           onOpenLease={(id) => push({ name: "lease", id })}
+          onManageListing={(id) => push({ name: "listing", id })}
           onCreateLease={(card) =>
             push({ name: "lease-from-app", appId: card.id, propertyId: card.listing.property_id, rent: card.listing.price_amount })
           }

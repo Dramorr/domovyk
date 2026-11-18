@@ -1,7 +1,8 @@
-"""Доменні правила заявок (FR-APP-1..3, 6, 7). Чиста логіка без I/O.
+"""Доменні правила заявок (FR-APP-1..7). Чиста логіка без I/O.
 
-Заявка відкрита (pending, approved, showing_scheduled) — одна на оголошення від людини.
-Контакти й точна адреса відкриваються лише після схвалення (правило 9).
+Заявка відкрита (pending, approved, showing_scheduled, showing_done) — одна на оголошення
+від людини. Контакти, квартира й поверх відкриваються лише після схвалення (правило 9).
+Покази (M6.5): approved ⇄ showing_scheduled → showing_done | no_show.
 """
 
 from __future__ import annotations
@@ -21,9 +22,9 @@ class ApplicationStatus(StrEnum):
     DECLINED = "declined"
     WITHDRAWN = "withdrawn"  # орендар відкликав
     EXPIRED = "expired"  # власник мовчав (FR-APP-3)
-    SHOWING_SCHEDULED = "showing_scheduled"  # M6.5
-    SHOWING_DONE = "showing_done"  # M6.5
-    NO_SHOW = "no_show"  # M6.5
+    SHOWING_SCHEDULED = "showing_scheduled"  # записаний на показ (FR-APP-4)
+    SHOWING_DONE = "showing_done"  # показ відбувся (FR-APP-5) — заявка й далі відкрита
+    NO_SHOW = "no_show"  # хтось не прийшов — заявку закрито
     LEASE_CREATED = "lease_created"  # з заявки створено оренду (FR-APP-6)
 
 
@@ -34,7 +35,12 @@ class DeclineReason(StrEnum):
 
 
 OPEN = frozenset(
-    {ApplicationStatus.PENDING, ApplicationStatus.APPROVED, ApplicationStatus.SHOWING_SCHEDULED}
+    {
+        ApplicationStatus.PENDING,
+        ApplicationStatus.APPROVED,
+        ApplicationStatus.SHOWING_SCHEDULED,
+        ApplicationStatus.SHOWING_DONE,
+    }
 )
 # Після схвалення сторони бачать контакти, адресу й чат.
 REVEALED = frozenset(
@@ -59,6 +65,25 @@ APPLICATION = TransitionTable[ApplicationStatus](
         ),
         ApplicationStatus.APPROVED: frozenset(
             {
+                ApplicationStatus.SHOWING_SCHEDULED,
+                ApplicationStatus.DECLINED,
+                ApplicationStatus.WITHDRAWN,
+                ApplicationStatus.LEASE_CREATED,
+            }
+        ),
+        ApplicationStatus.SHOWING_SCHEDULED: frozenset(
+            {
+                ApplicationStatus.APPROVED,  # скасували запис або «перенесли»
+                ApplicationStatus.SHOWING_DONE,
+                ApplicationStatus.NO_SHOW,
+                ApplicationStatus.DECLINED,
+                ApplicationStatus.WITHDRAWN,
+                ApplicationStatus.LEASE_CREATED,
+            }
+        ),
+        ApplicationStatus.SHOWING_DONE: frozenset(
+            {
+                ApplicationStatus.SHOWING_SCHEDULED,  # ще один показ (прийти з рідними)
                 ApplicationStatus.DECLINED,
                 ApplicationStatus.WITHDRAWN,
                 ApplicationStatus.LEASE_CREATED,

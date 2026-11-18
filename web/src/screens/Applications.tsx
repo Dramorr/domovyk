@@ -7,8 +7,9 @@ import { api, ApiFailure, type Application, type ApplicationCard, type DeclineRe
 import { t, type TextKey } from "../i18n";
 import { Icon } from "../icons";
 import { confirm, type WebApp } from "../telegram";
-import { Avatar, Chip, errorCode, errorText, Fold, formatDate, formatDateTime, MascotTip, roomsText, Screen, Sheet, shortStreet } from "../ui";
+import { Avatar, Chip, errorCode, errorText, Fold, formatDate, formatDateTime, MascotTip, roomsText, Screen, Sheet, SheetHead, shortStreet } from "../ui";
 import { PhotoImage } from "./Photos";
+import { ApplicationShowing } from "./Showings";
 
 const k = (key: string, vars?: Record<string, string>) => t(key as TextKey, vars);
 
@@ -56,17 +57,6 @@ function applyError(e: unknown): string {
       return e instanceof ApiFailure && e.reason === "too_many" ? t("ap_err_too_many") : t("ap_err_already");
   }
   return errorText(e);
-}
-
-function SheetHead({ title, onClose }: { title: string; onClose: () => void }) {
-  return (
-    <div className="sheet-head">
-      <h2>{title}</h2>
-      <button className="icon-button" aria-label={t("ab_close")} onClick={onClose}>
-        <Icon name="close" size={20} />
-      </button>
-    </div>
-  );
 }
 
 // ------------------------------------------------------------- APP-NEW: відгук
@@ -232,6 +222,7 @@ export function ApplicationScreen({
   onListing,
   onCreateLease,
   onOpenLease,
+  onManageListing,
 }: {
   id: string;
   webApp: WebApp;
@@ -240,6 +231,7 @@ export function ApplicationScreen({
   onListing: (listingId: string) => void;
   onCreateLease: (card: ApplicationCard) => void;
   onOpenLease: (leaseId: string) => void;
+  onManageListing: (propertyId: string) => void;
 }) {
   const [card, setCard] = useState<ApplicationCard | null>(null);
   const [busy, setBusy] = useState(false);
@@ -321,6 +313,8 @@ export function ApplicationScreen({
           </button>
         )}
       </section>
+
+      <ApplicationShowing card={card} webApp={webApp} onCard={setCard} onManageListing={() => onManageListing(card.listing.property_id)} />
 
       {c && (
         <section className="card accent">

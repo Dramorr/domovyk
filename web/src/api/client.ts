@@ -57,6 +57,9 @@ export type Amenity = S["Amenity"];
 export type SavedSearch = S["SavedSearchOut"];
 export type Application = S["ApplicationOut"];
 export type ApplicationCard = S["ApplicationCard"];
+export type ShowingsBoard = S["ShowingsBoard"];
+export type SlotChoice = S["SlotChoice"];
+export type ShowingAnswer = S["ShowingAnswer"];
 export type DeclineReason = S["DeclineReason"];
 /** Чат оренди або заявки — однакові запити, різна адреса. */
 export type ChatSource = { kind: "lease" | "application"; id: string };
@@ -368,6 +371,18 @@ export const api = {
     request<ApplicationCard>("POST", `${a(id)}/decline`, { reason }),
   withdrawApplication: (id: string) => request<ApplicationCard>("POST", `${a(id)}/withdraw`),
   leaseFromApplication: (id: string, body: LeaseConditions) => request<Lease>("POST", `${a(id)}/lease`, body),
+
+  // Покази (M6.5, FR-APP-4, 5)
+  showingsBoard: (propertyId: string) =>
+    request<ShowingsBoard>("GET", `/api/v1/properties/${encodeURIComponent(propertyId)}/showings`),
+  addSlot: (propertyId: string, body: S["SlotIn"]) =>
+    request<ShowingsBoard>("POST", `/api/v1/properties/${encodeURIComponent(propertyId)}/showings`, body),
+  cancelSlot: (slotId: string) => request<void>("POST", `/api/v1/showings/${encodeURIComponent(slotId)}/cancel`),
+  applicationSlots: (id: string) => request<SlotChoice[]>("GET", `${a(id)}/slots`),
+  bookShowing: (id: string, slotId: string) => request<ApplicationCard>("POST", `${a(id)}/showing`, { slot_id: slotId }),
+  cancelShowing: (id: string) => request<ApplicationCard>("POST", `${a(id)}/showing/cancel`),
+  answerShowing: (id: string, answer: ShowingAnswer) =>
+    request<ApplicationCard>("POST", `${a(id)}/showing/answer`, { answer }),
   notifyPrefs: (id: string) => request<NotifyPrefs>("GET", `${l(id)}/notifications`),
   setNotifyPrefs: (id: string, body: NotifyPrefs) => request<NotifyPrefs>("PUT", `${l(id)}/notifications`, body),
 

@@ -33,6 +33,11 @@ class ApplicationRow(Base):
     message: Mapped[str | None] = mapped_column(Text)
     decline_reason: Mapped[str | None] = mapped_column(Text)
     lease_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("leases.id"))
+    slot_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("showing_slots.id")
+    )
+    showing_tenant_answer: Mapped[str | None] = mapped_column(Text)
+    showing_landlord_answer: Mapped[str | None] = mapped_column(Text)
     contacts_revealed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

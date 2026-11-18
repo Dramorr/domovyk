@@ -102,3 +102,13 @@ class FakeApplicationsRepository:
             for a in self.db.apps.values()
             if a.status is ApplicationStatus.PENDING and a.expires_at <= now
         ]
+
+    async def booked_on(self, slot_ids: list[uuid.UUID]) -> list[ApplicationRecord]:
+        return [
+            a
+            for a in self.db.apps.values()
+            if a.slot_id in slot_ids and a.status is ApplicationStatus.SHOWING_SCHEDULED
+        ]
+
+    async def scheduled(self) -> list[ApplicationRecord]:
+        return [a for a in self.db.apps.values() if a.status is ApplicationStatus.SHOWING_SCHEDULED]

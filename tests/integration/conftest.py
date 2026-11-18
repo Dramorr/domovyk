@@ -44,6 +44,8 @@ from domovyk.modules.properties.repository import SqlPropertiesRepository
 from domovyk.modules.properties.service import PropertiesConfig, PropertiesService
 from domovyk.modules.search.repository import SqlSearchRepository
 from domovyk.modules.search.service import SearchConfig, SearchService
+from domovyk.modules.showings.repository import SqlShowingsRepository
+from domovyk.modules.showings.service import ShowingsConfig, ShowingsService
 from domovyk.modules.users.repository import SqlUsersRepository
 from domovyk.modules.users.service import UsersService
 from domovyk.modules.utilities.repository import SqlUtilitiesRepository
@@ -206,6 +208,9 @@ def services(engine: AsyncEngine, it_clock: FixedClock) -> Services:
         it_clock,
         SearchConfig(),
     )
+    showings = ShowingsService(
+        tx, SqlShowingsRepository, users, listings, it_clock, ShowingsConfig()
+    )
     applications = ApplicationsService(
         tx,
         SqlApplicationsRepository,
@@ -213,6 +218,7 @@ def services(engine: AsyncEngine, it_clock: FixedClock) -> Services:
         properties,
         listings,
         leases,
+        showings,
         chat,
         notifications,
         analytics,
@@ -224,6 +230,7 @@ def services(engine: AsyncEngine, it_clock: FixedClock) -> Services:
     wire_listings(properties, leases, listings)
     listings.set_published_hook(search.on_published)
     listings.set_rented_hook(applications.on_listings_rented)
+    showings.set_cancelled_hook(applications.on_slot_cancelled)
     return Services(
         users=users,
         moderation=moderation,
@@ -237,5 +244,6 @@ def services(engine: AsyncEngine, it_clock: FixedClock) -> Services:
         utilities=utilities,
         listings=listings,
         search=search,
+        showings=showings,
         applications=applications,
     )

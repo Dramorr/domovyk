@@ -54,6 +54,10 @@ from domovyk.modules.applications.service import (
     ApplicationIn,
     ApplicationOut,
     DeclineIn,
+    ShowingAnswerIn,
+    ShowingIn,
+    ShowingsBoard,
+    SlotChoice,
 )
 from domovyk.modules.contracts.service import (
     ContractState,
@@ -105,6 +109,7 @@ from domovyk.modules.search.service import (
     SearchOptions,
     SearchPage,
 )
+from domovyk.modules.showings.service import SlotIn
 from domovyk.modules.users.service import (
     AppMode,
     ConsentInfo,
@@ -698,6 +703,42 @@ def create_app(
     ) -> Response:
         await svc.applications.mark_read(auth.user.id, application_id, body.message_id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    # ------------------------------------------------ покази (FR-APP-4, 5)
+
+    @app.get("/api/v1/properties/{property_id}/showings")
+    async def showings_board(auth: Auth, property_id: uuid.UUID) -> ShowingsBoard:
+        return await svc.applications.board(auth.user.id, property_id)
+
+    @app.post("/api/v1/properties/{property_id}/showings", status_code=status.HTTP_201_CREATED)
+    async def add_showing_slot(auth: Auth, property_id: uuid.UUID, body: SlotIn) -> ShowingsBoard:
+        await svc.showings.create(auth.user.id, property_id, body)
+        return await svc.applications.board(auth.user.id, property_id)
+
+    @app.post("/api/v1/showings/{slot_id}/cancel", status_code=status.HTTP_204_NO_CONTENT)
+    async def cancel_showing_slot(auth: Auth, slot_id: uuid.UUID) -> Response:
+        await svc.showings.cancel(auth.user.id, slot_id)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    @app.get("/api/v1/applications/{application_id}/slots")
+    async def application_slots(auth: Auth, application_id: uuid.UUID) -> list[SlotChoice]:
+        return await svc.applications.slots(auth.user.id, application_id)
+
+    @app.post("/api/v1/applications/{application_id}/showing")
+    async def book_showing(
+        auth: Auth, application_id: uuid.UUID, body: ShowingIn
+    ) -> ApplicationCard:
+        return await svc.applications.book(auth.user.id, application_id, body)
+
+    @app.post("/api/v1/applications/{application_id}/showing/cancel")
+    async def cancel_showing(auth: Auth, application_id: uuid.UUID) -> ApplicationCard:
+        return await svc.applications.cancel_showing(auth.user.id, application_id)
+
+    @app.post("/api/v1/applications/{application_id}/showing/answer")
+    async def answer_showing(
+        auth: Auth, application_id: uuid.UUID, body: ShowingAnswerIn
+    ) -> ApplicationCard:
+        return await svc.applications.answer_showing(auth.user.id, application_id, body)
 
     @app.get("/api/v1/leases/{lease_id}/messages")
     async def lease_messages(

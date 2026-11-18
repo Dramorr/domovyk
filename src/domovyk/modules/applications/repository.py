@@ -27,6 +27,9 @@ class ApplicationRecord:
     decided_at: datetime | None
     expires_at: datetime
     created_at: datetime
+    slot_id: uuid.UUID | None = None
+    showing_tenant_answer: str | None = None
+    showing_landlord_answer: str | None = None
 
 
 def _record(r: ApplicationRow) -> ApplicationRecord:
@@ -42,6 +45,9 @@ def _record(r: ApplicationRow) -> ApplicationRecord:
         decided_at=r.decided_at,
         expires_at=r.expires_at,
         created_at=r.created_at,
+        slot_id=r.slot_id,
+        showing_tenant_answer=r.showing_tenant_answer,
+        showing_landlord_answer=r.showing_landlord_answer,
     )
 
 
@@ -77,6 +83,13 @@ class ApplicationsRepository(Protocol):
 
     async def open_on_listings(self, listing_ids: list[uuid.UUID]) -> list[ApplicationRecord]: ...
     async def expired_pending(self, now: datetime) -> list[ApplicationRecord]: ...
+    async def booked_on(self, slot_ids: list[uuid.UUID]) -> list[ApplicationRecord]:
+        """Записані на слоти (showing_scheduled) — для місткості й списку власника."""
+        ...
+
+    async def scheduled(self) -> list[ApplicationRecord]:
+        """Усі записи на покази — для нагадувань і опитування після показу."""
+        ...
 
 
 class SqlApplicationsRepository:
@@ -180,5 +193,27 @@ class SqlApplicationsRepository:
                 ApplicationRow.status == ApplicationStatus.PENDING,
                 ApplicationRow.expires_at <= now,
             )
+        )
+        return [_record(r) for r in rows]
+
+    async def booked_on(self, slot_ids: list[uuid.UUID]) -> list[ApplicationRecord]:
+        if not slot_ids:
+            return []
+        rows = await self._s.scalars(
+            select(ApplicationRow)
+            .where(
+                ApplicationRow.slot_id.in_(slot_ids),
+                ApplicationRow.status == ApplicationStatus.SHOWING_SCHEDULED,
+            )
+            .order_by(ApplicationRow.updated_at)
+            .execution_options(populate_existing=True)
+        )
+        return [_record(r) for r in rows]
+
+    async def scheduled(self) -> list[ApplicationRecord]:
+        rows = await self._s.scalars(
+            select(ApplicationRow)
+            .where(ApplicationRow.status == ApplicationStatus.SHOWING_SCHEDULED)
+            .execution_options(populate_existing=True)
         )
         return [_record(r) for r in rows]

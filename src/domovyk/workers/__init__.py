@@ -76,6 +76,11 @@ async def expire_applications(ctx: dict[str, Any]) -> int:
     return await jobs.expire_applications(container.services)
 
 
+async def showings_tick(ctx: dict[str, Any]) -> dict[str, int]:
+    container: Container = ctx["container"]
+    return await jobs.showings_tick(container.services)
+
+
 async def startup(ctx: dict[str, Any]) -> None:
     setup_logging()
     # arq має власний обробник логів; без цього кожен рядок дублюється через root.
@@ -102,6 +107,7 @@ class WorkerSettings:
         confirm_auto_payments,
         meter_reminders,
         expire_applications,
+        showings_tick,
     ]
     cron_jobs: ClassVar[list[Any]] = [
         cron(heartbeat, minute={0, 15, 30, 45}, run_at_startup=True),
@@ -115,6 +121,8 @@ class WorkerSettings:
         # Близько 10:00 за Києвом; повтор не дублює (dedupe_key).
         cron(meter_reminders, hour={7, 8}, minute={5}),
         cron(expire_applications, minute={12, 42}),
+        # Нагадування за 2 год до показу: перевірка кожні 5 хв, дублі відсікає dedupe_key.
+        cron(showings_tick, minute=set(range(0, 60, 5))),
     ]
     on_startup = startup
     on_shutdown = shutdown

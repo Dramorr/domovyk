@@ -489,6 +489,22 @@ export function errorCode(e: unknown): string | undefined {
   return e instanceof ApiFailure && e.kind === "domain" ? e.code : undefined;
 }
 
+export function errorReason(e: unknown): string | undefined {
+  return e instanceof ApiFailure ? e.reason : undefined;
+}
+
+/** Заголовок шторки з хрестиком. */
+export function SheetHead({ title, onClose }: { title: string; onClose: () => void }) {
+  return (
+    <div className="sheet-head">
+      <h2>{title}</h2>
+      <button className="icon-button" aria-label={t("ab_close")} onClick={onClose}>
+        <Icon name="close" size={20} />
+      </button>
+    </div>
+  );
+}
+
 export function errorField(e: unknown): string | undefined {
   return e instanceof ApiFailure ? e.field : undefined;
 }

@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import datetime
 from html import escape
 from typing import Any
+from urllib.parse import quote
 
 from domovyk.adapters.notifier.base import Button
+from domovyk.core.clock import to_kyiv
 from domovyk.interfaces.telegram.keyboards import mini_app_url
 from domovyk.interfaces.telegram.texts import uk
 from domovyk.modules.notifications.service import (
@@ -134,18 +137,26 @@ def make_renderer(base_url: str) -> Renderer:
                 rooms = int(p.get("rooms") or 0)
                 room_text = uk.ROOMS_STUDIO if rooms == 0 else uk.ROOMS_N.format(n=rooms)
                 place = f"{room_text}, {escape(str(p.get('street') or ''))}"
+                address = str(p.get("address") or "")
+                buttons = [
+                    Button(
+                        uk.BTN_OPEN_APPLICATION,
+                        web_app_url=mini_app_url(base_url, f"app_{p.get('application_id')}"),
+                    )
+                ]
+                if event == "showing_reminder" and address:
+                    query = quote(f"{address}, {p.get('city') or ''}")
+                    route = f"https://www.google.com/maps/search/?api=1&query={query}"
+                    buttons.insert(0, Button(uk.BTN_ROUTE, url=route))
                 return RenderedMessage(
                     template.format(
                         name=escape(str(p.get("name") or "")),
                         place=place,
                         preview=escape(str(p.get("preview") or "")),
+                        when=_when(p.get("starts_at")),
+                        address=escape(address),
                     ),
-                    [
-                        Button(
-                            uk.BTN_OPEN_APPLICATION,
-                            web_app_url=mini_app_url(base_url, f"app_{p.get('application_id')}"),
-                        )
-                    ],
+                    buttons,
                 )
             case NotificationType.NEW_MATCH:
                 if p.get("digest"):
@@ -188,3 +199,11 @@ def make_renderer(base_url: str) -> Renderer:
         return None
 
     return render
+
+
+def _when(raw: object) -> str:
+    """Час показу за Києвом: «21.11 о 11:00»."""
+    if not raw:
+        return ""
+    local = to_kyiv(datetime.fromisoformat(str(raw)))
+    return uk.SHOWING_WHEN.format(date=local.strftime("%d.%m"), time=local.strftime("%H:%M"))
