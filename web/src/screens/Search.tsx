@@ -1,6 +1,6 @@
-// Пошук для орендаря (M6, BOT_FLOWS §5, FR-SRC-1..6). Каталогу немає: спершу фільтр, потім
-// результати (FR-SRC-1). Адреса — лише вулиця й район; будинок, квартира й поверх відкриються
-// після схвалення заявки (FR-LST-4). Останній фільтр пам'ятаємо на пристрої.
+// Пошук для орендаря (M6, BOT_FLOWS §5, FR-SRC-1..6). Спершу житло міста, новіші спершу;
+// фільтри — окремою сторінкою, глобальні й зберігаються на пристрої одразу (FR-SRC-1). Адреса — лише вулиця й район; будинок, квартира й поверх відкриються
+// після схвалення заявки (FR-LST-4). 
 
 import { useEffect, useState } from "react";
 
@@ -95,12 +95,25 @@ function filterSummary(f: Filter, options: SearchOptions | null): string {
   return text.length > 60 ? `${text.slice(0, 59)}…` : text;
 }
 
-// ------------------------------------------------------------- SRC: фільтр і результати
+// ------------------------------------------------------------- SRC: житло, фільтри, мої пошуки
 
 // Екран розмонтовується, коли відкриваємо картку; повертаючись, людина чекає ті самі результати.
-type View = "form" | "results" | "saved";
-type Session = { page: SearchPage; items: ListingSummary[]; view: View };
+type View = "results" | "filter" | "saved";
+type Session = { key: string; page: SearchPage; items: ListingSummary[] };
 let lastSession: Session | null = null;
+
+const filterKey = (f: Filter) => JSON.stringify(f);
+
+/** Скільки умов вибрано: для лічильника на кнопці «Фільтри» і в заголовках акордеонів. */
+function counts(f: Filter, floor: number) {
+  const place = (f.kinds?.length ?? 0) + (f.rooms?.length ?? 0) + (f.area_min != null ? 1 : 0);
+  const price = (f.price_min != null ? 1 : 0) + (f.price_max != null ? 1 : 0);
+  const districts = f.district_ids?.length ?? 0;
+  const living = LIVING.filter((key) => Boolean(f[key])).length;
+  const amenities = f.amenities?.length ?? 0;
+  const profile = (f.completeness_min ?? 0) > floor ? 1 : 0;
+  return { place, price, districts, living, amenities, profile, total: place + price + districts + living + amenities + profile };
+}
 
 export function SearchScreen({
   onOpen,
@@ -117,16 +130,20 @@ export function SearchScreen({
   const [filter, setFilter] = useState<Filter>(loadFilter);
   const [page, setPage] = useState<SearchPage | null>(lastSession?.page ?? null);
   const [items, setItems] = useState<ListingSummary[]>(lastSession?.items ?? []);
-  const [view, setView] = useState<View>(initialView ?? lastSession?.view ?? "form");
+  const [shownKey, setShownKey] = useState<string | null>(lastSession?.key ?? null);
+  const [view, setView] = useState<View>(initialView ?? "results");
   const [saved, setSaved] = useState<SavedSearch[] | null>(null);
   const [savedNow, setSavedNow] = useState(false);
   const [saveName, setSaveName] = useState("");
-
-  useEffect(() => {
-    lastSession = page ? { page, items, view } : null;
-  }, [page, items, view]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Фільтр — глобальний: кожна зміна одразу лягає на пристрій (це локальний запис, без мережі).
+  useEffect(() => saveFilter(filter), [filter]);
+
+  useEffect(() => {
+    lastSession = page && shownKey ? { key: shownKey, page, items } : null;
+  }, [page, items, shownKey]);
 
   useEffect(() => {
     api
@@ -149,9 +166,8 @@ export function SearchScreen({
       const result = await api.search({ ...f, offset });
       setPage(result);
       setItems((prev) => (offset === 0 ? result.items : [...prev, ...result.items]));
-      setView("results");
       if (offset === 0) {
-        saveFilter(f);
+        setShownKey(filterKey(f));
         setSavedNow(false);
         setSaveName(filterSummary(f, options));
       }
@@ -161,6 +177,13 @@ export function SearchScreen({
       setBusy(false);
     }
   }
+
+  // Житло показуємо одразу: без фільтра — усе в місті, новіші спершу. Перезапит — лише коли
+  // фільтр змінився відтоді, як ми показували результати.
+  useEffect(() => {
+    if (view === "results" && shownKey !== filterKey(filter)) void run(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view]);
 
   const patch = (p: Partial<Filter>) => setFilter((f) => ({ ...f, ...p }));
 
@@ -190,9 +213,13 @@ export function SearchScreen({
     }
   }
 
+  const floor = options?.completeness_min ?? 40;
+  const completeness = Math.max(filter.completeness_min ?? 0, floor);
+  const c = counts(filter, floor);
+
   if (view === "saved") {
     return (
-      <Screen onBack={() => setView("form")}>
+      <Screen onBack={() => setView("results")}>
         <h1 className="left">{t("src_saved_title")}</h1>
         <p className="hint left">{t("src_saved_intro")}</p>
         {saved && saved.length === 0 && <MascotTip tone="calm">{t("src_saved_empty")}</MascotTip>}
@@ -204,9 +231,8 @@ export function SearchScreen({
                 className="button"
                 disabled={busy}
                 onClick={() => {
-                  const next = { ...EMPTY, ...x.criteria };
-                  setFilter(next);
-                  void run(0, next);
+                  setFilter({ ...EMPTY, ...x.criteria });
+                  setView("results");
                 }}
               >
                 <Icon name="search" size={20} />
@@ -243,186 +269,195 @@ export function SearchScreen({
       </Screen>
     );
   }
-  const floor = options?.completeness_min ?? 40;
-  const completeness = Math.max(filter.completeness_min ?? 0, floor);
 
-  if (view === "results" && page) {
+  if (view === "filter") {
     return (
-      <Screen onBack={() => setView("form")}>
-        <h1 className="left">{t("src_results_title")}</h1>
-        <p className="hint left">{k("src_found", { n: String(page.total) })}</p>
-        <button className="link" onClick={() => setView("form")}>
-          <Icon name="edit" size={18} /> {t("src_change_filter")}
-        </button>
-        {items.length === 0 ? (
-          <MascotTip tone="calm">{t("src_nothing")}</MascotTip>
-        ) : (
-          <div className="result-list">
-            {items.map((x) => (
-              <ResultRow key={x.id} item={x} onOpen={() => onOpen(x.id)} />
-            ))}
+      <Screen onBack={() => setView("results")}>
+        <h1 className="left">{t("src_filter_title")}</h1>
+        <p className="hint left">{t("src_filter_intro")}</p>
+
+        <Fold id="search:place" icon="home" title={t("src_fold_place")} aside={<Picked n={c.place} />} defaultOpen>
+          <div className="field">
+            {t("src_kind")}
+            <div className="chips">
+              {(["apartment", "house"] as const).map((kind) => {
+                const on = filter.kinds?.includes(kind) ?? false;
+                return (
+                  <button key={kind} type="button" className={`chip${on ? " active" : ""}`} aria-pressed={on} onClick={() => patch({ kinds: toggle(filter.kinds ?? [], kind) })}>
+                    {k(`src_kind_${kind}`)}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        )}
-        <section className="card">
-          {savedNow ? (
-            <p className="hint small">{t("src_saved_done")}</p>
-          ) : (
-            <>
-              <h2>{t("src_save_title")}</h2>
-              <p className="hint small">{items.length === 0 ? t("src_save_hint_empty") : t("src_save_hint")}</p>
-              <label className="field">
-                {t("src_save_name")}
-                <input className="input" maxLength={60} value={saveName} onChange={(e) => setSaveName(e.target.value)} />
-              </label>
-              <button className="button" disabled={busy} onClick={saveSearch}>
-                {t("src_save")}
-              </button>
-            </>
-          )}
-        </section>
-        {items.length < page.total && (
-          <button className="button secondary" disabled={busy} onClick={() => run(items.length)}>
-            {t("src_more")}
-          </button>
-        )}
-        {error && <p className="error">{error}</p>}
-      </Screen>
-    );
-  }
-
-  // Скільки вибрано в кожному блоці: згорнутий блок показує це лічильником.
-  const placeCount = (filter.kinds?.length ?? 0) + (filter.rooms?.length ?? 0) + (filter.area_min != null ? 1 : 0);
-  const priceCount = (filter.price_min != null ? 1 : 0) + (filter.price_max != null ? 1 : 0);
-  const livingCount = LIVING.filter((key) => Boolean(filter[key])).length;
-
-  return (
-    <Screen>
-      <h1 className="left">{t("search_title")}</h1>
-      <p className="hint left">{t("src_intro")}</p>
-      <div className="buttons">
-        <button className="link" onClick={onFavorites}>
-          <Icon name="star" size={18} /> {t("fav_title")}
-        </button>
-        <button className="link" onClick={() => setView("saved")}>
-          <Icon name="search" size={18} /> {t("src_saved_title")}
-          {saved && saved.length > 0 && ` (${saved.length})`}
-        </button>
-        <button className="link" onClick={onApplications}>
-          <Icon name="send" size={18} /> {t("ap_my_title")}
-        </button>
-      </div>
-
-      <Fold id="search:place" icon="home" title={t("src_fold_place")} aside={<Picked n={placeCount} />} defaultOpen>
-        <div className="field">
-          {t("src_kind")}
-          <div className="chips">
-            {(["apartment", "house"] as const).map((kind) => {
-              const on = filter.kinds?.includes(kind) ?? false;
-              return (
-                <button key={kind} type="button" className={`chip${on ? " active" : ""}`} aria-pressed={on} onClick={() => patch({ kinds: toggle(filter.kinds ?? [], kind) })}>
-                  {k(`src_kind_${kind}`)}
-                </button>
-              );
-            })}
+          <div className="field">
+            {t("src_rooms")}
+            <div className="chips">
+              {ROOMS.map((r) => {
+                const on = filter.rooms?.includes(r) ?? false;
+                return (
+                  <button key={r} type="button" className={`chip${on ? " active" : ""}`} aria-pressed={on} onClick={() => patch({ rooms: toggle(filter.rooms ?? [], r) })}>
+                    {roomsLabel(r)}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-        <div className="field">
-          {t("src_rooms")}
-          <div className="chips">
-            {ROOMS.map((r) => {
-              const on = filter.rooms?.includes(r) ?? false;
-              return (
-                <button key={r} type="button" className={`chip${on ? " active" : ""}`} aria-pressed={on} onClick={() => patch({ rooms: toggle(filter.rooms ?? [], r) })}>
-                  {roomsLabel(r)}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-        <label className="field">
-          {t("src_area_min")}
-          <input className="input" inputMode="decimal" maxLength={6} value={filter.area_min ?? ""} onChange={(e) => patch({ area_min: numOrNull(e.target.value) })} />
-        </label>
-      </Fold>
-
-      <Fold id="search:price" icon="key" title={t("src_fold_price")} aside={<Picked n={priceCount} />} defaultOpen>
-        <div className="pair">
           <label className="field">
-            {t("src_price_min")}
-            <input className="input" inputMode="numeric" maxLength={9} value={filter.price_min ?? ""} onChange={(e) => patch({ price_min: numOrNull(e.target.value) })} />
+            {t("src_area_min")}
+            <input className="input" inputMode="decimal" maxLength={6} value={filter.area_min ?? ""} onChange={(e) => patch({ area_min: numOrNull(e.target.value) })} />
           </label>
-          <label className="field">
-            {t("src_price_max")}
-            <input className="input" inputMode="numeric" maxLength={9} value={filter.price_max ?? ""} onChange={(e) => patch({ price_max: numOrNull(e.target.value) })} />
-          </label>
-        </div>
-      </Fold>
+        </Fold>
 
-      {options && options.districts.length > 0 && (
-        <Fold id="search:districts" icon="building" title={t("src_districts")} aside={<Picked n={filter.district_ids?.length ?? 0} />}>
+        <Fold id="search:price" icon="key" title={t("src_fold_price")} aside={<Picked n={c.price} />} defaultOpen>
+          <div className="pair">
+            <label className="field">
+              {t("src_price_min")}
+              <input className="input" inputMode="numeric" maxLength={9} value={filter.price_min ?? ""} onChange={(e) => patch({ price_min: numOrNull(e.target.value) })} />
+            </label>
+            <label className="field">
+              {t("src_price_max")}
+              <input className="input" inputMode="numeric" maxLength={9} value={filter.price_max ?? ""} onChange={(e) => patch({ price_max: numOrNull(e.target.value) })} />
+            </label>
+          </div>
+        </Fold>
+
+        {options && options.districts.length > 0 && (
+          <Fold id="search:districts" icon="building" title={t("src_districts")} aside={<Picked n={c.districts} />}>
+            <div className="chips">
+              {options.districts.map((d) => {
+                const on = filter.district_ids?.includes(d.id) ?? false;
+                return (
+                  <button key={d.id} type="button" className={`chip${on ? " active" : ""}`} aria-pressed={on} onClick={() => patch({ district_ids: toggle(filter.district_ids ?? [], d.id) })}>
+                    {d.name.replace(/ район$/, "")}
+                  </button>
+                );
+              })}
+            </div>
+          </Fold>
+        )}
+
+        <Fold id="search:living" icon="user" title={t("src_living")} aside={<Picked n={c.living} />}>
           <div className="chips">
-            {options.districts.map((d) => {
-              const on = filter.district_ids?.includes(d.id) ?? false;
+            {LIVING.map((key) => {
+              const on = Boolean(filter[key]);
               return (
-                <button key={d.id} type="button" className={`chip${on ? " active" : ""}`} aria-pressed={on} onClick={() => patch({ district_ids: toggle(filter.district_ids ?? [], d.id) })}>
-                  {d.name.replace(/ район$/, "")}
+                <button key={key} type="button" className={`chip${on ? " active" : ""}`} aria-pressed={on} onClick={() => patch({ [key]: !on })}>
+                  {k(`src_${key}`)}
                 </button>
               );
             })}
           </div>
         </Fold>
+
+        <Fold id="search:amenities" icon="check" title={t("src_amenities")} aside={<Picked n={c.amenities} />}>
+          <div className="chips">
+            {(options?.amenities ?? []).map((a: Amenity) => {
+              const on = filter.amenities?.includes(a) ?? false;
+              return (
+                <button key={a} type="button" className={`chip${on ? " active" : ""}`} aria-pressed={on} onClick={() => patch({ amenities: toggle(filter.amenities ?? [], a) })}>
+                  {k(`src_amenity_${a}`)}
+                </button>
+              );
+            })}
+          </div>
+        </Fold>
+
+        <Fold id="search:completeness" icon="doc" title={t("src_fold_profile")} aside={<Picked n={c.profile} />}>
+          <label className="field">
+            {completeness <= floor ? t("src_completeness_any") : k("src_completeness_from", { n: String(completeness) })}
+            <input
+              className="range"
+              type="range"
+              min={floor}
+              max={100}
+              step={5}
+              value={completeness}
+              onChange={(e) => patch({ completeness_min: Number(e.target.value) })}
+            />
+          </label>
+          <p className="hint small">{t("src_completeness_hint")}</p>
+        </Fold>
+
+        <div className="buttons filter-actions">
+          <button className="button secondary" disabled={c.total === 0} onClick={() => setFilter({ ...EMPTY, city_code: filter.city_code })}>
+            <Icon name="close" size={20} />
+            {t("src_reset")}
+          </button>
+          <button className="button" onClick={() => setView("results")}>
+            <Icon name="check" size={20} />
+            {t("src_go")}
+          </button>
+        </div>
+      </Screen>
+    );
+  }
+
+  return (
+    <Screen>
+      <div className="search-head">
+        <h1 className="left">{t("search_title")}</h1>
+        <button className="filter-button" onClick={() => setView("filter")} aria-label={t("src_filters")}>
+          <Icon name="filter" size={20} />
+          {t("src_filters")}
+          {c.total > 0 && <span className="count">{c.total}</span>}
+        </button>
+      </div>
+      <p className="hint left">{t("src_intro")}</p>
+      <div className="chips quick-links">
+        <button type="button" className="chip" onClick={onFavorites}>
+          <Icon name="star" size={16} /> {t("fav_title")}
+        </button>
+        <button type="button" className="chip" onClick={() => setView("saved")}>
+          <Icon name="search" size={16} /> {t("src_saved_title")}
+          {saved && saved.length > 0 && ` · ${saved.length}`}
+        </button>
+        <button type="button" className="chip" onClick={onApplications}>
+          <Icon name="send" size={16} /> {t("ap_my_title")}
+        </button>
+      </div>
+
+      {!page ? (
+        error ? null : <p className="hint">{t("loading")}</p>
+      ) : (
+        <>
+          <p className="hint left small">{k(c.total > 0 ? "src_found" : "src_found_all", { n: String(page.total) })}</p>
+          {items.length === 0 ? (
+            <MascotTip tone="calm">{c.total > 0 ? t("src_nothing") : t("src_nothing_all")}</MascotTip>
+          ) : (
+            <div className="result-list">
+              {items.map((x) => (
+                <ResultRow key={x.id} item={x} onOpen={() => onOpen(x.id)} />
+              ))}
+            </div>
+          )}
+          {items.length < page.total && (
+            <button className="button secondary" disabled={busy} onClick={() => run(items.length)}>
+              {t("src_more")}
+            </button>
+          )}
+          {c.total > 0 && (
+            <section className="card">
+              {savedNow ? (
+                <p className="hint small">{t("src_saved_done")}</p>
+              ) : (
+                <>
+                  <h2>{t("src_save_title")}</h2>
+                  <p className="hint small">{items.length === 0 ? t("src_save_hint_empty") : t("src_save_hint")}</p>
+                  <label className="field">
+                    {t("src_save_name")}
+                    <input className="input" maxLength={60} value={saveName} onChange={(e) => setSaveName(e.target.value)} />
+                  </label>
+                  <button className="button" disabled={busy} onClick={saveSearch}>
+                    {t("src_save")}
+                  </button>
+                </>
+              )}
+            </section>
+          )}
+        </>
       )}
-
-      <Fold id="search:living" icon="user" title={t("src_living")} aside={<Picked n={livingCount} />}>
-        <div className="chips">
-          {LIVING.map((key) => {
-            const on = Boolean(filter[key]);
-            return (
-              <button key={key} type="button" className={`chip${on ? " active" : ""}`} aria-pressed={on} onClick={() => patch({ [key]: !on })}>
-                {k(`src_${key}`)}
-              </button>
-            );
-          })}
-        </div>
-      </Fold>
-
-      <Fold id="search:amenities" icon="check" title={t("src_amenities")} aside={<Picked n={filter.amenities?.length ?? 0} />}>
-        <div className="chips">
-          {(options?.amenities ?? []).map((a: Amenity) => {
-            const on = filter.amenities?.includes(a) ?? false;
-            return (
-              <button key={a} type="button" className={`chip${on ? " active" : ""}`} aria-pressed={on} onClick={() => patch({ amenities: toggle(filter.amenities ?? [], a) })}>
-                {k(`src_amenity_${a}`)}
-              </button>
-            );
-          })}
-        </div>
-      </Fold>
-
-      <Fold id="search:completeness" icon="doc" title={t("src_fold_profile")} aside={<Picked n={completeness > floor ? 1 : 0} />}>
-        <label className="field">
-          {completeness <= floor ? t("src_completeness_any") : k("src_completeness_from", { n: String(completeness) })}
-          <input
-            className="range"
-            type="range"
-            min={floor}
-            max={100}
-            step={5}
-            value={completeness}
-            onChange={(e) => patch({ completeness_min: Number(e.target.value) })}
-          />
-        </label>
-        <p className="hint small">{t("src_completeness_hint")}</p>
-      </Fold>
-
       {error && <p className="error">{error}</p>}
-      <button className="button" disabled={busy || !options} onClick={() => run(0)}>
-        <Icon name="search" size={20} />
-        {t("src_go")}
-      </button>
-      <button className="link" onClick={() => setFilter({ ...EMPTY, city_code: filter.city_code })}>
-        {t("src_reset")}
-      </button>
     </Screen>
   );
 }

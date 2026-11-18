@@ -3520,3 +3520,66 @@ dl.facts {
 a.button {
   text-decoration: none;
 }
+
+/* SRC: шапка пошуку з кнопкою фільтрів і швидкі посилання */
+.search-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.search-head h1 {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+  font-size: 21px;
+  white-space: nowrap;
+}
+
+.filter-button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--brand-ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.filter-button .count {
+  min-width: 22px;
+  height: 22px;
+  line-height: 22px;
+}
+
+/* Один рядок; не влізло — гортається вбік до краю екрана, без смуги прокрутки. */
+.quick-links {
+  flex-wrap: nowrap;
+  margin: 10px -16px 4px;
+  padding: 2px 16px 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.quick-links::-webkit-scrollbar {
+  display: none;
+}
+
+.quick-links .chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.filter-actions {
+  margin-top: 18px;
+}

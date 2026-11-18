@@ -28,7 +28,8 @@ type IconName =
   | "menu"
   | "info"
   | "minus"
-  | "meter";
+  | "meter"
+  | "filter";
 
 const PATHS: Record<IconName, string> = {
   home: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z",
@@ -38,6 +39,7 @@ const PATHS: Record<IconName, string> = {
   chevron: "m9 6 6 6-6 6",
   back: "M15 6l-6 6 6 6",
   check: "m5 12.5 4.5 4.5L19 7.5",
+  filter: "M4 7h9M17 7h3M15 5v4M4 17h3M11 17h9M9 15v4",
   doc: "M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM14 3v5h5M9 13h6M9 17h6",
   plus: "M12 5v14M5 12h14",
   search: "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4",
