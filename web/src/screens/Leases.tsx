@@ -350,6 +350,8 @@ export function LeaseForm({
   onSaved,
   onOpenLease,
   propose = false,
+  applicationId,
+  initialRent,
 }: {
   property?: Property;
   lease?: Lease;
@@ -360,6 +362,10 @@ export function LeaseForm({
   onOpenLease?: (id: string) => void;
   /** Орендар пропонує зміни (FR-LSE-10): без реквізитів оплати. */
   propose?: boolean;
+  /** Оренда з погодженої заявки (FR-APP-6): без запрошення, заявник уже відповідальний. */
+  applicationId?: string;
+  /** Ціна з оголошення — щоб не вводити вдруге. */
+  initialRent?: number;
 }) {
   const [f, setF] = useState<Form>(() =>
     lease
@@ -368,7 +374,7 @@ export function LeaseForm({
           unitId: null,
           start: firstOfNextMonth(),
           months: 11,
-          rent: "",
+          rent: initialRent ? String(initialRent) : "",
           dueDay: 5,
           depositMode: "month",
           deposit: "",
@@ -445,6 +451,8 @@ export function LeaseForm({
         );
       } else if (lease) {
         onSaved?.(await api.updateConditions(lease.id, body()));
+      } else if (applicationId) {
+        onSaved?.(await api.leaseFromApplication(applicationId, body()));
       } else if (property) {
         const r = await api.createLease({ ...body(), property_id: property.id, unit_id: f.unitId });
         onCreated?.(r.lease, r.invite);
@@ -479,7 +487,7 @@ export function LeaseForm({
     {
       key: "dates",
       title: t("ls_step_dates_title"),
-      text: lease ? undefined : t("ls_new_hint"),
+      text: lease ? undefined : applicationId ? t("ls_new_hint_app") : t("ls_new_hint"),
       fields: ["unit_id", "start_date", "months", "end_date"],
       content: (
         <>

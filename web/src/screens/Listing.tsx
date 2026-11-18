@@ -8,6 +8,7 @@ import { t, type TextKey } from "../i18n";
 import { Icon } from "../icons";
 import { confirm, type WebApp } from "../telegram";
 import { Chip, errorCode, errorText, formatAddress, formatDate, MascotTip, Screen } from "../ui";
+import { IncomingApplications } from "./Applications";
 import { Chips } from "./Leases";
 
 const k = (key: string, vars?: Record<string, string>) => t(key as TextKey, vars);
@@ -82,12 +83,14 @@ export function ListingScreen({
   onBack,
   onOwnership,
   onProfile,
+  onApplication,
 }: {
   id: string;
   webApp: WebApp;
   onBack: () => void;
   onOwnership: () => void;
   onProfile: () => void;
+  onApplication: (id: string) => void;
 }) {
   const [prop, setProp] = useState<Property | null>(null);
   const [state, setState] = useState<ListingState | null>(null);
@@ -185,6 +188,8 @@ export function ListingScreen({
           )}
         </section>
       )}
+
+      {listing && <IncomingApplications propertyId={id} onOpen={onApplication} />}
 
       {editing && status !== "active" && (
         <section className="card">

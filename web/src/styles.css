@@ -3478,6 +3478,8 @@ button.info-row {
 .fold-inner {
   min-height: 0;
   overflow: hidden;
+  /* Тіні карток усередині не обрізаємо ножем по краю. */
+  overflow-clip-margin: 8px;
   padding: 0 18px;
   opacity: 0;
   transition:
@@ -3486,7 +3488,7 @@ button.info-row {
 }
 
 .fold.open .fold-inner {
-  padding: 0 18px 18px;
+  padding: 2px 18px 18px;
   opacity: 1;
 }
 

@@ -29,6 +29,12 @@ export function ApplicationChip({ status }: { status: Application["status"] }) {
   return <Chip tone={TONE[status]}>{k(`ap_status_${status}`)}</Chip>;
 }
 
+/** +380670000001 → +380 67 000 00 01 */
+function formatPhone(raw: string): string {
+  const m = /^\+380(\d{2})(\d{3})(\d{2})(\d{2})$/.exec(raw);
+  return m ? `+380 ${m[1]} ${m[2]} ${m[3]} ${m[4]}` : raw;
+}
+
 function money(n: number): string {
   return n.toLocaleString("uk-UA");
 }
@@ -331,7 +337,7 @@ export function ApplicationScreen({
           {c.phone && (
             <a className="button secondary" href={`tel:${c.phone}`}>
               <Icon name="user" size={20} />
-              {card.other.display_name} · {c.phone}
+              {card.other.display_name} · {formatPhone(c.phone)}
             </a>
           )}
         </section>

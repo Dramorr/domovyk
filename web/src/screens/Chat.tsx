@@ -109,7 +109,7 @@ export function Chat({ source, onBack }: { source: ChatSource; onBack: () => voi
     <Screen onBack={onBack} title={source.kind === "lease" ? t("ch_title") : t("ap_chat_title")}>
       {userMessages.length === 0 && (
         <MascotTip>
-          <p>{t("ch_empty")}</p>
+          <p>{source.kind === "lease" ? t("ch_empty") : t("ch_empty_app")}</p>
         </MascotTip>
       )}
       <div className="chat">

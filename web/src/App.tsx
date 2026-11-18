@@ -9,6 +9,7 @@ import { ModerationCase, ModerationQueue, SignatureReview } from "./screens/Mode
 import { ConsentAndName, ModeChoice, PhoneStep } from "./screens/Onboarding";
 import { ListingScreen } from "./screens/Listing";
 import { FavoritesScreen, ListingView, SearchScreen } from "./screens/Search";
+import { ApplicationScreen, MyApplications } from "./screens/Applications";
 import { MetersScreen } from "./screens/Meters";
 import { Profile } from "./screens/Profile";
 import { PropertyProfile } from "./screens/PropertyProfile";
@@ -44,7 +45,11 @@ type Route =
   | { name: "meters"; leaseId?: string; propertyId?: string }
   | { name: "listing"; id: string }
   | { name: "listing-view"; id: string }
-  | { name: "favorites" };
+  | { name: "favorites" }
+  | { name: "applications" }
+  | { name: "application"; id: string }
+  | { name: "app-chat"; id: string }
+  | { name: "lease-from-app"; appId: string; propertyId: string; rent: number };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -54,6 +59,8 @@ function routeFromStart(param: string | null, isStaff: boolean): Route[] {
   if (param === "mod" && isStaff) return [{ name: "moderation" }];
   if (param.startsWith("inv_")) return [{ name: "home" }, { name: "invite", token: param.slice(4) }];
   if (param === "searches") return [{ name: "search", saved: true }];
+  const app = param.startsWith("app_") ? param.slice(4) : "";
+  if (UUID_RE.test(app)) return [{ name: "home" }, { name: "application", id: app }];
   const listing = param.startsWith("lst_") ? param.slice(4) : "";
   if (UUID_RE.test(listing)) return [{ name: "search" }, { name: "listing-view", id: listing }];
   const meters = param.startsWith("meters_") ? param.slice(7) : "";
@@ -262,11 +269,53 @@ export function App() {
           initialView={route.saved ? "saved" : undefined}
           onOpen={(id) => push({ name: "listing-view", id })}
           onFavorites={() => push({ name: "favorites" })}
+          onApplications={() => push({ name: "applications" })}
         />
       );
       break;
     case "listing-view":
-      screen = <ListingView key={route.id} id={route.id} webApp={webApp} onBack={back} />;
+      screen = (
+        <ListingView
+          key={route.id}
+          id={route.id}
+          webApp={webApp}
+          onBack={back}
+          onApplication={(id) => push({ name: "application", id })}
+        />
+      );
+      break;
+    case "applications":
+      screen = <MyApplications onBack={back} onOpen={(id) => push({ name: "application", id })} />;
+      break;
+    case "application":
+      screen = (
+        <ApplicationScreen
+          key={route.id}
+          id={route.id}
+          webApp={webApp}
+          onBack={back}
+          onChat={() => push({ name: "app-chat", id: route.id })}
+          onListing={(id) => push({ name: "listing-view", id })}
+          onOpenLease={(id) => push({ name: "lease", id })}
+          onCreateLease={(card) =>
+            push({ name: "lease-from-app", appId: card.id, propertyId: card.listing.property_id, rent: card.listing.price_amount })
+          }
+        />
+      );
+      break;
+    case "app-chat":
+      screen = <Chat key={`app:${route.id}`} source={{ kind: "application", id: route.id }} onBack={back} />;
+      break;
+    case "lease-from-app":
+      screen = (
+        <LeaseFormLoader
+          propertyId={route.propertyId}
+          applicationId={route.appId}
+          initialRent={route.rent}
+          onBack={back}
+          onSaved={(lease) => replace({ name: "lease", id: lease.id })}
+        />
+      );
       break;
     case "favorites":
       screen = <FavoritesScreen onBack={back} onOpen={(id) => push({ name: "listing-view", id })} />;
@@ -301,6 +350,7 @@ export function App() {
           onBack={back}
           onOwnership={() => push({ name: "ownership", id: route.id })}
           onProfile={() => push({ name: "profile-form", id: route.id })}
+          onApplication={(id) => push({ name: "application", id })}
         />
       );
       break;
@@ -440,6 +490,8 @@ function LeaseFormLoader({
   onSaved,
   onOpenLease,
   propose = false,
+  applicationId,
+  initialRent,
 }: {
   propertyId?: string;
   leaseId?: string;
@@ -448,6 +500,8 @@ function LeaseFormLoader({
   onSaved?: (lease: Lease) => void;
   onOpenLease?: (id: string) => void;
   propose?: boolean;
+  applicationId?: string;
+  initialRent?: number;
 }) {
   const [property, setProperty] = useState<Property | null>(null);
   const [lease, setLease] = useState<Lease | null>(null);
@@ -468,6 +522,8 @@ function LeaseFormLoader({
       onCreated={onCreated}
       onSaved={onSaved}
       onOpenLease={onOpenLease}
+      applicationId={applicationId}
+      initialRent={initialRent}
     />
   );
 }

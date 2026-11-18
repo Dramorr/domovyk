@@ -4,13 +4,16 @@
 
 import { useEffect, useState } from "react";
 
-import { api, ApiFailure, type Amenity, type ListingCard, type ListingSummary, type SavedSearch, type SearchIn, type SearchOptions, type SearchPage } from "../api/client";
+import { api, ApiFailure, type Amenity, type Application, type ListingCard, type ListingSummary, type SavedSearch, type SearchIn, type SearchOptions, type SearchPage } from "../api/client";
 import { t, type TextKey } from "../i18n";
 import { Icon } from "../icons";
 import { PROFILE_SECTIONS, type FieldSpec } from "../profileSpec";
 import { type WebApp } from "../telegram";
 import { Chip, errorText, Fold, formatDate, MascotTip, roomsText, Screen, shortStreet } from "../ui";
+import { ApplicationChip, ApplySheet } from "./Applications";
 import { PhotoImage, PhotoSlider } from "./Photos";
+
+const OPEN_APP: Application["status"][] = ["pending", "approved", "showing_scheduled"];
 
 const k = (key: string, vars?: Record<string, string>) => t(key as TextKey, vars);
 const STORE = "domovyk.search.v1";
@@ -95,10 +98,12 @@ let lastSession: Session | null = null;
 export function SearchScreen({
   onOpen,
   onFavorites,
+  onApplications,
   initialView,
 }: {
   onOpen: (id: string) => void;
   onFavorites: () => void;
+  onApplications: () => void;
   initialView?: View;
 }) {
   const [options, setOptions] = useState<SearchOptions | null>(null);
@@ -290,6 +295,9 @@ export function SearchScreen({
           <Icon name="search" size={18} /> {t("src_saved_title")}
           {saved && saved.length > 0 && ` (${saved.length})`}
         </button>
+        <button className="link" onClick={onApplications}>
+          <Icon name="send" size={18} /> {t("ap_my_title")}
+        </button>
       </div>
 
       <section className="card">
@@ -453,8 +461,20 @@ function answerText(spec: FieldSpec, value: unknown): string | null {
   }
 }
 
-export function ListingView({ id, onBack }: { id: string; webApp: WebApp; onBack: () => void }) {
+export function ListingView({
+  id,
+  onBack,
+  onApplication,
+}: {
+  id: string;
+  webApp: WebApp;
+  onBack: () => void;
+  onApplication: (id: string) => void;
+}) {
   const [card, setCard] = useState<ListingCard | null>(null);
+  // Відкрита заявка на це оголошення — замість «Відгукнутись» показуємо її.
+  const [mine, setMine] = useState<Application | null | undefined>(undefined);
+  const [applying, setApplying] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -463,6 +483,10 @@ export function ListingView({ id, onBack }: { id: string; webApp: WebApp; onBack
       .listingCard(id)
       .then(setCard)
       .catch((e: unknown) => setError(errorText(e)));
+    api
+      .myApplications()
+      .then((xs) => setMine(xs.find((x) => x.listing.listing_id === id && OPEN_APP.includes(x.status)) ?? null))
+      .catch(() => setMine(null));
   }, [id]);
 
   if (!card) {
@@ -567,10 +591,27 @@ export function ListingView({ id, onBack }: { id: string; webApp: WebApp; onBack
       {!card.is_mine && card.actual && (
         <>
           <MascotTip>{t("src_no_money")}</MascotTip>
-          <button className="button" disabled>
-            <Icon name="send" size={20} />
-            {t("src_apply_soon")}
-          </button>
+          {mine ? (
+            <button className="button secondary" onClick={() => onApplication(mine.id)}>
+              <Icon name="send" size={20} />
+              {t("ap_open_application")} · <ApplicationChip status={mine.status} />
+            </button>
+          ) : (
+            <button className="button" disabled={mine === undefined} onClick={() => setApplying(true)}>
+              <Icon name="send" size={20} />
+              {t("ap_apply")}
+            </button>
+          )}
+          {applying && (
+            <ApplySheet
+              listingId={card.id}
+              onClose={() => setApplying(false)}
+              onSent={(sent) => {
+                setApplying(false);
+                onApplication(sent.id);
+              }}
+            />
+          )}
         </>
       )}
     </Screen>
