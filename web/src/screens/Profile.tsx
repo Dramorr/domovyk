@@ -8,7 +8,7 @@ import { api, type City, type Personal, type User } from "../api/client";
 import { t } from "../i18n";
 import { confirm, type WebApp } from "../telegram";
 import { Icon } from "../icons";
-import { Avatar, errorCode, errorField, errorText, Fold, MascotTip, Screen } from "../ui";
+import { Avatar, Divider, errorCode, errorField, errorText, Fold, MascotTip, Screen } from "../ui";
 import { isValidName } from "./Onboarding";
 
 const AVATAR_MAX_MB = 15; // як avatar_max_bytes на бекенді
@@ -291,12 +291,13 @@ export function Profile({
             <span>{t("prof_login_telegram")}</span>
           </div>
           <p className="hint small">{t("prof_login_hint")}</p>
-          <button className="info-row danger account-delete" onClick={deleteAccount} disabled={busy}>
-            <Icon name="trash" size={20} />
-            <span>{t("prof_delete")}</span>
-          </button>
         </div>
       </Fold>
+
+      <Divider />
+      <button className="link danger" onClick={deleteAccount} disabled={busy}>
+        {t("prof_delete")}
+      </button>
 
       {(dirty || message || error) && (
         <div className="sticky-actions">

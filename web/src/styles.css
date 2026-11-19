@@ -3000,11 +3000,6 @@ button.info-row {
   cursor: pointer;
 }
 
-.info-row.danger,
-.info-row.danger .icon {
-  color: var(--danger);
-}
-
 /* Вкладки профілю: той самий перемикач, що «Квартира / Будинок». */
 .profile-tabs {
   margin: 16px 0 12px;
@@ -3127,13 +3122,6 @@ button.info-row {
 .phone-bad {
   background: var(--danger-50);
   color: var(--danger);
-}
-
-/* «Видалити акаунт» — унизу картки. */
-.account-panel .account-delete {
-  margin-top: auto;
-  border-top: 1px solid var(--line);
-  border-bottom: 0;
 }
 
 /* Меню: ім'я й чип режиму на одній лінії. */
