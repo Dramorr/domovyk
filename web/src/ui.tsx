@@ -331,6 +331,11 @@ function writeFold(id: string, open: boolean): void {
  * перемиканні він стрибав. Те, що треба бачити згорнутим, — у `aside` (лічильник).
  * Довідкове ховаємо, а те, що чекає дії людини, лишаємо звичайною карткою.
  */
+/** Розділювач сторінки перед «небезпечними» діями. Вигляд залежить від оформлення (data-deco). */
+export function Divider() {
+  return <div className="deco-divider" aria-hidden="true" />;
+}
+
 export function Fold({
   id,
   title,

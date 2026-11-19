@@ -9,6 +9,7 @@ import { confirm, openLink, openTelegramLink, type WebApp } from "../telegram";
 import { Icon } from "../icons";
 import {
   Chip,
+  Divider,
   errorCode,
   errorField,
   errorText,
@@ -800,6 +801,7 @@ export function PropertyCard({
         )}
       </Fold>
 
+      <Divider />
       {error && <p className="error">{error}</p>}
       <button className="link danger" onClick={remove} disabled={busy}>
         {t("prp_delete")}

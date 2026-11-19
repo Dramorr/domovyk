@@ -25,7 +25,7 @@ import { PaymentsBlock } from "./Payments";
 import { PhotoSlider } from "./Photos";
 import { Stepper, type Step } from "./Stepper";
 import { confirm, openTelegramLink, type WebApp } from "../telegram";
-import { Chip, errorCode, errorField, errorText, Fold, formatAddress, formatDate, ListRow, MascotTip, Screen } from "../ui";
+import { Chip, Divider, errorCode, errorField, errorText, Fold, formatAddress, formatDate, ListRow, MascotTip, Screen } from "../ui";
 
 const k = (key: string) => t(key as TextKey);
 
@@ -1320,6 +1320,8 @@ export function LeaseCard({
       {error && <p className="error">{error}</p>}
 
       {l.my_role === "landlord" && l.can_edit && (
+        <>
+        <Divider />
         <button
           className="link danger"
           disabled={busy}
@@ -1330,6 +1332,7 @@ export function LeaseCard({
         >
           {t("ls_cancel")}
         </button>
+        </>
       )}
       {["active", "ending", "ended"].includes(l.status) && (
         <PaymentsBlock
@@ -1354,6 +1357,7 @@ export function LeaseCard({
         </>
       )}
       {sheet && <AgreementSheet lease={l} contract={contract} termsLines={termsLines} onClose={() => setSheet(false)} />}
+      {(l.status === "cancelled" || l.status === "ended" || (l.my_role === "co_tenant" && open)) && <Divider />}
       {(l.status === "cancelled" || l.status === "ended") && (
         <button
           className="link danger"
