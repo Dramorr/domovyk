@@ -331,17 +331,13 @@ function writeFold(id: string, open: boolean): void {
  * перемиканні він стрибав. Те, що треба бачити згорнутим, — у `aside` (лічильник).
  * Довідкове ховаємо, а те, що чекає дії людини, лишаємо звичайною карткою.
  */
-/** Розділювач сторінки перед «небезпечними» діями. У темі «Ліс» — ялинки, які спалахують,
- *  коли наводиш чи тиснеш на кнопку після нього (styles.css, оформлення). */
+/** Розділювач сторінки перед «небезпечними» діями. У темі «Ліс» — ялинки з переходом
+ *  від кольору бренду вгорі до кольору небезпечної кнопки внизу (styles.css, оформлення). */
 export function Divider() {
   return (
     <div className="deco-divider" aria-hidden="true">
       <i className="dd-back" />
-      <i className="dd-glow" />
       <i className="dd-front" />
-      <i className="dd-fire" />
-      <i className="dd-fire dd-fire-2" />
-      <i className="dd-embers" />
     </div>
   );
 }
