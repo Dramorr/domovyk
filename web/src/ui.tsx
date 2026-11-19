@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { api, ApiFailure } from "./api/client";
 import { t, type TextKey } from "./i18n";
 import { Icon, type IconName } from "./icons";
+import { Townscape } from "./townscape";
 
 export const BRAND = `${import.meta.env.BASE_URL}../brand/`;
 
@@ -331,13 +332,12 @@ function writeFold(id: string, open: boolean): void {
  * перемиканні він стрибав. Те, що треба бачити згорнутим, — у `aside` (лічильник).
  * Довідкове ховаємо, а те, що чекає дії людини, лишаємо звичайною карткою.
  */
-/** Розділювач сторінки перед «небезпечними» діями. У темі «Містечко» — будиночки з переходом
- *  від кольору бренду вгорі до кольору небезпечної кнопки внизу (styles.css, оформлення). */
+/** Розділювач сторінки перед «небезпечними» діями. У темі «Містечко» — силует міста
+ *  з однією червоною хаткою (townscape.tsx); у «plain» — тонка лінія (styles.css, оформлення). */
 export function Divider() {
   return (
     <div className="deco-divider" aria-hidden="true">
-      <i className="dd-back" />
-      <i className="dd-front" />
+      <Townscape />
     </div>
   );
 }
