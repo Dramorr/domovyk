@@ -2,7 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { App } from "./App";
-import { applyDeco, getDeco } from "./deco";
+import { applyDeco } from "./deco";
 import "./styles.css";
 import { applyBrandChrome, getWebApp } from "./telegram";
 
@@ -51,7 +51,7 @@ if (vv) {
   });
 }
 
-applyDeco(getDeco());
+applyDeco();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

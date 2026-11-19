@@ -10,8 +10,6 @@ import { confirm, type WebApp } from "../telegram";
 import { Icon } from "../icons";
 import { Avatar, errorCode, errorField, errorText, Fold, MascotTip, Screen } from "../ui";
 import { isValidName } from "./Onboarding";
-import { Chips } from "./Leases";
-import { DECOS, getDeco, setDeco, type Deco } from "../deco";
 
 const AVATAR_MAX_MB = 15; // як avatar_max_bytes на бекенді
 
@@ -40,7 +38,6 @@ export function Profile({
   onUserChange: (user: User) => void;
   onDeleted: () => void;
 }) {
-  const [deco, setDecoState] = useState<Deco>(getDeco);
   const [name, setName] = useState(user.display_name);
   const [personal, setPersonal] = useState<Personal | null>(null);
   const [form, setForm] = useState<Form>(toForm(null));
@@ -294,18 +291,6 @@ export function Profile({
             <span>{t("prof_login_telegram")}</span>
           </div>
           <p className="hint small">{t("prof_login_hint")}</p>
-          <div className="field">
-            {t("prof_deco")}
-            <Chips<Deco>
-              value={deco}
-              options={DECOS}
-              label={(d) => t(d === "forest" ? "deco_forest" : "deco_plain")}
-              onChange={(d) => {
-                setDeco(d);
-                setDecoState(d);
-              }}
-            />
-          </div>
           <button className="info-row danger account-delete" onClick={deleteAccount} disabled={busy}>
             <Icon name="trash" size={20} />
             <span>{t("prof_delete")}</span>
