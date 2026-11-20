@@ -1342,122 +1342,6 @@ label.file-button {
   background: var(--danger-50);
 }
 
-/* ---- Смужка погодження договору (FR-LSE-10) ---- */
-/* Одна суцільна лінія однієї товщини; коло в центрі — з обідком тієї ж товщини. */
-/* Бар прибитий до низу екрана (нижньої панелі меню більше немає, ADR 0015).
-   Розпірка = висота бару мінус нижній відступ .screen, щоб під баром не лишалось порожнечі. */
-.agreement-spacer {
-  height: 56px;
-}
-
-.agreement-bar {
-  --ab-t: 6px; /* товщина лінії й обідка */
-  --ab-hub: 44px; /* зовнішній діаметр кола */
-  position: fixed;
-  left: 50%;
-  bottom: 0;
-  z-index: 19;
-  width: min(560px, 100%);
-  padding: 8px 16px calc(12px + env(safe-area-inset-bottom));
-  background: rgb(255 255 255 / 94%);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-top: 1px solid var(--line);
-  transform: translateX(-50%);
-}
-
-.ab-labels {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  /* Підписи — одразу над лінією: заходять у висоту кола з боків (коло по центру). */
-  margin-bottom: calc((var(--ab-t) - var(--ab-hub)) / 2 + 6px);
-  font-size: 12px;
-  line-height: 1.3;
-  color: var(--text-2);
-}
-
-.ab-labels b {
-  color: var(--text);
-  font-weight: 700;
-}
-
-.ab-labels span {
-  max-width: calc(50% - var(--ab-hub) / 2 - 8px);
-}
-
-.ab-labels .right {
-  text-align: right;
-}
-
-.ab-track {
-  display: flex;
-  align-items: center;
-}
-
-.ab-half {
-  display: flex;
-  flex: 1;
-  height: var(--ab-t);
-}
-
-.ab-seg {
-  flex: 1;
-  height: var(--ab-t);
-  background: var(--line);
-  transition: background 250ms;
-}
-
-.ab-half.left .ab-seg:first-child {
-  border-radius: 999px 0 0 999px;
-}
-
-.ab-half.right .ab-seg:last-child {
-  border-radius: 0 999px 999px 0;
-}
-
-.ab-seg.is-ok {
-  background: #2f9e5b;
-}
-
-.ab-seg.is-pending {
-  background: #9fd3b2;
-}
-
-.ab-seg.is-warn {
-  background: var(--amber);
-}
-
-.ab-hub {
-  display: grid;
-  flex: none;
-  place-items: center;
-  box-sizing: border-box;
-  width: var(--ab-hub);
-  height: var(--ab-hub);
-  aspect-ratio: 1;
-  margin: 0;
-  padding: 0;
-  border: var(--ab-t) solid var(--line);
-  border-radius: 50%;
-  background: var(--surface);
-  color: var(--brand-ink);
-  cursor: pointer;
-  transition: border-color 250ms;
-}
-
-.ab-hub.is-ok {
-  border-color: #2f9e5b;
-}
-
-.ab-hub.is-warn {
-  border-color: var(--amber);
-}
-
-.ab-hub.is-pending {
-  border-color: #9fd3b2;
-}
-
 /* нижня шторка «Актуальна версія» */
 .sheet-backdrop {
   position: fixed;
@@ -3916,4 +3800,278 @@ a.button {
 /* Вікна й двері — кольору тла: передні хатки суцільні, задні доми крізь них не видно. */
 .ts-window {
   fill: var(--bg);
+}
+
+/* ---- Шапка: дії сторінки (дзвіночок сповіщень) ---- */
+.appbar-actions {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+.appbar-actions + .menu-button {
+  margin-left: 0;
+}
+
+/* ---- Нижня панель розділів сторінки (лише локальні посилання; ADR 0015) ---- */
+.app.with-tabs .screen {
+  padding-bottom: calc(92px + env(safe-area-inset-bottom));
+}
+
+.page-tabs {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  z-index: 19;
+  display: flex;
+  width: min(560px, 100%);
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  background: rgb(255 255 255 / 94%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid var(--line);
+  transform: translateX(-50%);
+}
+
+.page-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 6px 2px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--text-3);
+  font: 600 11px/1.2 Manrope, sans-serif;
+  cursor: pointer;
+}
+
+.page-tab.active {
+  color: var(--brand-ink);
+}
+
+.page-tab.active .page-tab-icon {
+  background: var(--brand-100);
+}
+
+.page-tab-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 30px;
+  border-radius: 999px;
+  transition: background 160ms;
+}
+
+.page-tab-icon .dot {
+  top: -4px;
+  right: 2px;
+  background: var(--danger);
+  color: #fff;
+}
+
+/* ---- Картка оренди: фото, факти, шлях до заселення ---- */
+.lease-hero {
+  margin: 0 -16px;
+}
+
+.lease-hero .photo-slider {
+  margin: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Картка з адресою наїжджає на фото — крапки фото піднімаємо над нею. */
+.lease-hero .photo-slider > .photo-dots {
+  bottom: 38px;
+}
+
+.lease-head {
+  position: relative;
+  margin-top: 8px;
+}
+
+.lease-head.over-photo {
+  margin-top: -28px;
+}
+
+.lease-head-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lease-head h1 {
+  margin: 8px 0 12px;
+  text-align: left;
+  font-size: 20px;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 0;
+}
+
+.facts div {
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--brand-50);
+}
+
+.facts dt,
+.facts-list dt {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.facts dd {
+  margin: 2px 0 0;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.facts-list {
+  margin: 0;
+}
+
+.facts-list div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+
+.facts-list div:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.facts-list dd {
+  margin: 0;
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.journey {
+  margin: 18px 0 8px;
+}
+
+.journey-dots {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.journey-dot {
+  flex: 1;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.journey-dot::before {
+  content: "";
+  display: block;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--line);
+  transition: background 200ms, box-shadow 200ms;
+}
+
+.journey-dot.is-done::before {
+  background: var(--brand-500);
+}
+
+.journey-dot.is-now::before {
+  background: var(--brand);
+}
+
+.journey-dot.active::before {
+  box-shadow: 0 0 0 3px var(--brand-100);
+}
+
+.journey-viewport {
+  overflow: hidden;
+  transition: height 260ms ease;
+}
+
+.journey-track {
+  display: flex;
+  align-items: flex-start;
+  transition: transform 320ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.journey-slide {
+  flex: 0 0 100%;
+  min-width: 0;
+  padding: 0 1px 4px;
+}
+
+.journey-slide > h2 {
+  margin: 2px 0 10px;
+}
+
+.journey-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.journey-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px 2px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  background: var(--surface-2);
+}
+
+.journey-state.is-done {
+  color: var(--brand-ink);
+  background: var(--brand-100);
+}
+
+.journey-state.is-now {
+  color: var(--on-brand);
+  background: var(--brand);
+}
+
+.journey-note p {
+  margin: 0;
+}
+
+.journey-parties .unit .tone-ok {
+  color: var(--brand-ink);
+  font-weight: 700;
+}
+
+.journey-parties .unit .tone-warn {
+  color: var(--amber-700);
+  font-weight: 700;
+}
+
+.person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.person-body {
+  display: flex;
+  flex-direction: column;
 }

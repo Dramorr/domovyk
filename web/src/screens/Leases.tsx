@@ -1,11 +1,10 @@
-// Оренда (BOT_FLOWS §7, §9): список, нова оренда, запрошення, картка, умови, сповіщення.
+// Оренда (BOT_FLOWS §7, §9): список, нова оренда, запрошення, умови, сповіщення. Картка — LeaseCard.tsx.
 
 import { useEffect, useState, type ReactNode } from "react";
 
 import {
   api,
   ApiFailure,
-  type ContractState,
   type Invite,
   type InvitePreview,
   type Lease,
@@ -13,19 +12,14 @@ import {
   type LeaseSummary,
   type LeaseTerms,
   type NotifyPrefs,
-  type Photo,
   type Property,
 } from "../api/client";
 import { botLink } from "../config";
 import { t, type TextKey } from "../i18n";
 import { Icon } from "../icons";
-import { AgreementBar, AgreementSheet } from "./AgreementBar";
-import { ContractBlock } from "./Contract";
-import { PaymentsBlock } from "./Payments";
-import { PhotoSlider } from "./Photos";
 import { Stepper, type Step } from "./Stepper";
 import { confirm, openTelegramLink, type WebApp } from "../telegram";
-import { Chip, Divider, errorCode, errorField, errorText, Fold, formatAddress, formatDate, ListRow, MascotTip, Screen } from "../ui";
+import { Chip, errorCode, errorField, errorText, formatAddress, formatDate, ListRow, MascotTip, Screen } from "../ui";
 
 const k = (key: string) => t(key as TextKey);
 
@@ -47,7 +41,7 @@ function money(n: number): string {
   return n.toLocaleString("uk-UA");
 }
 
-function leaseAddress(l: LeaseSummary): string {
+export function leaseAddress(l: LeaseSummary): string {
   return formatAddress({ street: l.street, house_number: l.house_number, apartment: l.apartment });
 }
 
@@ -906,7 +900,7 @@ export function InviteAccept({
 
 // -------------------------------------------------------------- картка
 
-function termsLines(terms: LeaseTerms): string[] {
+export function termsLines(terms: LeaseTerms): string[] {
   return [
     t("ls_t_visits", { n: String(terms.visits_notice_hours) }),
     t("ls_t_repairs", { minor: k(`ls_side_${terms.minor_repairs}`), major: k(`ls_side_${terms.major_repairs}`) }),
@@ -921,7 +915,7 @@ function termsLines(terms: LeaseTerms): string[] {
 const TERMINATION_REASONS = ["ls_term_r_moving", "ls_term_r_landlord", "ls_term_r_breach"] as const;
 
 /** FR-LSE-7: розірвання — форма для активної оренди й стан «завершується». */
-function TerminationBlock({
+export function TerminationBlock({
   l,
   webApp,
   busy,
@@ -1027,371 +1021,6 @@ function TerminationBlock({
         {t("cancel")}
       </button>
     </section>
-  );
-}
-
-function hasResponsibleMember(l: Lease): boolean {
-  return l.members.some((m) => m.role === "responsible");
-}
-
-export function LeaseCard({
-  id,
-  webApp,
-  onBack,
-  onChat,
-  onEdit,
-  onNotify,
-  onInvite,
-  onPropose,
-  onMeters,
-}: {
-  id: string;
-  webApp: WebApp;
-  onBack: () => void;
-  onChat: () => void;
-  onEdit: (lease: Lease) => void;
-  onNotify: () => void;
-  onInvite: (invite: Invite) => void;
-  onPropose: (lease: Lease) => void;
-  onMeters: () => void;
-}) {
-  const [l, setL] = useState<Lease | null>(null);
-  const [photos, setPhotos] = useState<Photo[]>([]);
-  const [contract, setContract] = useState<ContractState | null>(null);
-  const [sheet, setSheet] = useState(false);
-  const [changes, setChanges] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    api.lease(id).then(setL).catch((e: unknown) => setError(errorText(e)));
-    api
-      .leasePhotos(id)
-      .then(setPhotos)
-      .catch(() => setPhotos([]));
-  }, [id]);
-
-  async function run(action: () => Promise<Lease | void>) {
-    setBusy(true);
-    setError(null);
-    try {
-      const r = await action();
-      if (r) setL(r);
-    } catch (e) {
-      setError(errorText(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  if (!l) {
-    return (
-      <Screen onBack={onBack}>
-        {error ? <p className="error">{error}</p> : <div className="skeleton" style={{ height: 200 }} />}
-      </Screen>
-    );
-  }
-
-  const open = !["cancelled", "ended"].includes(l.status);
-  const iAmResponsible = l.my_role === "responsible";
-  const needsMyAgreement =
-    iAmResponsible && l.status === "awaiting_tenant" && l.agreement.tenant !== "agreed" && !l.proposal;
-  const proposalForMe = l.my_role === "landlord" && !!l.proposal && l.status === "awaiting_tenant";
-  const landlordMustAgree =
-    l.my_role === "landlord" && l.status === "awaiting_tenant" && !l.proposal && l.agreement.landlord !== "agreed";
-  const showBar = ["awaiting_tenant", "awaiting_signatures"].includes(l.status) && hasResponsibleMember(l);
-  const hasResponsible = l.members.some((m) => m.role === "responsible");
-  const payText =
-    l.pay.method === "cash" ? k("ls_pay_cash") : `${k(`ls_pay_${l.pay.method}`)} ${l.pay.masked ?? ""} · ${l.pay.recipient ?? ""}`;
-
-  return (
-    <Screen onBack={onBack}>
-      <PhotoSlider photos={photos} source={{ kind: "lease", id: l.id }} compact />
-      <div className="stat" style={{ marginTop: 8 }}>
-        <LeaseStatusChip status={l.status} />
-        <span className="hint small">{k(`ls_role_${l.my_role}`)}</span>
-      </div>
-      <h1 className="left">{leaseAddress(l)}</h1>
-      <p className="hint left">
-        {t("ls_period", { from: formatDate(l.start_date), to: formatDate(l.end_date) })}
-        {open && ` · ${t("ls_left", { n: String(l.months_left) })}`}
-      </p>
-
-      {needsMyAgreement && (
-        <section className="card accent">
-          <h2>{t("ls_review_title")}</h2>
-          <MascotTip tone="calm">
-            <p>{t("ls_review_tip")}</p>
-          </MascotTip>
-          {changes === null ? (
-            <>
-              <button className="button" disabled={busy} onClick={() => run(() => api.acceptTerms(l.id))}>
-                <Icon name="check" size={20} />
-                {t("ls_accept_terms")}
-              </button>
-              <button className="button secondary" onClick={() => onPropose(l)}>
-                {t("ls_propose_changes")}
-              </button>
-            </>
-          ) : (
-            <>
-              <textarea
-                className="input"
-                rows={4}
-                maxLength={2000}
-                value={changes}
-                placeholder={t("ls_changes_placeholder")}
-                onChange={(e) => setChanges(e.target.value)}
-              />
-              <button
-                className="button"
-                disabled={busy || !changes.trim()}
-                onClick={() =>
-                  run(async () => {
-                    const r = await api.requestChanges(l.id, changes);
-                    setChanges(null);
-                    return r;
-                  })
-                }
-              >
-                {t("ls_send_request")}
-              </button>
-              <button className="link" onClick={() => setChanges(null)}>
-                {t("cancel")}
-              </button>
-            </>
-          )}
-        </section>
-      )}
-
-      {proposalForMe && l.proposal && (
-        <section className="card accent">
-          <h2>{t("ls_proposal_title")}</h2>
-          <p className="hint">{t("ls_proposal_tip")}</p>
-          <button className="link" onClick={() => setSheet(true)}>
-            {t("ls_proposal_view")}
-          </button>
-          <button className="button" disabled={busy} onClick={() => run(() => api.respondProposal(l.id, true))}>
-            <Icon name="check" size={20} />
-            {t("ls_proposal_accept")}
-          </button>
-          <button
-            className="button ghost"
-            disabled={busy}
-            onClick={async () => {
-              if (!(await confirm(webApp, t("ls_proposal_decline_confirm")))) return;
-              await run(() => api.respondProposal(l.id, false));
-            }}
-          >
-            {t("ls_proposal_decline")}
-          </button>
-        </section>
-      )}
-      {landlordMustAgree && (
-        <section className="card accent">
-          <h2>{t("ls_landlord_agree_title")}</h2>
-          <p className="hint">{t("ls_landlord_agree_tip")}</p>
-          <button className="button" disabled={busy} onClick={() => run(() => api.acceptTerms(l.id))}>
-            <Icon name="check" size={20} />
-            {t("ls_accept_terms")}
-          </button>
-          {l.can_edit && (
-            <button className="button secondary" onClick={() => onEdit(l)}>
-              <Icon name="edit" size={20} />
-              {t("ls_edit")}
-            </button>
-          )}
-        </section>
-      )}
-      {l.status === "awaiting_tenant" && l.my_role === "landlord" && !proposalForMe && !landlordMustAgree && (
-        <MascotTip>
-          <p>{hasResponsible ? t("ls_landlord_review_wait") : t("ls_wait_tenant_tip")}</p>
-        </MascotTip>
-      )}
-      {iAmResponsible && l.status === "awaiting_tenant" && (l.proposal || l.agreement.tenant === "agreed") && (
-        <MascotTip>
-          <p>{l.proposal ? t("ls_proposal_sent_tip") : t("ls_tenant_agreed_wait")}</p>
-        </MascotTip>
-      )}
-      {(l.status === "awaiting_signatures" || l.status === "active") && l.my_role !== "co_tenant" && (
-        <ContractBlock
-          key={`${l.id}:${l.status}`}
-          leaseId={l.id}
-          webApp={webApp}
-          onState={setContract}
-          onActivated={() => {
-            api.lease(l.id).then(setL).catch(() => undefined);
-          }}
-        />
-      )}
-      {l.status === "awaiting_signatures" && l.my_role === "co_tenant" && (
-        <MascotTip>
-          <p>{t("ls_wait_contract_tip")}</p>
-        </MascotTip>
-      )}
-
-      <div className="quick">
-        <button className="quick-item" onClick={onChat}>
-          <span className="row-icon">
-            <Icon name="send" />
-          </span>
-          <span className="quick-title">{l.unread ? t("ls_chat_unread", { n: String(l.unread) }) : t("ls_chat")}</span>
-        </button>
-        <button className="quick-item" onClick={onNotify}>
-          <span className="row-icon">
-            <Icon name="alert" />
-          </span>
-          <span className="quick-title">{t("ls_notify")}</span>
-        </button>
-        {["active", "ending", "ended"].includes(l.status) && (
-          <button className="quick-item" onClick={onMeters}>
-            <span className="row-icon">
-              <Icon name="meter" />
-            </span>
-            <span className="quick-title">{t("mt_open")}</span>
-          </button>
-        )}
-      </div>
-
-      <Fold
-        id={`lease:${l.id}:money`}
-        icon="key"
-        title={t("ls_sec_money")}
-      >
-        <p>{t("ls_rent_line", { rent: money(l.rent_amount), day: String(l.rent_due_day) })}</p>
-        {l.deposit_amount ? <p className="hint">{t("ls_deposit_line", { sum: money(l.deposit_amount) })}</p> : null}
-        <p className="hint">{t("ls_pay_line", { method: payText })}</p>
-      </Fold>
-
-      <Fold id={`lease:${l.id}:terms`} icon="doc" title={t("ls_terms_title")}>
-        <ul className="plain">
-          {termsLines(l.terms).map((line) => (
-            <li key={line}>{line}</li>
-          ))}
-        </ul>
-        {l.can_edit && (
-          <button className="button secondary" onClick={() => onEdit(l)}>
-            <Icon name="edit" size={20} />
-            {t("ls_edit")}
-          </button>
-        )}
-      </Fold>
-
-      <Fold id={`lease:${l.id}:members`} icon="user" title={t("ls_members")}>
-        {l.members.map((m) => (
-          <div key={m.user_id} className="unit">
-            <span>{m.display_name}</span>
-            <span className="hint small">{k(`ls_member_${m.role}`)}</span>
-          </div>
-        ))}
-        {l.pending_invites.map((i) => (
-          <p key={i.role} className="hint small">
-            {t("ls_pending_invite", { role: k(`ls_member_${i.role}`), date: formatDate(i.expires_at) })}
-          </p>
-        ))}
-        {l.my_role === "landlord" && open && !hasResponsible && (
-          <button className="button secondary" disabled={busy} onClick={() => run(async () => onInvite(await api.newInvite(l.id, "responsible")))}>
-            {t("ls_invite_again")}
-          </button>
-        )}
-        {l.can_invite_co_tenant && hasResponsible && (
-          <button className="button secondary" disabled={busy} onClick={() => run(async () => onInvite(await api.newInvite(l.id, "co_tenant")))}>
-            <Icon name="plus" size={20} />
-            {t("ls_invite_co")}
-          </button>
-        )}
-      </Fold>
-
-      {error && <p className="error">{error}</p>}
-
-      {l.my_role === "landlord" && l.can_edit && (
-        <>
-        <Divider />
-        <button
-          className="link danger"
-          disabled={busy}
-          onClick={async () => {
-            if (!(await confirm(webApp, t("ls_cancel_confirm")))) return;
-            await run(() => api.cancelLease(l.id));
-          }}
-        >
-          {t("ls_cancel")}
-        </button>
-        </>
-      )}
-      {iAmResponsible && ["awaiting_tenant", "awaiting_signatures"].includes(l.status) && (
-        <>
-          <Divider />
-          <button
-            className="link danger"
-            disabled={busy}
-            onClick={async () => {
-              if (!(await confirm(webApp, t("ls_decline_confirm")))) return;
-              await run(async () => {
-                await api.leaveLease(l.id);
-                onBack();
-              });
-            }}
-          >
-            {t("ls_decline")}
-          </button>
-        </>
-      )}
-      {["active", "ending", "ended"].includes(l.status) && (
-        <PaymentsBlock
-          leaseId={l.id}
-          address={leaseAddress(l)}
-          webApp={webApp}
-          live={l.status === "active" || l.status === "ending"}
-        />
-      )}
-      {(l.status === "active" || l.status === "ending") && l.my_role !== "co_tenant" && (
-        <TerminationBlock l={l} webApp={webApp} busy={busy} run={run} />
-      )}
-      {l.status === "ended" && (
-        <MascotTip tone="calm">
-          <p>{t("ls_ended_tip")}</p>
-        </MascotTip>
-      )}
-      {showBar && (
-        <>
-          <div className="agreement-spacer" />
-          <AgreementBar lease={l} contract={contract} onOpen={() => setSheet(true)} />
-        </>
-      )}
-      {sheet && <AgreementSheet lease={l} contract={contract} termsLines={termsLines} webApp={webApp} onClose={() => setSheet(false)} />}
-      {(l.status === "cancelled" || l.status === "ended" || (l.my_role === "co_tenant" && open)) && <Divider />}
-      {(l.status === "cancelled" || l.status === "ended") && (
-        <button
-          className="link danger"
-          disabled={busy}
-          onClick={async () => {
-            if (!(await confirm(webApp, t("ls_delete_confirm")))) return;
-            await run(async () => {
-              await api.hideLease(l.id);
-              onBack();
-            });
-          }}
-        >
-          {t("ls_delete")}
-        </button>
-      )}
-      {l.my_role === "co_tenant" && open && (
-        <button
-          className="link danger"
-          disabled={busy}
-          onClick={async () => {
-            if (!(await confirm(webApp, t("ls_leave_confirm")))) return;
-            await run(async () => {
-              await api.leaveLease(l.id);
-              onBack();
-            });
-          }}
-        >
-          {t("ls_leave")}
-        </button>
-      )}
-    </Screen>
   );
 }
 

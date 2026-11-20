@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { api, ApiFailure } from "./api/client";
 import { t, type TextKey } from "./i18n";
 import { Icon, type IconName } from "./icons";
+import { getWebApp, nativeBackButton } from "./telegram";
 import { Townscape } from "./townscape";
 
 export const BRAND = `${import.meta.env.BASE_URL}../brand/`;
@@ -186,14 +187,35 @@ export function Sheet({
 
 // ------------------------------------------------------------- оболонка
 
-export function Header({ onBack, title }: { onBack?: () => void; title?: string }) {
+/** «Назад» — рідною кнопкою Telegram; true, якщо вона є (тоді своєї в шапці не треба). */
+function useNativeBack(onBack?: () => void): boolean {
+  const button = nativeBackButton(getWebApp());
+  const latest = useRef(onBack);
+  latest.current = onBack;
+  const wanted = !!onBack;
+  useEffect(() => {
+    if (!button || !wanted) return;
+    const handler = () => latest.current?.();
+    button.onClick(handler);
+    button.show();
+    return () => {
+      button.offClick(handler);
+      button.hide();
+    };
+  }, [button, wanted]);
+  return !!button;
+}
+
+export function Header({ onBack, title, actions }: { onBack?: () => void; title?: string; actions?: ReactNode }) {
   const nav = useContext(NavContext);
   const [menu, setMenu] = useState(false);
   const art = useArt();
+  const native = useNativeBack(onBack);
   const logo = <img className="appbar-logo" src={art("app-icon")} alt="" width={34} height={34} />;
   return (
     <header className="appbar">
-      {onBack && (
+      {/* Запасна «Назад» — лише там, де Telegram не дає своєї (старий клієнт, браузер). */}
+      {onBack && !native && (
         <button className="icon-button" onClick={onBack} aria-label={t("back")}>
           <Icon name="back" />
         </button>
@@ -207,6 +229,8 @@ export function Header({ onBack, title }: { onBack?: () => void; title?: string 
         !onBack && logo
       )}
       {title ? <span className="appbar-title">{title}</span> : <span className="brand">Домовик</span>}
+      {/* Дії сторінки (дзвіночок сповіщень тощо) — праворуч, перед меню. */}
+      {actions && <span className="appbar-actions">{actions}</span>}
       {nav ? (
         <button className="icon-button menu-button" onClick={() => setMenu(true)} aria-label={t("menu_title")} aria-haspopup="dialog">
           <Icon name="menu" size={28} />
@@ -220,23 +244,64 @@ export function Header({ onBack, title }: { onBack?: () => void; title?: string 
   );
 }
 
+export type PageTab = {
+  key: string;
+  icon: IconName;
+  label: string;
+  /** Лічильник (непрочитані): червона крапка з числом. */
+  count?: number;
+  onClick: () => void;
+  active?: boolean;
+};
+
+/** Нижня панель розділів сторінки: лише локальні посилання (умови, люди, чат…).
+ *  Глобальні розділи — у меню (ADR 0015). Немає розділів — немає й панелі. */
+function PageTabs({ tabs }: { tabs: PageTab[] }) {
+  return (
+    <nav className="page-tabs" aria-label={t("page_tabs")}>
+      {tabs.map((x) => (
+        <button
+          key={x.key}
+          className={`page-tab${x.active ? " active" : ""}`}
+          aria-current={x.active ? "page" : undefined}
+          onClick={x.onClick}
+        >
+          <span className="page-tab-icon">
+            <Icon name={x.icon} size={22} />
+            {!!x.count && <span className="dot">{x.count > 99 ? "99+" : x.count}</span>}
+          </span>
+          {x.label}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
 export function Screen({
   children,
   onBack,
   title,
+  actions,
+  tabs,
   center = false,
 }: {
   children: ReactNode;
   onBack?: () => void;
   /** Заголовок у верхній панелі (на внутрішніх екранах). */
   title?: string;
+  /** Іконки-дії сторінки в шапці. */
+  actions?: ReactNode;
+  /** Розділи сторінки в нижній панелі. */
+  tabs?: PageTab[];
   /** Короткі екрани-повідомлення (завантаження, помилка, бан) — по центру. */
   center?: boolean;
 }) {
+  const withTabs = !!tabs && tabs.length > 1;
   return (
-    <div className="app">
-      <Header onBack={onBack} title={title} />
+    <div className={`app${withTabs ? " with-tabs" : ""}`}>
+      <Header onBack={onBack} title={title} actions={actions} />
       <main className={`screen${center ? " center" : ""}`}>{children}</main>
+      {withTabs && <PageTabs tabs={tabs} />}
     </div>
   );
 }

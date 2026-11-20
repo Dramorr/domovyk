@@ -94,11 +94,14 @@ export function ContractBlock({
   webApp,
   onActivated,
   onState,
+  heading = true,
 }: {
   leaseId: string;
   webApp: WebApp;
   onActivated: () => void;
   onState?: (state: ContractState) => void;
+  /** false — заголовок дає оточення (крок «Договір і підписи»). */
+  heading?: boolean;
 }) {
   const [s, setRaw] = useState<ContractState | null>(null);
   const setS = useCallback(
@@ -180,7 +183,7 @@ export function ContractBlock({
   if (signed && c) {
     return (
       <section className="card">
-        <h2>{t("ct_title")}</h2>
+        {heading && <h2>{t("ct_title")}</h2>}
         <p>{c.signed_at ? t("ct_signed_on", { date: formatDate(c.signed_at) }) : t("ct_signed")}</p>
         {generated && s.parties.map((p) => <SignatureLine key={p.user_id} party={p} />)}
         <button
@@ -203,7 +206,7 @@ export function ContractBlock({
   if (live && c && !generated) {
     return (
       <section className="card accent">
-        <h2>{t("ct_title")}</h2>
+        {heading && <h2>{t("ct_title")}</h2>}
         {s.awaiting_my_confirmation ? (
           <>
             <MascotTip tone="calm">
@@ -242,7 +245,7 @@ export function ContractBlock({
 
   return (
     <section className="card accent">
-      <h2>{t("ct_title")}</h2>
+      {heading && <h2>{t("ct_title")}</h2>}
 
       {s.stale && <p className="hint">{t("ct_stale")}</p>}
 

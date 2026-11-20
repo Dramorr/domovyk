@@ -1,5 +1,5 @@
-// Смужка прогресу погодження договору (FR-LSE-10): ліворуч орендар, праворуч власник,
-// посередині — договір. Кожна половина має два кроки: умови → підпис.
+// Погодження договору (FR-LSE-10): стан кожної сторони (умови → підпис) і шторка
+// «Актуальна версія» з поточними умовами, запропонованими змінами й PDF.
 
 import { useEffect, useState } from "react";
 
@@ -13,7 +13,7 @@ import { PdfViewer } from "./PdfViewer";
 
 const k = (key: string) => t(key as TextKey);
 
-type Tone = "empty" | "ok" | "pending" | "warn";
+export type Tone = "empty" | "ok" | "pending" | "warn";
 type Side = { terms: Tone; sign: Tone; label: string };
 
 function termsTone(state: Lease["agreement"]["tenant"]): Tone {
@@ -45,57 +45,9 @@ function sideOf(lease: Lease, contract: ContractState | null, role: "tenant" | "
   return { terms, sign, label };
 }
 
-export function AgreementBar({
-  lease,
-  contract,
-  onOpen,
-}: {
-  lease: Lease;
-  contract: ContractState | null;
-  onOpen: () => void;
-}) {
-  const tenant = sideOf(lease, contract, "tenant");
-  const landlord = sideOf(lease, contract, "landlord");
-  const tones = [tenant.terms, tenant.sign, landlord.terms, landlord.sign];
-  const hub: Tone = tones.every((x) => x === "ok")
-    ? "ok"
-    : tones.includes("warn")
-      ? "warn"
-      : tones.some((x) => x !== "empty")
-        ? "pending"
-        : "empty";
-  const tenantName = lease.members.find((m) => m.role === "responsible")?.display_name ?? t("ab_tenant");
-  const landlordName = lease.members.find((m) => m.role === "landlord")?.display_name ?? t("ab_landlord");
-
-  return (
-    <div className="agreement-bar" role="group" aria-label={t("ab_title")}>
-      <div className="ab-labels">
-        <span>
-          <b>{tenantName}</b>
-          <br />
-          {tenant.label}
-        </span>
-        <span className="right">
-          <b>{landlordName}</b>
-          <br />
-          {landlord.label}
-        </span>
-      </div>
-      <div className="ab-track">
-        <div className="ab-half left">
-          <span className={`ab-seg is-${tenant.terms}`} />
-          <span className={`ab-seg is-${tenant.sign}`} />
-        </div>
-        <button className={`ab-hub is-${hub}`} onClick={onOpen} aria-label={t("ab_open")}>
-          <Icon name="doc" size={18} />
-        </button>
-        <div className="ab-half right">
-          <span className={`ab-seg is-${landlord.sign}`} />
-          <span className={`ab-seg is-${landlord.terms}`} />
-        </div>
-      </div>
-    </div>
-  );
+/** Стан кожної сторони: погодження умов і підпис (для кроку «Погодження умов»). */
+export function agreementSides(lease: Lease, contract: ContractState | null): { tenant: Side; landlord: Side } {
+  return { tenant: sideOf(lease, contract, "tenant"), landlord: sideOf(lease, contract, "landlord") };
 }
 
 function money(n: number): string {

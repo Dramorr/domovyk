@@ -4,6 +4,9 @@ interface WebApp {
   initData: string;
   initDataUnsafe: { start_param?: string };
   version: string;
+  /** "unknown" — сторінку відкрито не в клієнті Telegram (звичайний браузер). */
+  platform?: string;
+  BackButton?: BackButton;
   ready(): void;
   expand(): void;
   isVersionAtLeast(version: string): boolean;
@@ -15,6 +18,13 @@ interface WebApp {
   requestContact?(cb: (shared: boolean) => void): void;
   showConfirm?(message: string, cb: (ok: boolean) => void): void;
   downloadFile?(params: { url: string; file_name: string }, cb?: (accepted: boolean) => void): void;
+}
+
+interface BackButton {
+  show(): void;
+  hide(): void;
+  onClick(cb: () => void): void;
+  offClick(cb: () => void): void;
 }
 
 declare global {
@@ -79,6 +89,13 @@ export function downloadFile(app: WebApp | null, url: string, fileName: string):
 export function openTelegramLink(app: WebApp | null, url: string): void {
   if (app?.openTelegramLink) app.openTelegramLink(url);
   else openLink(app, url);
+}
+
+/** Рідна кнопка «Назад» Telegram: у його верхній панелі, а на Android її натискає й
+ *  системна «Назад». null — старий клієнт чи звичайний браузер: тоді своя кнопка в шапці. */
+export function nativeBackButton(app: WebApp | null): BackButton | null {
+  if (!app?.BackButton || !app.platform || app.platform === "unknown") return null;
+  return app.isVersionAtLeast("6.1") ? app.BackButton : null;
 }
 
 /** Своя світла тема Домовика: фарбуємо панелі Telegram у фон застосунку (не навпаки). */

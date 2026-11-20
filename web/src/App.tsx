@@ -4,7 +4,8 @@ import { api, setInitData, type Invite, type Lease, type Me, type Property, type
 import { BOT_USERNAME, botLink } from "./config";
 import { t } from "./i18n";
 import { Chat } from "./screens/Chat";
-import { InviteAccept, InviteShare, LeaseCard, LeaseForm, LeaseNotifications, TenantHome } from "./screens/Leases";
+import { LeaseCard } from "./screens/LeaseCard";
+import { InviteAccept, InviteShare, LeaseForm, LeaseNotifications, TenantHome } from "./screens/Leases";
 import { ModerationCase, ModerationQueue, SignatureReview } from "./screens/Moderation";
 import { ConsentAndName, ModeChoice, PhoneStep } from "./screens/Onboarding";
 import { ListingScreen } from "./screens/Listing";
