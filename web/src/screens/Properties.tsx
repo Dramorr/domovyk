@@ -13,7 +13,6 @@ import {
   errorCode,
   errorField,
   errorText,
-  Fold,
   formatAddress,
   formatDate,
   ListRow,
@@ -21,6 +20,8 @@ import {
   Ring,
   roomsText,
   Screen,
+  useStoredTab,
+  type PageTab,
 } from "../ui";
 import { isOpenLease, LeaseRows, LeaseStatusChip, rentText } from "./Leases";
 import { ListingChip } from "./Listing";
@@ -569,6 +570,8 @@ export function NewProperty({ onBack, onCreated }: { onBack: () => void; onCreat
 
 // ------------------------------------------------------------------ PRP-CARD
 
+const PROP_TABS = ["overview", "profile", "history"] as const;
+
 export function PropertyCard({
   id,
   webApp,
@@ -603,6 +606,7 @@ export function PropertyCard({
   const [form, setForm] = useState({ entrance: "", floor: "", rooms: 1, area: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useStoredTab(`prop-tab:${id}`, PROP_TABS, "overview");
 
   useEffect(() => {
     api.property(id).then(setProp).catch((e: unknown) => setError(errorText(e)));
@@ -662,86 +666,55 @@ export function PropertyCard({
 
   const current = leases?.find((l) => isOpenLease(l.status)) ?? null;
   const history = leases?.filter((l) => !isOpenLease(l.status)) ?? [];
+  const verified = prop.ownership_status === "verified";
 
-  return (
-    <Screen onBack={onBack}>
-      {photos && photos.length > 0 && <PhotoSlider photos={photos} source={{ kind: "property", id }} />}
-      {photos && photos.length === 0 && (
-        <button type="button" className="photo-empty" onClick={onProfile}>
-          <Icon name="photo" size={28} />
-          <span>{t("prp_card_add_photos")}</span>
-        </button>
+  const ownership = (
+    <section className={verified ? "card" : "card accent"}>
+      <div className="stat">
+        <h2 style={{ margin: 0, flex: 1 }}>{t("prp_card_ownership")}</h2>
+        <OwnershipChip status={prop.ownership_status} />
+      </div>
+      {prop.ownership_status === "pending" ? (
+        <p className="hint small">{t("prp_card_pending_hint")}</p>
+      ) : (
+        !verified && <p className="hint small">{t("prp_card_verify_hint")}</p>
       )}
-      <h1 className="left">{formatAddress(prop)}</h1>
-      <p className="hint left">
-        {roomsText(prop.rooms)}
-        {prop.area && ` · ${t("sqm", { area: prop.area })}`}
-        {prop.district && ` · ${prop.district}`}
-      </p>
+      <button className={verified ? "button secondary" : "button"} onClick={onOwnership}>
+        <Icon name="shield" size={20} />
+        {prop.ownership_status === "unverified" ? t("prp_card_verify") : t("prp_card_verify_status")}
+      </button>
+    </section>
+  );
 
-      <LeaseBlock
-        prop={prop}
-        current={current}
-        onNew={() => onNewLease(prop)}
-        onOpen={onOpenLease}
-        onChat={onChat}
-      />
-
+  const overview = (
+    <>
+      <LeaseBlock prop={prop} current={current} onNew={() => onNewLease(prop)} onOpen={onOpenLease} />
       {!current && listing !== undefined && <ListingBlock listing={listing} onOpen={onListing} />}
+      {/* Непідтверджена власність блокує оренду й оголошення — тримаємо її на виду. */}
+      {!verified && ownership}
 
-      <Fold
-        id={`prop:${id}:profile`}
-        icon="edit"
-        title={t("pf_title")}
-      >
+      <Divider />
+      {error && <p className="error">{error}</p>}
+      <button className="link danger" onClick={remove} disabled={busy}>
+        {t("prp_delete")}
+      </button>
+    </>
+  );
+
+  const profile = (
+    <>
+      <section className="card">
+        <h2>{t("pf_title")}</h2>
         <CompletenessBar p={prop} />
         <PublishHint p={prop} />
         <button className="button secondary" onClick={onProfile}>
           <Icon name="edit" size={20} />
           {t("pf_open_plain")}
         </button>
-        <button className="button secondary" onClick={onMeters}>
-          <Icon name="meter" size={20} />
-          {t("mt_title")}
-        </button>
-      </Fold>
+      </section>
 
-      <Fold
-        id={`prop:${id}:ownership`}
-        icon="shield"
-        title={t("prp_card_ownership")}
-        aside={<OwnershipChip status={prop.ownership_status} />}
-        // Непідтверджена власність блокує оренду й оголошення — показуємо відкритою.
-        defaultOpen={prop.ownership_status !== "verified"}
-      >
-        {prop.ownership_status === "pending" ? (
-          <p className="hint small">{t("prp_card_pending_hint")}</p>
-        ) : (
-          prop.ownership_status !== "verified" && <p className="hint small">{t("prp_card_verify_hint")}</p>
-        )}
-        <button className={prop.ownership_status === "verified" ? "button secondary" : "button"} onClick={onOwnership}>
-          <Icon name="shield" size={20} />
-          {prop.ownership_status === "unverified" ? t("prp_card_verify") : t("prp_card_verify_status")}
-        </button>
-      </Fold>
-
-      {history.length > 0 && (
-        <Fold id={`prop:${id}:history`} icon="clock" title={t("prp_card_history")}>
-          <LeaseRows
-            items={history}
-            webApp={webApp}
-            showAddress={false}
-            onOpen={onOpenLease}
-            onHidden={(lid) => setLeases((xs) => xs?.filter((x) => x.id !== lid) ?? null)}
-          />
-        </Fold>
-      )}
-
-      <Fold
-        id={`prop:${id}:details`}
-        icon="building"
-        title={t("prp_details")}
-      >
+      <section className="card">
+        <h2>{t("prp_details")}</h2>
         {!edit ? (
           <>
             <p className="small">
@@ -776,6 +749,7 @@ export function PropertyCard({
                 <input className="input" inputMode="decimal" value={form.area} maxLength={7} onChange={(e) => setForm({ ...form, area: e.target.value })} />
               </label>
             </div>
+            {error && <p className="error">{error}</p>}
             <button
               className="button"
               disabled={busy}
@@ -799,13 +773,57 @@ export function PropertyCard({
             </button>
           </>
         )}
-      </Fold>
+      </section>
 
-      <Divider />
-      {error && <p className="error">{error}</p>}
-      <button className="link danger" onClick={remove} disabled={busy}>
-        {t("prp_delete")}
-      </button>
+      {verified && ownership}
+    </>
+  );
+
+  const past =
+    history.length > 0 ? (
+      <LeaseRows
+        items={history}
+        webApp={webApp}
+        showAddress={false}
+        onOpen={onOpenLease}
+        onHidden={(lid) => setLeases((xs) => xs?.filter((x) => x.id !== lid) ?? null)}
+      />
+    ) : null;
+
+  // Історію сховали (оренди прибрали) — не лишаємо порожню вкладку.
+  const shown = tab === "history" && history.length === 0 ? "overview" : tab;
+
+  const tabs: PageTab[] = [
+    { key: "overview", icon: "home", label: t("ls_tab_overview"), active: shown === "overview", onClick: () => setTab("overview") },
+    { key: "profile", icon: "edit", label: t("prp_tab_profile"), active: shown === "profile", onClick: () => setTab("profile") },
+    ...(history.length > 0
+      ? [{ key: "history", icon: "clock" as const, label: t("prp_tab_history"), active: shown === "history", onClick: () => setTab("history") }]
+      : []),
+    ...(current
+      ? [{ key: "chat", icon: "chat" as const, label: t("ls_tab_chat"), count: current.unread, onClick: () => onChat(current.id) }]
+      : []),
+    { key: "meters", icon: "meter", label: t("mt_open"), onClick: onMeters },
+  ];
+
+  return (
+    <Screen onBack={onBack} tabs={tabs}>
+      {photos && photos.length > 0 && <PhotoSlider photos={photos} source={{ kind: "property", id }} />}
+      {photos && photos.length === 0 && (
+        <button type="button" className="photo-empty" onClick={onProfile}>
+          <Icon name="photo" size={28} />
+          <span>{t("prp_card_add_photos")}</span>
+        </button>
+      )}
+      <h1 className="left">{formatAddress(prop)}</h1>
+      <p className="hint left">
+        {roomsText(prop.rooms)}
+        {prop.area && ` · ${t("sqm", { area: prop.area })}`}
+        {prop.district && ` · ${prop.district}`}
+      </p>
+
+      {shown === "overview" && overview}
+      {shown === "profile" && profile}
+      {shown === "history" && past}
     </Screen>
   );
 }
@@ -838,13 +856,11 @@ function LeaseBlock({
   current,
   onNew,
   onOpen,
-  onChat,
 }: {
   prop: Property;
   current: LeaseSummary | null;
   onNew: () => void;
   onOpen: (id: string) => void;
-  onChat: (id: string) => void;
 }) {
   if (current) {
     return (
@@ -855,17 +871,10 @@ function LeaseBlock({
         </div>
         <p className="row-title">{rentText(current.rent_amount)}</p>
         <p className="hint small">{t("ls_period", { from: formatDate(current.start_date), to: formatDate(current.end_date) })}</p>
-        <div className="buttons">
-          <button className="button" onClick={() => onOpen(current.id)}>
-            <Icon name="key" size={20} />
-            {t("prp_card_lease_open")}
-          </button>
-          <button className="button secondary" onClick={() => onChat(current.id)}>
-            <Icon name="send" size={20} />
-            {t("prp_card_lease_chat")}
-            {current.unread > 0 && <span className="count">{current.unread}</span>}
-          </button>
-        </div>
+        <button className="button" onClick={() => onOpen(current.id)}>
+          <Icon name="key" size={20} />
+          {t("prp_card_lease_open")}
+        </button>
       </section>
     );
   }

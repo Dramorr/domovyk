@@ -254,6 +254,31 @@ export type PageTab = {
   active?: boolean;
 };
 
+/** Вкладка сторінки, яку пам'ятаємо в межах сесії: повернулись із чату — та сама вкладка. */
+export function useStoredTab<T extends string>(key: string, allowed: readonly T[], fallback: T): [T, (next: T) => void] {
+  const [tab, setTab] = useState<T>(() => {
+    try {
+      const v = sessionStorage.getItem(key);
+      return allowed.includes(v as T) ? (v as T) : fallback;
+    } catch {
+      return fallback;
+    }
+  });
+  const go = useCallback(
+    (next: T) => {
+      try {
+        sessionStorage.setItem(key, next);
+      } catch {
+        // Немає сховища — просто не пам'ятаємо.
+      }
+      setTab(next);
+      window.scrollTo({ top: 0 });
+    },
+    [key],
+  );
+  return [tab, go];
+}
+
 /** Нижня панель розділів сторінки: лише локальні посилання (умови, люди, чат…).
  *  Глобальні розділи — у меню (ADR 0015). Немає розділів — немає й панелі. */
 function PageTabs({ tabs }: { tabs: PageTab[] }) {

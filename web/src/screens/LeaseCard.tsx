@@ -8,7 +8,7 @@ import { api, type ContractState, type Invite, type Lease, type Photo } from "..
 import { t, type TextKey } from "../i18n";
 import { Icon, type IconName } from "../icons";
 import { confirm, type WebApp } from "../telegram";
-import { Avatar, Divider, errorText, formatDate, MascotTip, Screen, type PageTab } from "../ui";
+import { Avatar, Divider, errorText, formatDate, MascotTip, Screen, useStoredTab, type PageTab } from "../ui";
 import { agreementSides, AgreementSheet } from "./AgreementBar";
 import { ContractBlock } from "./Contract";
 import { leaseAddress, LeaseStatusChip, TerminationBlock, termsLines } from "./Leases";
@@ -23,25 +23,7 @@ function money(n: number): string {
 
 // ------------------------------------------------------------ вкладки
 
-type Tab = "overview" | "terms" | "people";
-
-/** Вкладку пам'ятаємо в межах сесії: повернулись із чату — та сама вкладка. */
-function readTab(id: string): Tab {
-  try {
-    const v = sessionStorage.getItem(`lease-tab:${id}`);
-    return v === "terms" || v === "people" ? v : "overview";
-  } catch {
-    return "overview";
-  }
-}
-
-function writeTab(id: string, tab: Tab): void {
-  try {
-    sessionStorage.setItem(`lease-tab:${id}`, tab);
-  } catch {
-    // Немає сховища — просто не пам'ятаємо.
-  }
-}
+const TABS = ["overview", "terms", "people"] as const;
 
 // ------------------------------------------------------------ шлях до заселення
 
@@ -174,17 +156,11 @@ export function LeaseCard({
   const [l, setL] = useState<Lease | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [contract, setContract] = useState<ContractState | null>(null);
-  const [tab, setTabRaw] = useState<Tab>(() => readTab(id));
+  const [tab, setTab] = useStoredTab(`lease-tab:${id}`, TABS, "overview");
   const [sheet, setSheet] = useState(false);
   const [changes, setChanges] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const setTab = (next: Tab) => {
-    writeTab(id, next);
-    setTabRaw(next);
-    window.scrollTo({ top: 0 });
-  };
 
   useEffect(() => {
     api.lease(id).then(setL).catch((e: unknown) => setError(errorText(e)));
