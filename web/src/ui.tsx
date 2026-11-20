@@ -10,7 +10,7 @@ export const BRAND = `${import.meta.env.BASE_URL}../brand/`;
 
 type Art = "mascot" | "mascot-lantern" | "logo-mark" | "app-icon";
 
-/** Маскот і логотип у кольорах режиму: у власника Домовик жовтий, як і весь інтерфейс. */
+/** Маскот і логотип у кольорах режиму: у власника Домовик синій, як і весь інтерфейс. */
 export function useArt(): (name: Art) => string {
   const nav = useContext(NavContext);
   const landlord = nav?.mode === "landlord";

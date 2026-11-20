@@ -77,7 +77,8 @@ def make_renderer(base_url: str) -> Renderer:
                         reason=escape(str(p.get("reason") or "")),
                         date=escape(str(p.get("date") or "")),
                     ),
-                    lease_button(p, uk.BTN_OPEN_LEASE, "lease"),
+                    # gone — оренду вже прибрано зі списків: відкривати нічого.
+                    [] if p.get("gone") else lease_button(p, uk.BTN_OPEN_LEASE, "lease"),
                 )
             case NotificationType.PAYMENT:
                 event = str(p.get("event") or "")

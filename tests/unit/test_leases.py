@@ -248,10 +248,15 @@ async def test_responsible_declines_before_signing(env: tuple[Services, FakeDb])
     lease_id = await _joined(s, db)
     await s.leases.accept_terms(TENANT, lease_id)
     await s.leases.decline(TENANT, lease_id)
-    lease = await s.leases.get(OWNER, lease_id)
-    assert lease.status is LeaseStatus.AWAITING_TENANT
-    assert [m.role for m in lease.members] == ["landlord"]
-    await s.leases.new_invite(OWNER, lease_id, MemberRole.RESPONSIBLE)  # слот вільний
+    # Оренда скасована й зникла в усіх: у власника вона більше не «висить».
+    for tg in (OWNER, TENANT):
+        assert lease_id not in [x.id for x in await s.leases.list_mine(tg)]
+    owner = await s.users.find_by_telegram(OWNER)
+    assert owner is not None
+    assert any(
+        n.payload.get("event") == "terms_declined" and n.user_id == owner.id
+        for n in db.prop.notifications
+    )
 
 
 async def test_chat_and_notifications(env: tuple[Services, FakeDb]) -> None:

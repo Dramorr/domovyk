@@ -287,6 +287,8 @@ class ListingsService:
         profile_ok = bool(completeness and completeness.publishable)
         verified = prop.ownership_status is OwnershipStatus.VERIFIED
         busy = bool(await self._leases.busy_unit_ids(_unit_ids(prop)))
+        today = to_kyiv(self._clock.now()).date()
+        free_from = await self._leases.free_from(_unit_ids(prop))
         photos = len(await self._properties.photos_of(prop.id))
         return ListingState(
             property_id=prop.id,
@@ -300,6 +302,7 @@ class ListingsService:
                 unit_busy=busy,
                 ready=verified and profile_ok and not busy,
             ),
+            suggested_available_from=max(today, free_from) if free_from else today,
         )
 
     async def _check_risks(self, user: UserOut, prop: PropertyOut, listing_id: uuid.UUID) -> None:

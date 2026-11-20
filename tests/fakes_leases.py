@@ -134,6 +134,14 @@ class FakeLeasesRepository:
             if lease.unit_id in unit_ids and lease.status in OPEN_STATUSES
         }
 
+    async def open_until(self, unit_ids: list[uuid.UUID]) -> date | None:
+        days = [
+            lease.termination_date or lease.end_date
+            for lease in self.db.leases.values()
+            if lease.unit_id in unit_ids and lease.status in OPEN_STATUSES
+        ]
+        return max(days, default=None)
+
     async def statuses_on_units(
         self, unit_ids: list[uuid.UUID]
     ) -> list[tuple[uuid.UUID, LeaseStatus]]:

@@ -2844,12 +2844,18 @@
           },
           "readiness": {
             "$ref": "#/components/schemas/ListingReadiness"
+          },
+          "suggested_available_from": {
+            "format": "date",
+            "title": "Suggested Available From",
+            "type": "string"
           }
         },
         "required": [
           "property_id",
           "listing",
-          "readiness"
+          "readiness",
+          "suggested_available_from"
         ],
         "title": "ListingState",
         "type": "object"

@@ -2780,17 +2780,17 @@ label.file-button {
     --on-brand 450ms ease;
 }
 
-/* ---- Свій акцент для кожного режиму: орендар — зелений (бренд), власник — жовтий ---- */
+/* ---- Свій акцент для кожного режиму: орендар — зелений (бренд), власник — синій ---- */
 :root[data-mode="landlord"] {
-  /* Власник — м'який медовий: приглушений, не «кислотний». Заливки жовті, текст на них
-     темний, написи — вохра. */
-  --brand: #e2b45a;
-  --brand-700: #c99a40;
-  --brand-500: #ecc87e;
-  --brand-100: #f5e7c6;
-  --brand-50: #fbf5e7;
-  --brand-ink: #7b5a1e;
-  --on-brand: #3a2a0c;
+  /* Власник — м'який синій, приглушений. Білий текст на заливці (контраст 5,3:1),
+     написи — темніший синій. */
+  --brand: #3f6f9a;
+  --brand-700: #2f5878;
+  --brand-500: #6a96be;
+  --brand-100: #dce8f3;
+  --brand-50: #eef4fa;
+  --brand-ink: #2f5878;
+  --on-brand: #ffffff;
 }
 
 /* Кнопка меню — більша ціль для пальця. */
@@ -3166,8 +3166,8 @@ button.info-row {
 }
 
 .mode-row.landlord .row-icon {
-  background: #f5e7c6;
-  color: #8b6522;
+  background: #dce8f3;
+  color: #2f5878;
 }
 
 .mode-peek {
@@ -3197,7 +3197,7 @@ button.info-row {
 .mode-row.landlord:hover,
 .mode-row.landlord:focus-visible,
 .mode-row.landlord.picked {
-  border-color: #e2b45a;
+  border-color: #3f6f9a;
 }
 
 @media (prefers-reduced-motion: reduce) {

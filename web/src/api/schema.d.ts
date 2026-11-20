@@ -2990,6 +2990,11 @@ export interface components {
              */
             property_id: string;
             readiness: components["schemas"]["ListingReadiness"];
+            /**
+             * Suggested Available From
+             * Format: date
+             */
+            suggested_available_from: string;
         };
         /**
          * ListingStatus

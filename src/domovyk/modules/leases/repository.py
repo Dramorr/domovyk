@@ -99,6 +99,7 @@ class LeasesRepository(Protocol):
     async def due_to_finish(self, today: date) -> list[uuid.UUID]: ...
     async def ids_with_status(self, statuses: list[LeaseStatus]) -> list[uuid.UUID]: ...
     async def open_unit_ids(self, unit_ids: list[uuid.UUID]) -> set[uuid.UUID]: ...
+    async def open_until(self, unit_ids: list[uuid.UUID]) -> date | None: ...
     async def statuses_on_units(
         self, unit_ids: list[uuid.UUID]
     ) -> list[tuple[uuid.UUID, LeaseStatus]]: ...
@@ -267,6 +268,17 @@ class SqlLeasesRepository:
             )
         )
         return set(rows)
+
+    async def open_until(self, unit_ids: list[uuid.UUID]) -> date | None:
+        """Останній день живих оренд на юнітах (дата розірвання, якщо її задано)."""
+        if not unit_ids:
+            return None
+        last = func.coalesce(LeaseRow.termination_date, LeaseRow.end_date)
+        return await self._s.scalar(
+            select(func.max(last)).where(
+                LeaseRow.unit_id.in_(unit_ids), LeaseRow.status.in_(list(OPEN_STATUSES))
+            )
+        )
 
     async def statuses_on_units(
         self, unit_ids: list[uuid.UUID]

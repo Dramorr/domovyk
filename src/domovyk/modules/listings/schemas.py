@@ -62,3 +62,5 @@ class ListingState(BaseModel):
     property_id: uuid.UUID
     listing: ListingOut | None
     readiness: ListingReadiness
+    # Підказка для «Вільна з» у новому оголошенні: сьогодні або день після кінця оренди.
+    suggested_available_from: date

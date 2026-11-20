@@ -182,6 +182,12 @@ class LeasesService:
         async with self._tx.begin() as tx:
             return await self._repo(tx).open_unit_ids(unit_ids)
 
+    async def free_from(self, unit_ids: list[uuid.UUID]) -> date | None:
+        """Перший вільний день після живих оренд на юнітах; None — юніти вже вільні."""
+        async with self._tx.begin() as tx:
+            last = await self._repo(tx).open_until(unit_ids)
+        return last + timedelta(days=1) if last else None
+
     def set_opened_hook(self, hook: Callable[[list[uuid.UUID]], Awaitable[None]]) -> None:
         """Оголошення на об'єкті стає «здано», щойно на нього створено оренду (FR-LST-3)."""
         self._opened_hook = hook
@@ -835,23 +841,34 @@ class LeasesService:
             if ctx.my_role == "responsible" and ctx.lease.status not in EDITABLE_STATUSES:
                 # Після активації відповідальний не виходить, а завершує оренду (FR-LSE-7).
                 raise Conflict("Відповідальний завершує оренду, а не виходить", field="status")
-            await repo.mark_left(lease_id, user.id, now)
-            if ctx.my_role == "responsible" and ctx.lease.status is LeaseStatus.AWAITING_SIGNATURES:
-                await repo.update(
-                    lease_id,
-                    status=LEASE.transition(ctx.lease.status, LeaseStatus.AWAITING_TENANT),
-                    terms_accepted_at=None,
-                )
             conversation = await self._chat.ensure_for_lease(tx, lease_id)
-            code = (
-                SystemCode.TERMS_DECLINED
-                if ctx.my_role == "responsible"
-                else SystemCode.MEMBER_LEFT
-            )
-            await self._chat.system(tx, conversation, code, {"name": user.display_name})
+            name: dict[str, object] = {"name": user.display_name}
+            if ctx.my_role != "responsible":
+                await repo.mark_left(lease_id, user.id, now)
+                await self._chat.system(tx, conversation, SystemCode.MEMBER_LEFT, name)
+                await self._notify_lease(
+                    tx, ctx.lease, [ctx.lease.landlord_user_id], "member_left", name
+                )
+                return
+            # Відповідальний відмовився до активації: оренда без нього не має сенсу.
+            # Скасовуємо її й прибираємо зі списків усіх учасників — у власника вона
+            # не «висить»; файли й чат зітре purge_cancelled.
+            status = LEASE.transition(ctx.lease.status, LeaseStatus.CANCELLED)
+            await repo.update(lease_id, status=status, cancelled_at=now)
+            await repo.revoke_invites(lease_id, None, now)
+            await self._chat.system(tx, conversation, SystemCode.TERMS_DECLINED, name)
             await self._notify_lease(
-                tx, ctx.lease, [ctx.lease.landlord_user_id], code.value, {"name": user.display_name}
+                tx,
+                ctx.lease,
+                [ctx.lease.landlord_user_id],
+                "terms_declined",
+                {**name, "gone": True},
             )
+            co_tenants = [m.user_id for m in _active(ctx.members) if m.user_id != user.id]
+            await self._notify_lease(tx, ctx.lease, co_tenants, "lease_cancelled", {"gone": True})
+            for uid in {ctx.lease.landlord_user_id, *(m.user_id for m in ctx.members)}:
+                await repo.hide(lease_id, uid, now)
+        await self.purge_cancelled()
 
     # ------------------------------------------------- розірвання (FR-LSE-7)
 

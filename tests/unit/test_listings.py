@@ -131,6 +131,7 @@ async def test_save_creates_draft_and_updates_it(env: tuple[Services, FakeDb]) -
     empty = await s.listings.state(OWNER, pid)
     assert empty.listing is None
     assert not empty.readiness.ready and not empty.readiness.ownership_verified
+    assert empty.suggested_available_from == date(2026, 11, 16)  # вільна — з сьогодні (clock)
 
     first = await s.listings.save(OWNER, pid, TERMS)
     assert first.listing is not None and first.listing.status is ListingStatus.DRAFT
@@ -220,6 +221,9 @@ async def test_lease_marks_rented_and_blocks_publish(env: tuple[Services, FakeDb
     state = await s.listings.state(OWNER, pid)
     assert state.listing is not None and state.listing.status is ListingStatus.RENTED
     assert state.listing.closed_at is not None and state.readiness.unit_busy
+    # Здана на 11 місяців з 1 грудня: вільна — з наступного дня після кінця оренди.
+    lease = (await s.leases.list_mine(OWNER))[0]
+    assert state.suggested_available_from == lease.end_date + timedelta(days=1)
     await s.listings.save(OWNER, pid, TERMS)
     with pytest.raises(UnitBusy):
         await s.listings.publish(OWNER, pid, YES)

@@ -38,13 +38,16 @@ export function ListingChip({ status }: { status: ListingStatus }) {
 
 type Form = { price: string; deposit: string; utilities: boolean; term: string; from: string };
 
-function toForm(l: Listing | null): Form {
+/** «Вільна з»: у живого оголошення — його дата; у нового — підказка бекенду
+ *  (сьогодні або день після кінця оренди). */
+function toForm(l: Listing | null, suggestedFrom = ""): Form {
+  const live = l !== null && LIVE.includes(l.status);
   return {
     price: l ? String(l.price_amount) : "",
     deposit: l?.deposit_amount != null ? String(l.deposit_amount) : "",
     utilities: l?.utilities_included ?? false,
     term: l?.min_term_months != null ? String(l.min_term_months) : "",
-    from: l?.available_from ?? "",
+    from: (live && l.available_from) || suggestedFrom,
   };
 }
 
@@ -105,7 +108,7 @@ export function ListingScreen({
 
   function apply(s: ListingState) {
     setState(s);
-    setForm(toForm(s.listing));
+    setForm(toForm(s.listing, s.suggested_available_from));
   }
 
   useEffect(() => {
