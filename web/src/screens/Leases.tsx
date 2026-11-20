@@ -1129,24 +1129,9 @@ export function LeaseCard({
                 <Icon name="check" size={20} />
                 {t("ls_accept_terms")}
               </button>
-              <div className="buttons">
-                <button className="button secondary" onClick={() => onPropose(l)}>
-                  {t("ls_propose_changes")}
-                </button>
-                <button
-                  className="button ghost"
-                  disabled={busy}
-                  onClick={async () => {
-                    if (!(await confirm(webApp, t("ls_decline_confirm")))) return;
-                    await run(async () => {
-                      await api.leaveLease(l.id);
-                      onBack();
-                    });
-                  }}
-                >
-                  {t("ls_decline")}
-                </button>
-              </div>
+              <button className="button secondary" onClick={() => onPropose(l)}>
+                {t("ls_propose_changes")}
+              </button>
             </>
           ) : (
             <>
@@ -1334,6 +1319,24 @@ export function LeaseCard({
         </button>
         </>
       )}
+      {iAmResponsible && ["awaiting_tenant", "awaiting_signatures"].includes(l.status) && (
+        <>
+          <Divider />
+          <button
+            className="link danger"
+            disabled={busy}
+            onClick={async () => {
+              if (!(await confirm(webApp, t("ls_decline_confirm")))) return;
+              await run(async () => {
+                await api.leaveLease(l.id);
+                onBack();
+              });
+            }}
+          >
+            {t("ls_decline")}
+          </button>
+        </>
+      )}
       {["active", "ending", "ended"].includes(l.status) && (
         <PaymentsBlock
           leaseId={l.id}
@@ -1356,7 +1359,7 @@ export function LeaseCard({
           <AgreementBar lease={l} contract={contract} onOpen={() => setSheet(true)} />
         </>
       )}
-      {sheet && <AgreementSheet lease={l} contract={contract} termsLines={termsLines} onClose={() => setSheet(false)} />}
+      {sheet && <AgreementSheet lease={l} contract={contract} termsLines={termsLines} webApp={webApp} onClose={() => setSheet(false)} />}
       {(l.status === "cancelled" || l.status === "ended" || (l.my_role === "co_tenant" && open)) && <Divider />}
       {(l.status === "cancelled" || l.status === "ended") && (
         <button

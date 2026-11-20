@@ -42,6 +42,8 @@ class Settings(BaseSettings):
     )
     # Скільки секунд initData вважається свіжим (FR-TMA-2).
     init_data_max_age_seconds: int = 24 * 60 * 60
+    # Скільки секунд живе посилання на завантаження файлу (Telegram.WebApp.downloadFile).
+    download_link_ttl_seconds: int = Field(default=300, ge=30, le=3600)
 
     # Перші адміністратори (Telegram ID через кому) — отримують роль admin при реєстрації.
     admin_telegram_ids: Annotated[list[int], NoDecode] = Field(default_factory=list)

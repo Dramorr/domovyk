@@ -44,6 +44,7 @@ from domovyk.core.errors import (
 from domovyk.domain.contracts import EXTERNAL_PDF_MAX_BYTES, SIGNATURE_MAX_BYTES
 from domovyk.domain.leases import MemberRole
 from domovyk.domain.payments import RECEIPT_MAX_BYTES
+from domovyk.interfaces.api.download_links import DownloadLinks
 from domovyk.interfaces.api.telegram_auth import (
     InitDataError,
     TelegramAuth,
@@ -195,6 +196,13 @@ class SentOut(BaseModel):
     sent: int
 
 
+class DownloadLinkOut(BaseModel):
+    """Шлях відносно адреси API (без авторизації, живе кілька хвилин) та ім'я файлу."""
+
+    path: str
+    file_name: str
+
+
 class LeaseCreatedOut(BaseModel):
     lease: LeaseOut
     invite: InviteOut
@@ -226,6 +234,7 @@ def create_app(
     bot_token = settings.telegram_bot_token.get_secret_value()
     max_age = timedelta(seconds=settings.init_data_max_age_seconds)
     upload_limit = settings.ownership_doc_max_mb * 1024 * 1024
+    links = DownloadLinks(bot_token, settings.download_link_ttl_seconds)
 
     container: Container | None = None
     if services is None:
@@ -982,6 +991,24 @@ def create_app(
     @app.post("/api/v1/contracts/{contract_id}/send")
     async def contract_send(auth: Auth, contract_id: uuid.UUID, body: SendFilesIn) -> SentOut:
         return SentOut(sent=await svc.contracts.send_to_chat(auth.user.id, contract_id, body.what))
+
+    @app.post("/api/v1/contracts/{contract_id}/download-link")
+    async def contract_download_link(
+        auth: Auth, contract_id: uuid.UUID, body: SendFilesIn
+    ) -> DownloadLinkOut:
+        name = await svc.contracts.file_name(auth.user.id, contract_id, body.what)
+        token = links.issue(contract_id, body.what, clock.now())
+        return DownloadLinkOut(path=f"/api/v1/files/contract/{token}", file_name=name)
+
+    @app.get("/api/v1/files/contract/{token}")
+    async def contract_file_by_link(token: str) -> Response:
+        grant = links.read(token, clock.now())
+        if grant is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="expired")
+        name, data = await svc.contracts.file_by_link(grant.contract_id, grant.what)
+        return _file(
+            data, name, "application/zip" if grant.what == "package" else "application/pdf"
+        )
 
     @app.get("/api/v1/contracts/{contract_id}/pdf")
     async def contract_pdf(auth: Auth, contract_id: uuid.UUID) -> Response:

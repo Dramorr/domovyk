@@ -320,6 +320,11 @@ export const api = {
     request<ContractState>("POST", `${c(contractId)}/external-decision`, { accept }),
   sendContract: (contractId: string, what: "pdf" | "package") =>
     request<S["SentOut"]>("POST", `${c(contractId)}/send`, { what }),
+  /** Посилання для Telegram.WebApp.downloadFile: без авторизації, живе кілька хвилин. */
+  contractDownloadLink: async (contractId: string, what: "pdf" | "package") => {
+    const r = await request<S["DownloadLinkOut"]>("POST", `${c(contractId)}/download-link`, { what });
+    return { url: API_URL + r.path, fileName: r.file_name };
+  },
   signatureQueue: () => request<SignatureCase[]>("GET", "/api/v1/moderation/signatures"),
   signatureCase: (id: string) => request<SignatureCase>("GET", `/api/v1/moderation/signatures/${encodeURIComponent(id)}`),
   sendSignatureFiles: (id: string) =>

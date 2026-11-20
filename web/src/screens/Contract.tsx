@@ -7,7 +7,7 @@ import { api, ApiFailure, type ContractParty, type ContractState } from "../api/
 import { botLink } from "../config";
 import { t, type TextKey } from "../i18n";
 import { Icon } from "../icons";
-import { openLink, type WebApp, confirm } from "../telegram";
+import { downloadFile, openLink, type WebApp, confirm } from "../telegram";
 import { errorCode, errorText, formatDate, MascotTip } from "../ui";
 
 const k = (key: string) => t(key as TextKey);
@@ -32,6 +32,15 @@ function contractError(e: unknown): string {
     if (errorCode(e) === "invalid_input" && e.field === "full_name") return t("ct_err_name");
   }
   return errorText(e);
+}
+
+/** Завантажити договір на пристрій; старий Telegram без downloadFile — шлемо файл у чат.
+ *  Повертає підказку для користувача або null, якщо Telegram показав своє вікно збереження. */
+export async function downloadContract(webApp: WebApp | null, contractId: string, what: "pdf" | "package"): Promise<string | null> {
+  const link = await api.contractDownloadLink(contractId, what);
+  if (downloadFile(webApp, link.url, link.fileName)) return null;
+  await api.sendContract(contractId, what);
+  return t(what === "package" ? "ct_sent_package" : "ct_download_fallback");
 }
 
 function SignatureLine({ party }: { party: ContractParty }) {
@@ -160,8 +169,12 @@ export function ContractBlock({
     await run(() => api.uploadExternal(leaseId, blob, file.name || "dogovir.pdf"));
   }
 
-  const sendPdf = () =>
-    c && run(async () => void (await api.sendContract(c.id, "pdf")), t("ct_sent_pdf"));
+  const download = (what: "pdf" | "package") =>
+    c &&
+    run(async () => {
+      const note = await downloadContract(webApp, c.id, what);
+      if (note) setNote(note);
+    });
 
   // ------------------------------------------------------ підписано
   if (signed && c) {
@@ -173,10 +186,10 @@ export function ContractBlock({
         <button
           className="button secondary"
           disabled={busy}
-          onClick={() => run(async () => void (await api.sendContract(c.id, generated ? "package" : "pdf")), t("ct_sent_package"))}
+          onClick={() => download(generated ? "package" : "pdf")}
         >
           <Icon name="doc" size={20} />
-          {generated ? t("ct_send_package") : t("ct_send_pdf")}
+          {generated ? t("ct_download_package") : t("ct_download_pdf")}
         </button>
         {note && <p className="hint small">{note}</p>}
         {error && <p className="error">{error}</p>}
@@ -196,9 +209,9 @@ export function ContractBlock({
             <MascotTip tone="calm">
               <p>{t("ct_ext_confirm_tip")}</p>
             </MascotTip>
-            <button className="button secondary" disabled={busy} onClick={sendPdf}>
+            <button className="button secondary" disabled={busy} onClick={() => download("pdf")}>
               <Icon name="doc" size={20} />
-              {t("ct_send_pdf")}
+              {t("ct_download_pdf")}
             </button>
             <button className="button" disabled={busy} onClick={() => run(() => api.decideExternal(c.id, true))}>
               <Icon name="check" size={20} />
@@ -309,9 +322,9 @@ export function ContractBlock({
           )}
           {s.can_sign && (
             <>
-              <button className="button secondary" disabled={busy} onClick={sendPdf}>
+              <button className="button secondary" disabled={busy} onClick={() => download("pdf")}>
                 <Icon name="doc" size={20} />
-                {t("ct_send_pdf")}
+                {t("ct_download_pdf")}
               </button>
               <button className="button secondary" onClick={() => openLink(webApp, s.diia_sign_url)}>
                 {t("ct_open_diia")}

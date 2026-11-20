@@ -1447,6 +1447,25 @@
         "title": "DocumentOut",
         "type": "object"
       },
+      "DownloadLinkOut": {
+        "description": "Шлях відносно адреси API (без авторизації, живе кілька хвилин) та ім'я файлу.",
+        "properties": {
+          "file_name": {
+            "title": "File Name",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "file_name"
+        ],
+        "title": "DownloadLinkOut",
+        "type": "object"
+      },
       "ExternalDecisionIn": {
         "properties": {
           "accept": {
@@ -8756,6 +8775,72 @@
         "summary": "List Cities"
       }
     },
+    "/api/v1/contracts/{contract_id}/download-link": {
+      "post": {
+        "operationId": "contract_download_link_api_v1_contracts__contract_id__download_link_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contract_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Contract Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendFilesIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DownloadLinkOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Contract Download Link"
+      }
+    },
     "/api/v1/contracts/{contract_id}/external-decision": {
       "post": {
         "operationId": "contract_external_decision_api_v1_contracts__contract_id__external_decision_post",
@@ -9206,6 +9291,43 @@
           }
         },
         "summary": "Add Favorite"
+      }
+    },
+    "/api/v1/files/contract/{token}": {
+      "get": {
+        "operationId": "contract_file_by_link_api_v1_files_contract__token__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Contract File By Link"
       }
     },
     "/api/v1/invites/{token}": {

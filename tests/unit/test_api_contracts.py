@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+import uuid
+from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
@@ -11,6 +12,7 @@ from domovyk.config import Settings
 from domovyk.core.clock import FixedClock
 from domovyk.domain.properties import OwnershipStatus
 from domovyk.interfaces.api.app import create_app
+from domovyk.interfaces.api.download_links import DownloadLinks
 from tests.conftest import make_init_data
 from tests.fakes import ADMIN_TG, PRIVACY_V, TERMS_V, FakeDb, make_fake_services
 from tests.signing_fixtures import cades
@@ -80,6 +82,22 @@ async def test_contract_flow(client: httpx.AsyncClient, db: FakeDb, now: datetim
     r = await client.get(f"/api/v1/contracts/{contract_id}/pdf", headers=tenant)
     assert r.status_code == 200 and r.headers["content-type"] == "application/pdf"
     pdf = r.content
+
+    # Завантаження за посиланням (Telegram.WebApp.downloadFile): без авторизації, лише учасникам.
+    r = await client.post(
+        f"/api/v1/contracts/{contract_id}/download-link", json={"what": "pdf"}, headers=tenant
+    )
+    link = r.json()
+    assert r.status_code == 200 and link["file_name"].endswith(".pdf")
+    r = await client.get(link["path"])
+    assert r.status_code == 200 and r.content == pdf
+    assert r.headers["content-disposition"].startswith("attachment")
+    forged = link["path"][:-1] + ("1" if link["path"][-1] == "0" else "0")
+    assert (await client.get(forged)).status_code == 404
+    r = await client.post(
+        f"/api/v1/contracts/{contract_id}/download-link", json={"what": "pdf"}, headers=admin
+    )
+    assert r.status_code in (403, 404)
     r = await client.post(
         f"/api/v1/contracts/{contract_id}/signature",
         files={"file": ("x.p7s", b"garbage", "application/octet-stream")},
@@ -113,6 +131,18 @@ async def test_contract_flow(client: httpx.AsyncClient, db: FakeDb, now: datetim
         f"/api/v1/contracts/{contract_id}/send", json={"what": "package"}, headers=owner
     )
     assert r.json()["sent"] == 1
+
+
+def test_download_link_expires() -> None:
+    links = DownloadLinks("123:fake", ttl_seconds=300)
+    cid = uuid.uuid4()
+    at = datetime(2026, 11, 4, 12, 0, tzinfo=UTC)
+    token = links.issue(cid, "package", at)
+    grant = links.read(token, at + timedelta(seconds=299))
+    assert grant is not None and (grant.contract_id, grant.what) == (cid, "package")
+    assert links.read(token, at + timedelta(seconds=301)) is None
+    assert links.read(token.replace("package", "pdf"), at) is None
+    assert DownloadLinks("456:other", ttl_seconds=300).read(token, at) is None
 
 
 async def test_unexpected_error_is_json_with_cors(

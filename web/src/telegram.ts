@@ -14,6 +14,7 @@ interface WebApp {
   setBottomBarColor?(color: string): void;
   requestContact?(cb: (shared: boolean) => void): void;
   showConfirm?(message: string, cb: (ok: boolean) => void): void;
+  downloadFile?(params: { url: string; file_name: string }, cb?: (accepted: boolean) => void): void;
 }
 
 declare global {
@@ -53,6 +54,25 @@ export function confirm(app: WebApp | null, message: string): Promise<boolean> {
 export function openLink(app: WebApp | null, url: string): void {
   if (app) app.openLink(url);
   else window.open(url, "_blank", "noopener");
+}
+
+/** Завантажити файл на пристрій. У Telegram (Bot API 8.0+) — його власне вікно «Зберегти файл»;
+ *  у звичайному браузері — посилання з Content-Disposition: attachment.
+ *  false — старий Telegram без downloadFile: хай викликач пропонує інший шлях (файл у чат). */
+export function downloadFile(app: WebApp | null, url: string, fileName: string): boolean {
+  if (app) {
+    if (!app.downloadFile || !app.isVersionAtLeast("8.0")) return false;
+    app.downloadFile({ url, file_name: fileName });
+    return true;
+  }
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  return true;
 }
 
 /** Відкрити t.me-посилання (бот із deep link) усередині Telegram. */

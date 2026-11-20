@@ -608,6 +608,23 @@ class ContractsService:
         await self._leases.for_contract(telegram_uid, contract.lease_id)
         return _pdf_name(contract), await self._storage.get(contract.pdf_storage_key)
 
+    async def file_name(
+        self, telegram_uid: int, contract_id: uuid.UUID, what: Literal["pdf", "package"]
+    ) -> str:
+        """Ім'я файлу для завантаження — учасникам оренди (перевірка доступу без читання файлу)."""
+        contract = await self._contract(contract_id)
+        await self._leases.for_contract(telegram_uid, contract.lease_id)
+        return _package_name(contract) if what == "package" else _pdf_name(contract)
+
+    async def file_by_link(
+        self, contract_id: uuid.UUID, what: Literal["pdf", "package"]
+    ) -> tuple[str, bytes]:
+        """Файл за підписаним посиланням: доступ уже перевірено, коли посилання видавали."""
+        contract = await self._contract(contract_id)
+        if what == "package":
+            return await self._package(contract)
+        return _pdf_name(contract), await self._storage.get(contract.pdf_storage_key)
+
     async def preview(self, telegram_uid: int, lease_id: uuid.UUID) -> tuple[str, bytes, bool]:
         """PDF для перегляду в застосунку: той самий файл, що підписують, або чернетка.
 
@@ -645,6 +662,9 @@ class ContractsService:
         """FR-CTR-7: PDF + файли підписів одним zip."""
         contract = await self._contract(contract_id)
         await self._leases.for_contract(telegram_uid, contract.lease_id)
+        return await self._package(contract)
+
+    async def _package(self, contract: ContractRecord) -> tuple[str, bytes]:
         async with self._tx.begin() as tx:
             sigs = await self._repo(tx).signatures(contract.id)
         buffer = io.BytesIO()
@@ -657,7 +677,7 @@ class ContractsService:
                 ext = ".asice" if s.signature_filename.lower().endswith(".asice") else ".p7s"
                 data = await self._storage.get(s.signature_storage_key)
                 archive.writestr(f"{prefix}-signature{ext}", data)
-        return f"dogovir-{contract.data_snapshot.get('number', contract.id)}.zip", buffer.getvalue()
+        return _package_name(contract), buffer.getvalue()
 
     async def send_to_chat(
         self, telegram_uid: int, contract_id: uuid.UUID, what: Literal["pdf", "package"]
@@ -995,6 +1015,10 @@ def _contract_out(c: ContractRecord) -> ContractOut:
         created_at=c.created_at,
         signed_at=c.signed_at,
     )
+
+
+def _package_name(c: ContractRecord) -> str:
+    return f"dogovir-{c.data_snapshot.get('number', c.id)}.zip"
 
 
 def _pdf_name(c: ContractRecord) -> str:

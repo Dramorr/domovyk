@@ -6,7 +6,9 @@ import { useEffect, useState } from "react";
 import { api, type ContractState, type Lease } from "../api/client";
 import { t, type TextKey } from "../i18n";
 import { Icon } from "../icons";
+import type { WebApp } from "../telegram";
 import { errorText, formatDate, Sheet } from "../ui";
+import { downloadContract } from "./Contract";
 import { PdfViewer } from "./PdfViewer";
 
 const k = (key: string) => t(key as TextKey);
@@ -105,11 +107,13 @@ export function AgreementSheet({
   lease,
   contract,
   termsLines,
+  webApp,
   onClose,
 }: {
   lease: Lease;
   contract: ContractState | null;
   termsLines: (terms: Lease["terms"]) => string[];
+  webApp: WebApp | null;
   onClose: () => void;
 }) {
   const [note, setNote] = useState<string | null>(null);
@@ -185,9 +189,9 @@ export function AgreementSheet({
             disabled={busy}
             onClick={async () => {
               setBusy(true);
+              setNote(null);
               try {
-                await api.sendContract(c.id, c.status === "signed" && c.source === "generated" ? "package" : "pdf");
-                setNote(t("ct_sent_pdf"));
+                setNote(await downloadContract(webApp, c.id, c.status === "signed" && c.source === "generated" ? "package" : "pdf"));
               } catch {
                 setNote(t("ct_err_unavailable"));
               } finally {
@@ -196,7 +200,7 @@ export function AgreementSheet({
             }}
           >
             <Icon name="doc" size={20} />
-            {t("ab_save_to_chat")}
+            {c.status === "signed" && c.source === "generated" ? t("ct_download_package") : t("ct_download_pdf")}
           </button>
         )}
         {note && <p className="hint small">{note}</p>}
