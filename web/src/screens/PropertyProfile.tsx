@@ -175,11 +175,69 @@ function sameValue(a: unknown, b: unknown): boolean {
   return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 }
 
-export function PropertyProfile({ id, webApp, onBack }: { id: string; webApp: WebApp | null; onBack: () => void }) {
+/** Анкета у вкладці «Квартира» (ADR 0023): заповненість, фото й розділи. Тап — одразу форма розділу. */
+export function ProfileSummary({ p, photos, onOpen }: { p: Property; photos: Photo[] | null; onOpen: (section: string) => void }) {
+  const values = (p.details ?? {}) as Values;
+  const missing = p.completeness?.missing_important ?? [];
+  return (
+    <>
+      <section className="card">
+        <h2>{t("pf_title")}</h2>
+        <CompletenessBar p={p} />
+        <PublishHint p={p} />
+      </section>
+      <ListRow
+        title={t("ph_title")}
+        sub={
+          photos && photos.length ? (
+            <span>{t("ph_count", { n: String(photos.length), max: String(PHOTO_MAX) })}</span>
+          ) : (
+            <Chip tone="warn">{t("ph_none")}</Chip>
+          )
+        }
+        icon={photos && photos.length ? undefined : "plus"}
+        onClick={() => onOpen("photos")}
+      />
+      {PROFILE_SECTIONS.map((s) => {
+        const done = s.fields.filter((f) => answered(values[f.key])).length;
+        const lacking = s.fields.filter((f) => missing.includes(f.key) && !answered(values[f.key])).length;
+        return (
+          <ListRow
+            key={s.key}
+            title={label(`pf_section_${s.key}`)}
+            sub={
+              <>
+                <span>{t("pf_section_progress", { n: String(done), total: String(s.fields.length) })}</span>
+                {lacking > 0 && <Chip tone="warn">{t("pf_section_important", { n: String(lacking) })}</Chip>}
+              </>
+            }
+            right={<Ring percent={Math.round((100 * done) / s.fields.length)} size={40} />}
+            onClick={() => onOpen(s.key)}
+          />
+        );
+      })}
+    </>
+  );
+}
+
+export function PropertyProfile({
+  id,
+  webApp,
+  onBack,
+  section: only,
+}: {
+  id: string;
+  webApp: WebApp | null;
+  onBack: () => void;
+  /** Відкрити одразу цей розділ (з вкладки «Квартира»); «Назад» і «Зберегти» повертають на квартиру. */
+  section?: string;
+}) {
   const [prop, setProp] = useState<Property | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [values, setValues] = useState<Values>({});
-  const [open, setOpen] = useState<string | null>(null); // відкритий розділ
+  const [open, setOpenRaw] = useState<string | null>(only ?? null); // відкритий розділ
+  // Розділ відкрито з вкладки «Квартира» — закриття повертає туди, а не на список розділів.
+  const setOpen = (next: string | null) => (next === null && only ? onBack() : setOpenRaw(next));
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);

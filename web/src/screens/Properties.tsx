@@ -43,7 +43,7 @@ import { LeaseBody, type LeaseSection } from "./LeaseCard";
 import { ListingChip, ListingScreen } from "./Listing";
 import { NowCard, type NowTarget } from "./NowCard";
 import { PageHead } from "./PageHead";
-import { CompletenessBar, PublishHint } from "./PropertyProfile";
+import { ProfileSummary } from "./PropertyProfile";
 import { ShowingsBlock } from "./Showings";
 import { Stepper, type Step } from "./Stepper";
 
@@ -608,6 +608,7 @@ export function PropertyCard({
   onBack,
   onOwnership,
   onProfile,
+  onProfileSection,
   onNewLease,
   onOpenLease,
   onChat,
@@ -624,6 +625,8 @@ export function PropertyCard({
   onBack: () => void;
   onOwnership: () => void;
   onProfile: () => void;
+  /** Розділ анкети чи фото — одразу форма, без проміжного екрана анкети. */
+  onProfileSection: (section: string) => void;
   onNewLease: (prop: Property) => void;
   /** Завершена чи скасована оренда з історії — окрема сторінка лише для читання. */
   onOpenLease: (leaseId: string) => void;
@@ -740,7 +743,7 @@ export function PropertyCard({
 
   const goTarget = (target: NowTarget) => {
     if (target === "ownership") onOwnership();
-    else if (target === "profile") onProfile();
+    else if (target === "profile") setTab("flat");
     else if (target === "listing" && stage === "renting") setTab("listing");
     else if (target === "listing") onListing();
     else if (target === "applications") setTab("applications");
@@ -807,16 +810,6 @@ export function PropertyCard({
   const flat = (
     <>
       <section className="card">
-        <h2>{t("pf_title")}</h2>
-        <CompletenessBar p={prop} />
-        <PublishHint p={prop} />
-        <button className="button secondary" onClick={onProfile}>
-          <Icon name="edit" size={20} />
-          {t("pf_open_plain")}
-        </button>
-      </section>
-
-      <section className="card">
         <h2>{t("prp_details")}</h2>
         {!edit ? (
           <>
@@ -878,7 +871,7 @@ export function PropertyCard({
         )}
       </section>
 
-      {verified && ownership}
+      <ProfileSummary p={prop} photos={photos} onOpen={onProfileSection} />
 
       {history.length > 0 && (
         <section className="card">
@@ -939,6 +932,18 @@ export function PropertyCard({
           )
         }
         title={formatAddress(prop)}
+        badge={
+          // Власність — помітно, але не великим блоком: щиток у шапці, тап — екран перевірки.
+          <button
+            type="button"
+            className={`own-badge tone-${OWN_TONE[prop.ownership_status]}`}
+            onClick={onOwnership}
+            aria-label={t(`own_badge_${prop.ownership_status}` as TextKey)}
+          >
+            <Icon name="shield" size={16} />
+            {t(`own_badge_${prop.ownership_status}` as TextKey)}
+          </button>
+        }
         facts={
           current
             ? [
@@ -954,7 +959,7 @@ export function PropertyCard({
         }
         empty={
           photos && (
-            <button type="button" className="photo-empty" onClick={onProfile}>
+            <button type="button" className="photo-empty" onClick={() => onProfileSection("photos")}>
               <Icon name="photo" size={28} />
               <span>{t("prp_card_add_photos")}</span>
             </button>

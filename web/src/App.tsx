@@ -32,7 +32,7 @@ type Route =
   | { name: "new-property" }
   | { name: "property"; id: string }
   | { name: "ownership"; id: string }
-  | { name: "profile-form"; id: string }
+  | { name: "profile-form"; id: string; section?: string }
   | { name: "moderation" }
   | { name: "mod-case"; vid: string }
   | { name: "mod-sig"; sid: string }
@@ -366,6 +366,7 @@ export function App() {
           onBack={back}
           onOwnership={() => push({ name: "ownership", id: route.id })}
           onProfile={() => push({ name: "profile-form", id: route.id })}
+          onProfileSection={(section) => push({ name: "profile-form", id: route.id, section })}
           onNewLease={(prop) => push({ name: "lease-new", propertyId: prop.id })}
           onOpenLease={(id) => push({ name: "lease", id })}
           onChat={(id) => push({ name: "chat", id })}
@@ -407,7 +408,7 @@ export function App() {
       screen = <OwnershipScreen key={route.id} id={route.id} webApp={webApp} onBack={back} />;
       break;
     case "profile-form":
-      screen = <PropertyProfile key={route.id} id={route.id} webApp={webApp} onBack={back} />;
+      screen = <PropertyProfile key={`${route.id}:${route.section ?? ""}`} id={route.id} section={route.section} webApp={webApp} onBack={back} />;
       break;
     case "moderation":
       screen = (

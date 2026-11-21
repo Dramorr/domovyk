@@ -12,6 +12,7 @@ export function PageHead({
   source,
   chip,
   aside,
+  badge,
   title,
   facts,
   empty,
@@ -20,6 +21,8 @@ export function PageHead({
   source: PhotoSource;
   chip: ReactNode;
   aside?: ReactNode;
+  /** Маленький значок праворуч у рядку статусу (напр. щиток власності квартири). */
+  badge?: ReactNode;
   title: string;
   facts: Fact[];
   /** Що показати замість фото, коли їх немає (напр. «Додати фото» власнику). */
@@ -39,6 +42,7 @@ export function PageHead({
         <div className="page-head-top">
           {chip}
           {aside && <span className="hint small">{aside}</span>}
+          {badge}
         </div>
         <h1>{title}</h1>
         {facts.length > 0 && (

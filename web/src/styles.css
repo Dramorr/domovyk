@@ -4184,3 +4184,34 @@ a.button {
 .now-card .button {
   margin: 4px 0 0;
 }
+
+/* Щиток власності в шапці квартири: помітно, але не блоком (ADR 0023). */
+.own-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 3px 9px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font: 600 12px var(--font-head);
+  cursor: pointer;
+}
+
+.own-badge.tone-ok {
+  color: var(--brand-ink);
+  background: var(--brand-50);
+}
+
+.own-badge.tone-warn,
+.own-badge.tone-bad {
+  color: var(--amber-700);
+  background: var(--amber-100);
+  border-color: var(--amber);
+}
+
+.own-badge.tone-info {
+  color: var(--text-2);
+}
