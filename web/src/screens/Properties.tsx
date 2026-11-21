@@ -43,7 +43,7 @@ import { LeaseBody, type LeaseSection } from "./LeaseCard";
 import { ListingChip, ListingScreen } from "./Listing";
 import { NowCard, type NowTarget } from "./NowCard";
 import { PageHead } from "./PageHead";
-import { ProfileSummary } from "./PropertyProfile";
+import { ProfileSections } from "./PropertyProfile";
 import { ShowingsBlock } from "./Showings";
 import { Stepper, type Step } from "./Stepper";
 
@@ -786,7 +786,8 @@ export function PropertyCard({
 
   const overview = (
     <>
-      {ov && <NowCard now={ov.now} onTarget={goTarget} />}
+      {/* Поки оформлюємо, «Зараз» — це поточний крок у картках кроків нижче, без дубля. */}
+      {ov && ov.stage !== "signing" && <NowCard now={ov.now} onTarget={goTarget} />}
       {withLease ? (
         leaseBody("overview")
       ) : (
@@ -871,7 +872,7 @@ export function PropertyCard({
         )}
       </section>
 
-      <ProfileSummary p={prop} photos={photos} onOpen={onProfileSection} />
+      <ProfileSections p={prop} onSaved={setProp} photos={photos} onPhotos={setPhotos} webApp={webApp} />
 
       {history.length > 0 && (
         <section className="card">
@@ -903,7 +904,9 @@ export function PropertyCard({
     active: shown === key,
     onClick: () => setTab(key),
   });
-  const chatTab: PageTab[] = ov?.lease_id
+  // Чат — лише коли в оренді є хтось, крім власника: самому з собою говорити нема про що.
+  const someoneElse = !!lease?.members.some((m) => m.role !== "landlord");
+  const chatTab: PageTab[] = ov?.lease_id && someoneElse
     ? [{ key: "chat", icon: "chat", label: t("ls_tab_chat"), count: ov.chat_unread, onClick: () => onChat(ov.lease_id as string) }]
     : [];
   const metersTab: PageTab[] = [{ key: "meters", icon: "meter", label: t("mt_open"), onClick: onMeters }];

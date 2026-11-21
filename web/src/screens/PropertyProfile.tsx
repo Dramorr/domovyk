@@ -1,15 +1,15 @@
 // Анкета об'єкта й рівень заповненості (FR-PRP-8). Форма будується з profileSpec.ts.
-// Огляд: розділи з прогресом; поля розділу — на окремому екрані, щоб не показувати все одразу.
+// Розділи — акордеоном (ProfileSections); окремі екрани лишились для анкети з оголошення й фото з шапки.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { api, type Photo, type Property, type PropertyDetails } from "../api/client";
 import { Icon } from "../icons";
 import { t, type TextKey } from "../i18n";
 import { PROFILE_SECTIONS, type FieldSpec } from "../profileSpec";
-import { PHOTO_MAX, PhotoManager, PhotoSlider } from "./Photos";
+import { PHOTO_MAX, PhotoManager } from "./Photos";
 import type { WebApp } from "../telegram";
-import { Chip, errorCode, errorField, errorText, formatAddress, ListRow, Ring, Screen } from "../ui";
+import { Chip, errorCode, errorField, errorText, Fold, formatAddress, Ring, Screen } from "../ui";
 
 type Values = Record<string, unknown>;
 
@@ -45,7 +45,29 @@ export function PublishHint({ p }: { p: Property }) {
   );
 }
 
-function Field({ spec, value, onChange }: { spec: FieldSpec; value: unknown; onChange: (v: unknown) => void }) {
+function Field({
+  spec,
+  value,
+  onChange,
+  important = false,
+}: {
+  spec: FieldSpec;
+  value: unknown;
+  onChange: (v: unknown) => void;
+  /** Важливе поле без відповіді — підсвічене, щоб було видно, чого бракує для довіри. */
+  important?: boolean;
+}) {
+  const field = <FieldInput spec={spec} value={value} onChange={onChange} />;
+  if (!important) return field;
+  return (
+    <div className="field-important">
+      <span className="need-tag">{t("pf_important_tag")}</span>
+      {field}
+    </div>
+  );
+}
+
+function FieldInput({ spec, value, onChange }: { spec: FieldSpec; value: unknown; onChange: (v: unknown) => void }) {
   const name = label(`pf_${spec.key}`);
   switch (spec.kind) {
     case "choice":
@@ -175,10 +197,78 @@ function sameValue(a: unknown, b: unknown): boolean {
   return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 }
 
-/** Анкета у вкладці «Квартира» (ADR 0023): заповненість, фото й розділи. Тап — одразу форма розділу. */
-export function ProfileSummary({ p, photos, onOpen }: { p: Property; photos: Photo[] | null; onOpen: (section: string) => void }) {
-  const values = (p.details ?? {}) as Values;
+function saveError(e: unknown): { text: string; section?: string } {
+  const field = errorField(e);
+  const text =
+    errorCode(e) === "contacts_in_text"
+      ? t("pf_contacts_in_text")
+      : field
+        ? t("prp_bad_field", { field: label(`pf_${field}`) })
+        : errorText(e);
+  const where = field ? PROFILE_SECTIONS.find((s) => s.fields.some((f) => f.key === field)) : undefined;
+  return { text, section: where?.key };
+}
+
+function bodyOf(values: Values): PropertyDetails {
+  return Object.fromEntries(Object.entries(values).filter(([, v]) => v !== null && v !== undefined)) as PropertyDetails;
+}
+
+/** Анкета акордеоном (ADR 0023): фото й розділи згорнуті, «Заповнено x з n» — лише всередині
+ *  розділу. Одна кнопка «Зберегти» на всю анкету з'являється внизу, щойно є зміни; вихід зі
+ *  сторінки чи вкладки зберігає незбережене сам. */
+export function ProfileSections({
+  p,
+  onSaved,
+  photos,
+  onPhotos,
+  webApp,
+}: {
+  p: Property;
+  onSaved: (p: Property) => void;
+  photos: Photo[] | null;
+  onPhotos: (photos: Photo[]) => void;
+  webApp: WebApp | null;
+}) {
+  const [values, setValues] = useState<Values>(() => ({ ...(p.details ?? {}) }));
+  const [opened, setOpened] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const saved = (p.details ?? {}) as Values;
+  const dirty = PROFILE_SECTIONS.some((s) => s.fields.some((f) => !sameValue(values[f.key], saved[f.key])));
   const missing = p.completeness?.missing_important ?? [];
+
+  // Автозбереження при виході: останні значення — в ref, бо прибирання ефекту бачить лише перший рендер.
+  const latest = useRef({ values, dirty, id: p.id, onSaved });
+  latest.current = { values, dirty, id: p.id, onSaved };
+  useEffect(
+    () => () => {
+      const last = latest.current;
+      if (last.dirty) api.updateProfile(last.id, bodyOf(last.values)).then(last.onSaved, () => undefined);
+    },
+    [],
+  );
+
+  async function save() {
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const updated = await api.updateProfile(p.id, bodyOf(values));
+      onSaved(updated);
+      setValues({ ...(updated.details ?? {}) });
+      setMessage(t("pf_saved"));
+    } catch (e) {
+      const { text, section } = saveError(e);
+      setError(text);
+      // Помилка в полі — відкриваємо той розділ.
+      if (section) setOpened(section);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <>
       <section className="card">
@@ -186,40 +276,61 @@ export function ProfileSummary({ p, photos, onOpen }: { p: Property; photos: Pho
         <CompletenessBar p={p} />
         <PublishHint p={p} />
       </section>
-      <ListRow
+      <Fold
+        id={`pf:${p.id}:photos`}
         title={t("ph_title")}
-        sub={
-          photos && photos.length ? (
-            <span>{t("ph_count", { n: String(photos.length), max: String(PHOTO_MAX) })}</span>
-          ) : (
-            <Chip tone="warn">{t("ph_none")}</Chip>
-          )
-        }
-        icon={photos && photos.length ? undefined : "plus"}
-        onClick={() => onOpen("photos")}
-      />
+        aside={photos !== null && photos.length === 0 ? <Chip tone="warn">{t("ph_none")}</Chip> : undefined}
+        className="pf-section"
+      >
+        <p className="hint small">{t("ph_count", { n: String(photos?.length ?? 0), max: String(PHOTO_MAX) })}</p>
+        {photos && <PhotoManager propertyId={p.id} photos={photos} onChange={onPhotos} webApp={webApp} />}
+      </Fold>
       {PROFILE_SECTIONS.map((s) => {
         const done = s.fields.filter((f) => answered(values[f.key])).length;
-        const lacking = s.fields.filter((f) => missing.includes(f.key) && !answered(values[f.key])).length;
         return (
-          <ListRow
+          <Fold
             key={s.key}
+            id={`pf:${p.id}:${s.key}`}
             title={label(`pf_section_${s.key}`)}
-            sub={
-              <>
-                <span>{t("pf_section_progress", { n: String(done), total: String(s.fields.length) })}</span>
-                {lacking > 0 && <Chip tone="warn">{t("pf_section_important", { n: String(lacking) })}</Chip>}
-              </>
-            }
-            right={<Ring percent={Math.round((100 * done) / s.fields.length)} size={40} />}
-            onClick={() => onOpen(s.key)}
-          />
+            aside={<Ring percent={Math.round((100 * done) / s.fields.length)} size={34} />}
+            open={opened === s.key ? true : undefined}
+            onToggle={(o) => {
+              if (!o && opened === s.key) setOpened(null);
+            }}
+            className="pf-section"
+          >
+            <p className="hint small">{t("pf_section_progress", { n: String(done), total: String(s.fields.length) })}</p>
+            {s.fields.map((f) => (
+              <Field
+                key={f.key}
+                spec={f}
+                value={values[f.key]}
+                important={missing.includes(f.key) && !answered(values[f.key])}
+                onChange={(v) => {
+                  setMessage(null);
+                  setValues((x) => ({ ...x, [f.key]: v }));
+                }}
+              />
+            ))}
+          </Fold>
         );
       })}
+      {(dirty || error || message) && (
+        <div className="sticky-actions">
+          {error && <p className="error">{error}</p>}
+          {message && !dirty && <p className="ok">{message}</p>}
+          {dirty && (
+            <button className="button" onClick={save} disabled={busy}>
+              {busy ? t("saving") : t("pf_save")}
+            </button>
+          )}
+        </div>
+      )}
     </>
   );
 }
 
+/** Окремий екран анкети (з оголошення) або одного розділу (з шапки квартири — «Додати фото»). */
 export function PropertyProfile({
   id,
   webApp,
@@ -229,17 +340,13 @@ export function PropertyProfile({
   id: string;
   webApp: WebApp | null;
   onBack: () => void;
-  /** Відкрити одразу цей розділ (з вкладки «Квартира»); «Назад» і «Зберегти» повертають на квартиру. */
+  /** Відкрити одразу цей розділ; «Назад» і «Зберегти» повертають туди, звідки прийшли. */
   section?: string;
 }) {
   const [prop, setProp] = useState<Property | null>(null);
-  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [photos, setPhotos] = useState<Photo[] | null>(null);
   const [values, setValues] = useState<Values>({});
-  const [open, setOpenRaw] = useState<string | null>(only ?? null); // відкритий розділ
-  // Розділ відкрито з вкладки «Квартира» — закриття повертає туди, а не на список розділів.
-  const setOpen = (next: string | null) => (next === null && only ? onBack() : setOpenRaw(next));
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -256,10 +363,6 @@ export function PropertyProfile({
       .catch(() => setPhotos([]));
   }, [id]);
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [open]);
-
   if (!prop) {
     return (
       <Screen onBack={onBack}>
@@ -268,73 +371,52 @@ export function PropertyProfile({
     );
   }
 
-  const saved = (prop.details ?? {}) as Values;
-  const dirty = PROFILE_SECTIONS.some((s) => s.fields.some((f) => !sameValue(values[f.key], saved[f.key])));
-
-  async function save(closeSection: boolean) {
-    setBusy(true);
-    setError(null);
-    setMessage(null);
-    try {
-      const body = Object.fromEntries(Object.entries(values).filter(([, v]) => v !== null && v !== undefined));
-      const updated = await api.updateProfile(id, body as PropertyDetails);
-      setProp(updated);
-      setValues({ ...(updated.details ?? {}) });
-      setMessage(t("pf_saved"));
-      if (closeSection) setOpen(null);
-    } catch (e) {
-      const field = errorField(e);
-      if (errorCode(e) === "contacts_in_text") setError(t("pf_contacts_in_text"));
-      else setError(field ? t("prp_bad_field", { field: label(`pf_${field}`) }) : errorText(e));
-      // Помилка в полі іншого розділу — відкриваємо той розділ.
-      const where = field ? PROFILE_SECTIONS.find((s) => s.fields.some((f) => f.key === field)) : undefined;
-      if (where) setOpen(where.key);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  const missing = prop.completeness?.missing_important ?? [];
-  const actions = (closeSection: boolean) => (
-    <div className="sticky-actions">
-      {error && <p className="error">{error}</p>}
-      {message && !dirty && <p className="ok">{message}</p>}
-      {(dirty || closeSection) && (
-        <button className="button" onClick={() => save(closeSection)} disabled={busy}>
-          {busy ? t("saving") : t("pf_save")}
-        </button>
-      )}
-    </div>
-  );
-
-  if (open === "photos") {
+  if (only === "photos") {
     return (
-      <Screen onBack={() => setOpen(null)} title={t("pf_title")}>
+      <Screen onBack={onBack} title={t("pf_title")}>
         <h2>{t("ph_title")}</h2>
-        <PhotoManager propertyId={id} photos={photos} onChange={setPhotos} webApp={webApp} />
+        {photos && <PhotoManager propertyId={id} photos={photos} onChange={setPhotos} webApp={webApp} />}
       </Screen>
     );
   }
 
-  const section = open ? PROFILE_SECTIONS.find((s) => s.key === open) : undefined;
+  const section = only ? PROFILE_SECTIONS.find((s) => s.key === only) : undefined;
   if (section) {
     const done = section.fields.filter((f) => answered(values[f.key])).length;
+    const missing = prop.completeness?.missing_important ?? [];
+    const save = async () => {
+      setBusy(true);
+      setError(null);
+      try {
+        await api.updateProfile(id, bodyOf(values));
+        onBack();
+      } catch (e) {
+        setError(saveError(e).text);
+      } finally {
+        setBusy(false);
+      }
+    };
     return (
-      <Screen
-        onBack={() => {
-          setOpen(null);
-          setError(null);
-        }}
-        title={t("pf_title")}
-      >
+      <Screen onBack={onBack} title={t("pf_title")}>
         <h2>{label(`pf_section_${section.key}`)}</h2>
         <p className="hint small">{t("pf_section_progress", { n: String(done), total: String(section.fields.length) })}</p>
         <section className="card">
           {section.fields.map((f) => (
-            <Field key={f.key} spec={f} value={values[f.key]} onChange={(v) => setValues((s) => ({ ...s, [f.key]: v }))} />
+            <Field
+              key={f.key}
+              spec={f}
+              value={values[f.key]}
+              important={missing.includes(f.key) && !answered(values[f.key])}
+              onChange={(v) => setValues((s) => ({ ...s, [f.key]: v }))}
+            />
           ))}
         </section>
-        {actions(true)}
+        <div className="sticky-actions">
+          {error && <p className="error">{error}</p>}
+          <button className="button" onClick={save} disabled={busy}>
+            {busy ? t("saving") : t("pf_save")}
+          </button>
+        </div>
       </Screen>
     );
   }
@@ -342,54 +424,8 @@ export function PropertyProfile({
   return (
     <Screen onBack={onBack} title={t("pf_title")}>
       <p className="hint">{formatAddress(prop)}</p>
-      <PhotoSlider photos={photos} source={{ kind: "property", id }} />
-      <section className="card">
-        <CompletenessBar p={prop} />
-        <PublishHint p={prop} />
-        <p className="hint small">{t("pf_intro")}</p>
-      </section>
-
-      <ListRow
-        title={t("ph_title")}
-        sub={
-          photos.length ? (
-            <span>{t("ph_count", { n: String(photos.length), max: String(PHOTO_MAX) })}</span>
-          ) : (
-            <Chip tone="warn">{t("ph_none")}</Chip>
-          )
-        }
-        icon={photos.length ? undefined : "plus"}
-        onClick={() => {
-          setOpen("photos");
-          setMessage(null);
-        }}
-      />
-
-      {PROFILE_SECTIONS.map((s) => {
-        const done = s.fields.filter((f) => answered(values[f.key])).length;
-        const lacking = s.fields.filter((f) => missing.includes(f.key) && !answered(values[f.key])).length;
-        const changed = s.fields.some((f) => !sameValue(values[f.key], saved[f.key]));
-        return (
-          <ListRow
-            key={s.key}
-            title={label(`pf_section_${s.key}`)}
-            sub={
-              <>
-                <span>{t("pf_section_progress", { n: String(done), total: String(s.fields.length) })}</span>
-                {changed && <Chip tone="info">{t("pf_unsaved")}</Chip>}
-                {lacking > 0 && <Chip tone="warn">{t("pf_section_important", { n: String(lacking) })}</Chip>}
-              </>
-            }
-            right={<Ring percent={Math.round((100 * done) / s.fields.length)} size={40} />}
-            onClick={() => {
-              setOpen(s.key);
-              setMessage(null);
-            }}
-          />
-        );
-      })}
-
-      {(dirty || error || message) && actions(false)}
+      <p className="hint small">{t("pf_intro")}</p>
+      <ProfileSections p={prop} onSaved={setProp} photos={photos} onPhotos={setPhotos} webApp={webApp} />
     </Screen>
   );
 }

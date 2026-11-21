@@ -38,8 +38,9 @@ function inert(on: boolean): object {
   return on ? { inert: "" } : {};
 }
 
-/** Кроки оренди слайдером із крапками: відкривається на поточному, свайпом чи крапками
- *  можна глянути пройдені й наступні. Висота — під видимий слайд, без порожнечі. */
+/** Кроки оренди слайдером із крапками: кожен крок — картка (номер, стан, назва й зміст разом).
+ *  Відкривається на поточному, свайпом чи крапками можна глянути пройдені й наступні.
+ *  Поточний крок і є «Зараз» цього етапу, тож окремої картки «Зараз» над ним немає. */
 function Journey({ steps, current }: { steps: JourneyStep[]; current: number }) {
   const [at, setAt] = useState(current);
   useEffect(() => setAt(current), [current]);
@@ -108,15 +109,17 @@ function Journey({ steps, current }: { steps: JourneyStep[]; current: number }) 
                 aria-hidden={i !== at}
                 {...inert(i !== at)}
               >
-                <div className="journey-label">
-                  <span>{t("lj_step", { n: String(i + 1), total: String(steps.length) })}</span>
-                  <span className={`journey-state is-${state}`}>
-                    <Icon name={STATE_ICON[state]} size={14} />
-                    {k(`lj_state_${state}`)}
-                  </span>
+                <div className={`card journey-card is-${state}`}>
+                  <div className="journey-label">
+                    <span>{t("lj_step", { n: String(i + 1), total: String(steps.length) })}</span>
+                    <span className={`journey-state is-${state}`}>
+                      <Icon name={STATE_ICON[state]} size={14} />
+                      {k(`lj_state_${state}`)}
+                    </span>
+                  </div>
+                  <h2>{s.title}</h2>
+                  {s.body}
                 </div>
-                <h2>{s.title}</h2>
-                {s.body}
               </div>
             );
           })}
@@ -127,7 +130,7 @@ function Journey({ steps, current }: { steps: JourneyStep[]; current: number }) 
 }
 
 function StepNote({ children }: { children: ReactNode }) {
-  return <section className="card journey-note">{children}</section>;
+  return <div className="journey-note">{children}</div>;
 }
 
 // ------------------------------------------------------------ картка
@@ -693,7 +696,7 @@ export function LeaseCard({
           { label: t("lf_until"), value: formatDate(l.end_date) },
         ]}
       />
-      {open && tab === "overview" && now && (
+      {open && tab === "overview" && now && !["draft", "awaiting_tenant", "awaiting_signatures"].includes(l.status) && (
         <NowCard now={now} onTarget={(target) => target === "contract" && setTab("contract")} />
       )}
       <LeaseBody

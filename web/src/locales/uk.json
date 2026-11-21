@@ -759,7 +759,7 @@
   "ch_sys_payment_confirmed": "Оплату підтверджено",
   "ch_sys_payment_rejected": "Власник не підтвердив оплату",
   "pf_section_progress": "Заповнено {n} з {total}",
-  "pf_section_important": "важливого бракує: {n}",
+  "pf_important_tag": "важливо",
   "pf_unsaved": "не збережено",
   "ph_title": "Фото",
   "ph_count": "{n} з {max}",

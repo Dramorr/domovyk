@@ -3890,6 +3890,11 @@ a.button {
   padding-bottom: calc(92px + env(safe-area-inset-bottom));
 }
 
+/* Кнопка «Зберегти» над нижньою панеллю, а не під нею. */
+.app.with-tabs .sticky-actions {
+  bottom: calc(80px + env(safe-area-inset-bottom));
+}
+
 .page-tabs {
   position: fixed;
   left: 50%;
@@ -4075,6 +4080,8 @@ a.button {
 
 .journey-viewport {
   overflow: hidden;
+  /* Запас по боках і знизу, щоб тінь карток кроків не обрізалась. */
+  margin: 0 -8px;
   transition: height 260ms ease;
 }
 
@@ -4087,11 +4094,28 @@ a.button {
 .journey-slide {
   flex: 0 0 100%;
   min-width: 0;
-  padding: 0 1px 4px;
+  padding: 0 8px 12px;
 }
 
-.journey-slide > h2 {
-  margin: 2px 0 10px;
+.card.journey-card {
+  margin: 0;
+}
+
+.card.journey-card.is-now {
+  border: 2px solid var(--brand-100);
+}
+
+.journey-card > h2 {
+  margin: 8px 0 10px;
+}
+
+/* Усередині картки кроку — без карток у картці: вкладені блоки стають тихими панелями. */
+.journey-card .card {
+  margin: 10px 0 0;
+  padding: 14px;
+  border: 0;
+  box-shadow: none;
+  background: var(--surface-2);
 }
 
 .journey-label {
@@ -4124,6 +4148,28 @@ a.button {
 
 .journey-note p {
   margin: 0;
+}
+
+/* Важливе поле анкети без відповіді — бурштинова смужка зліва й мітка «важливо». */
+.field-important {
+  position: relative;
+  margin: 0 -10px 14px;
+  padding: 8px 10px 2px;
+  border-left: 3px solid var(--amber);
+  border-radius: 0 10px 10px 0;
+  background: rgb(242 169 59 / 8%);
+}
+
+.field-important .need-tag {
+  float: right;
+  margin-left: 8px;
+  color: var(--amber-700);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pf-section .fold-aside .ring {
+  display: block;
 }
 
 .journey-parties .unit .tone-ok {

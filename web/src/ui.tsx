@@ -452,6 +452,9 @@ export function Fold({
   aside,
   icon,
   defaultOpen = false,
+  open: forced,
+  onToggle,
+  className,
   children,
 }: {
   id: string;
@@ -459,17 +462,21 @@ export function Fold({
   aside?: ReactNode;
   icon?: IconName;
   defaultOpen?: boolean;
+  /** Керований режим: відкритість задає батько (напр. відкрити розділ із помилкою). */
+  open?: boolean;
+  onToggle?: (open: boolean) => void;
+  className?: string;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(() => readFold(id) ?? defaultOpen);
+  const [own, setOwn] = useState(() => readFold(id) ?? defaultOpen);
+  const open = forced ?? own;
   const toggle = () => {
-    setOpen((o) => {
-      writeFold(id, !o);
-      return !o;
-    });
+    writeFold(id, !open);
+    setOwn(!open);
+    onToggle?.(!open);
   };
   return (
-    <section className={`card fold${open ? " open" : ""}`}>
+    <section className={`card fold${open ? " open" : ""}${className ? ` ${className}` : ""}`}>
       <button type="button" className="fold-head" aria-expanded={open} onClick={toggle}>
         {icon && (
           <span className="fold-icon" aria-hidden>
