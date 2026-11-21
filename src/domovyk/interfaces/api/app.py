@@ -84,6 +84,7 @@ from domovyk.modules.leases.service import (
     TerminationIn,
 )
 from domovyk.modules.listings.service import ListingIn, ListingOut, ListingState, PublishIn
+from domovyk.modules.overview.service import LeaseOverview, PropertyOverview
 from domovyk.modules.payments.service import (
     CashIn,
     DecisionIn,
@@ -405,6 +406,11 @@ def create_app(
     @app.get("/api/v1/properties/{property_id}")
     async def get_property(auth: Auth, property_id: uuid.UUID) -> PropertyOut:
         return await svc.properties.get_mine(auth.user.id, property_id)
+
+    @app.get("/api/v1/properties/{property_id}/overview")
+    async def property_overview(auth: Auth, property_id: uuid.UUID) -> PropertyOverview:
+        """Етап квартири й картка «Зараз» (ADR 0023)."""
+        return await svc.overview.property(auth.user.id, property_id)
 
     @app.put("/api/v1/properties/{property_id}")
     async def update_property(
@@ -789,6 +795,11 @@ def create_app(
     async def notifications_read(auth: Auth) -> Response:
         await svc.notifications.mark_all_read(auth.user.id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    @app.get("/api/v1/leases/{lease_id}/overview")
+    async def lease_overview(auth: Auth, lease_id: uuid.UUID) -> LeaseOverview:
+        """Етап оренди й картка «Зараз» для сторінки оренди (ADR 0023)."""
+        return await svc.overview.lease(auth.user.id, lease_id)
 
     @app.get("/api/v1/leases/{lease_id}/notifications")
     async def lease_notification_prefs(auth: Auth, lease_id: uuid.UUID) -> LeaseNotificationPrefs:

@@ -31,6 +31,7 @@ from domovyk.domain.leases import (
     months_between,
     validate_term,
 )
+from domovyk.domain.overview import NowCode, Stage
 from domovyk.domain.properties import OwnershipStatus, PropertyKind
 from domovyk.modules.leases.schemas import LeaseCreate, LeaseTerms, PayDetailsIn
 from domovyk.modules.notifications.schemas import LeaseNotificationPrefs
@@ -540,3 +541,30 @@ async def test_lease_ends_when_term_is_over(
     assert await s.leases.finish_due() == 1
     assert (await s.leases.get(TENANT, lease_id)).status is LeaseStatus.ENDED
     assert any(n.payload.get("event") == "lease_ended" for n in db.prop.notifications)
+
+
+# ------------------------------------------------------------------ огляд (ADR 0023)
+
+
+async def test_overview_follows_property_through_stages(env: tuple[Services, FakeDb]) -> None:
+    s, db = env
+    pid = await _verified_flat(s, db)
+    ov = await s.overview.property(OWNER, pid)
+    assert ov.stage is Stage.PREPARING and ov.lease_id is None
+    # Анкета порожня — спершу її, а не оголошення.
+    assert ov.now.code is NowCode.FILL_PROFILE
+
+    lease, invite = await s.leases.create_lease(OWNER, _lease(pid))
+    ov = await s.overview.property(OWNER, pid)
+    assert (ov.stage, ov.lease_id) == (Stage.SIGNING, lease.id)
+    assert ov.now.code is NowCode.INVITE_TENANT
+
+    await s.leases.accept_invite(TENANT, invite.token)
+    tenant = await s.overview.lease(TENANT, lease.id)
+    assert tenant.stage is Stage.SIGNING and tenant.now.code is NowCode.TENANT_AGREE
+    # Власник погодив умови, коли створював оренду, — тепер чекає орендаря.
+    assert (await s.overview.property(OWNER, pid)).now.code is NowCode.WAIT_TENANT_TERMS
+
+    # Чужу квартиру огляд не віддає.
+    with pytest.raises(NotFound):
+        await s.overview.property(STRANGER, pid)

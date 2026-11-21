@@ -88,6 +88,8 @@ export function ListingScreen({
   onOwnership,
   onProfile,
   onApplication,
+  embedded = false,
+  onChanged,
 }: {
   id: string;
   webApp: WebApp;
@@ -95,6 +97,10 @@ export function ListingScreen({
   onOwnership: () => void;
   onProfile: () => void;
   onApplication: (id: string) => void;
+  /** Вкладка «Оголошення» сторінки квартири (ADR 0023): без своєї шапки, заявок і показів. */
+  embedded?: boolean;
+  /** Стан оголошення змінився (опубліковано, пауза, знято) — сторінці квартири варто оновити етап. */
+  onChanged?: () => void;
 }) {
   const [prop, setProp] = useState<Property | null>(null);
   const [state, setState] = useState<ListingState | null>(null);
@@ -123,6 +129,7 @@ export function ListingScreen({
     try {
       apply(await action());
       setFresh(false);
+      onChanged?.();
       done?.();
     } catch (e) {
       setError(listingError(e));
@@ -132,11 +139,8 @@ export function ListingScreen({
   }
 
   if (!state || !prop) {
-    return (
-      <Screen onBack={onBack}>
-        {error ? <p className="error">{error}</p> : <p className="hint">{t("loading")}</p>}
-      </Screen>
-    );
+    const wait = error ? <p className="error">{error}</p> : <p className="hint">{t("loading")}</p>;
+    return embedded ? wait : <Screen onBack={onBack}>{wait}</Screen>;
   }
 
   const listing = state.listing;
@@ -159,10 +163,14 @@ export function ListingScreen({
     await run(() => api.closeListing(id));
   };
 
-  return (
-    <Screen onBack={onBack}>
-      <h1 className="left">{t("lst_title")}</h1>
-      <p className="hint left">{formatAddress(prop)}</p>
+  const content = (
+    <>
+      {!embedded && (
+        <>
+          <h1 className="left">{t("lst_title")}</h1>
+          <p className="hint left">{formatAddress(prop)}</p>
+        </>
+      )}
 
       {listing && !live && !fresh && (
         <section className="card">
@@ -193,8 +201,8 @@ export function ListingScreen({
         </section>
       )}
 
-      {listing && <IncomingApplications propertyId={id} onOpen={onApplication} />}
-      {listing && <ShowingsBlock propertyId={id} webApp={webApp} />}
+      {listing && !embedded && <IncomingApplications propertyId={id} onOpen={onApplication} />}
+      {listing && !embedded && <ShowingsBlock propertyId={id} webApp={webApp} />}
 
       {editing && status !== "active" && (
         <section className="card">
@@ -281,8 +289,9 @@ export function ListingScreen({
 
       {!editing && error && <p className="error">{error}</p>}
       <MascotTip tone="calm">{t("lst_tip")}</MascotTip>
-    </Screen>
+    </>
   );
+  return embedded ? content : <Screen onBack={onBack}>{content}</Screen>;
 }
 
 function Check({ ok, text, soft = false, action }: { ok: boolean; text: string; soft?: boolean; action?: () => void }) {

@@ -38,6 +38,7 @@ from domovyk.modules.moderation.repository import SqlModerationRepository
 from domovyk.modules.moderation.service import ModerationService
 from domovyk.modules.notifications.repository import SqlNotificationsRepository
 from domovyk.modules.notifications.service import NotificationsService
+from domovyk.modules.overview.service import OverviewService
 from domovyk.modules.payments.repository import SqlPaymentsRepository
 from domovyk.modules.payments.service import PaymentsConfig, PaymentsService
 from domovyk.modules.properties.repository import SqlPropertiesRepository
@@ -246,4 +247,5 @@ def services(engine: AsyncEngine, it_clock: FixedClock) -> Services:
         search=search,
         showings=showings,
         applications=applications,
+        overview=OverviewService(properties, listings, applications, leases, contracts, payments),
     )

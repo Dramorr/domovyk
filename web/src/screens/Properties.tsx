@@ -2,11 +2,25 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
-import { api, ApiFailure, type AddressCandidate, type LeaseSummary, type Listing, type Ownership, type Photo, type Property, type PropertyCreate, type City } from "../api/client";
+import {
+  api,
+  ApiFailure,
+  type AddressCandidate,
+  type City,
+  type Invite,
+  type Lease,
+  type LeaseSummary,
+  type Listing,
+  type Ownership,
+  type Photo,
+  type Property,
+  type PropertyCreate,
+  type PropertyOverview,
+} from "../api/client";
 import { botLink, DIIA_URL } from "../config";
 import { t, type TextKey } from "../i18n";
 import { confirm, openLink, openTelegramLink, type WebApp } from "../telegram";
-import { Icon } from "../icons";
+import { Icon, type IconName } from "../icons";
 import {
   Chip,
   Divider,
@@ -24,10 +38,16 @@ import {
   type PageTab,
 } from "../ui";
 import { isOpenLease, LeaseRows, LeaseStatusChip, rentText } from "./Leases";
-import { ListingChip } from "./Listing";
+import { IncomingApplications } from "./Applications";
+import { LeaseBody, type LeaseSection } from "./LeaseCard";
+import { ListingChip, ListingScreen } from "./Listing";
+import { NowCard, type NowTarget } from "./NowCard";
 import { PageHead } from "./PageHead";
 import { CompletenessBar, PublishHint } from "./PropertyProfile";
+import { ShowingsBlock } from "./Showings";
 import { Stepper, type Step } from "./Stepper";
+
+type Stage = PropertyOverview["stage"];
 
 const OWN_TONE = { unverified: "warn", pending: "info", verified: "ok", rejected: "bad" } as const;
 
@@ -570,7 +590,17 @@ export function NewProperty({ onBack, onCreated }: { onBack: () => void; onCreat
 
 // ------------------------------------------------------------------ PRP-CARD
 
-const PROP_TABS = ["overview", "profile", "history"] as const;
+// Сторінка квартири (ADR 0023): шапка, картка «Зараз» і вкладки за етапом.
+// «Огляд» завжди перший, «Квартира» завжди остання; середина залежить від етапу.
+type PropTab = "overview" | "listing" | "applications" | "contract" | "flat";
+const PROP_TABS = ["overview", "listing", "applications", "contract", "flat"] as const;
+const STAGE_TABS: Record<Stage, PropTab[]> = {
+  preparing: ["overview", "flat"],
+  renting: ["overview", "listing", "applications", "flat"],
+  signing: ["overview", "contract", "flat"],
+  rented: ["overview", "contract", "flat"],
+  ending: ["overview", "contract", "flat"],
+};
 
 export function PropertyCard({
   id,
@@ -583,6 +613,10 @@ export function PropertyCard({
   onChat,
   onMeters,
   onListing,
+  onApplication,
+  onEditLease,
+  onPropose,
+  onInvite,
   onDeleted,
 }: {
   id: string;
@@ -591,29 +625,41 @@ export function PropertyCard({
   onOwnership: () => void;
   onProfile: () => void;
   onNewLease: (prop: Property) => void;
+  /** Завершена чи скасована оренда з історії — окрема сторінка лише для читання. */
   onOpenLease: (leaseId: string) => void;
   onChat: (leaseId: string) => void;
   onMeters: () => void;
+  /** Окремий екран оголошення (етап «Підготовка»: створити чи доробити чернетку). */
   onListing: () => void;
+  onApplication: (applicationId: string) => void;
+  onEditLease: (lease: Lease) => void;
+  onPropose: (lease: Lease) => void;
+  onInvite: (leaseId: string, invite: Invite) => void;
   onDeleted: () => void;
 }) {
   const [prop, setProp] = useState<Property | null>(null);
-  // Оренди цієї квартири: поточна (незавершена) і історія.
+  const [ov, setOv] = useState<PropertyOverview | null>(null);
+  // Оренди цієї квартири: поточна (для шапки) і історія (вкладка «Квартира»).
   const [leases, setLeases] = useState<LeaseSummary[] | null>(null);
+  const [lease, setLease] = useState<Lease | null>(null);
   const [photos, setPhotos] = useState<Photo[] | null>(null);
   const [listing, setListing] = useState<Listing | null | undefined>(undefined);
   const [edit, setEdit] = useState(false);
   const [form, setForm] = useState({ entrance: "", floor: "", rooms: 1, area: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useStoredTab(`prop-tab:${id}`, PROP_TABS, "overview");
+  const [tab, setTab] = useStoredTab<PropTab>(`prop-tab:${id}`, PROP_TABS, "overview");
 
-  useEffect(() => {
+  const reload = useCallback(() => {
     api.property(id).then(setProp).catch((e: unknown) => setError(errorText(e)));
     api
-      .photos(id)
-      .then(setPhotos)
-      .catch(() => setPhotos([]));
+      .propertyOverview(id)
+      .then((o) => {
+        setOv(o);
+        if (o.lease_id) api.lease(o.lease_id).then(setLease).catch(() => setLease(null));
+        else setLease(null);
+      })
+      .catch(() => setOv(null));
     api
       .leases()
       .then((all) => setLeases(all.filter((l) => l.property_id === id && l.my_role === "landlord")))
@@ -623,6 +669,14 @@ export function PropertyCard({
       .then((s) => setListing(s.listing ?? null))
       .catch(() => setListing(null));
   }, [id]);
+
+  useEffect(() => {
+    reload();
+    api
+      .photos(id)
+      .then(setPhotos)
+      .catch(() => setPhotos([]));
+  }, [id, reload]);
 
   async function run(action: () => Promise<Property | void>) {
     setBusy(true);
@@ -664,9 +718,35 @@ export function PropertyCard({
     });
   }
 
-  const current = leases?.find((l) => isOpenLease(l.status)) ?? null;
+  const stage: Stage = ov?.stage ?? "preparing";
+  const available = STAGE_TABS[stage];
+  const shown: PropTab = available.includes(tab) ? tab : "overview";
+  const current = leases?.find((l) => l.id === ov?.lease_id) ?? null;
   const history = leases?.filter((l) => !isOpenLease(l.status)) ?? [];
   const verified = prop.ownership_status === "verified";
+  const withLease = !!ov?.lease_id;
+
+  async function invite() {
+    if (!lease) return;
+    setBusy(true);
+    try {
+      onInvite(lease.id, await api.newInvite(lease.id, "responsible"));
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const goTarget = (target: NowTarget) => {
+    if (target === "ownership") onOwnership();
+    else if (target === "profile") onProfile();
+    else if (target === "listing" && stage === "renting") setTab("listing");
+    else if (target === "listing") onListing();
+    else if (target === "applications") setTab("applications");
+    else if (target === "contract") setTab("contract");
+    else if (target === "invite") void invite();
+  };
 
   const ownership = (
     <section className={verified ? "card" : "card accent"}>
@@ -686,22 +766,45 @@ export function PropertyCard({
     </section>
   );
 
+  const leaseBody = (section: LeaseSection) =>
+    lease && (
+      <LeaseBody
+        key={`${lease.id}:${section}`}
+        l={lease}
+        onChange={reload}
+        section={section}
+        webApp={webApp}
+        onGone={reload}
+        onEdit={onEditLease}
+        onInvite={(i) => onInvite(lease.id, i)}
+        onPropose={onPropose}
+      />
+    );
+
   const overview = (
     <>
-      <LeaseBlock prop={prop} current={current} onNew={() => onNewLease(prop)} onOpen={onOpenLease} />
-      {!current && listing !== undefined && <ListingBlock listing={listing} onOpen={onListing} />}
-      {/* Непідтверджена власність блокує оренду й оголошення — тримаємо її на виду. */}
-      {!verified && ownership}
-
-      <Divider />
-      {error && <p className="error">{error}</p>}
-      <button className="link danger" onClick={remove} disabled={busy}>
-        {t("prp_delete")}
-      </button>
+      {ov && <NowCard now={ov.now} onTarget={goTarget} />}
+      {withLease ? (
+        leaseBody("overview")
+      ) : (
+        <>
+          {listing !== undefined && (
+            <ListingBlock listing={listing} onOpen={() => goTarget("listing")} />
+          )}
+          <LeaseBlock prop={prop} onNew={() => onNewLease(prop)} />
+          {/* Непідтверджена власність блокує оренду й оголошення — тримаємо її на виду. */}
+          {!verified && ownership}
+          <Divider />
+          {error && <p className="error">{error}</p>}
+          <button className="link danger" onClick={remove} disabled={busy}>
+            {t("prp_delete")}
+          </button>
+        </>
+      )}
     </>
   );
 
-  const profile = (
+  const flat = (
     <>
       <section className="card">
         <h2>{t("pf_title")}</h2>
@@ -776,33 +879,49 @@ export function PropertyCard({
       </section>
 
       {verified && ownership}
+
+      {history.length > 0 && (
+        <section className="card">
+          <h2>{t("prp_history_title")}</h2>
+          <LeaseRows
+            items={history}
+            webApp={webApp}
+            showAddress={false}
+            onOpen={onOpenLease}
+            onHidden={(lid) => setLeases((xs) => xs?.filter((x) => x.id !== lid) ?? null)}
+          />
+        </section>
+      )}
     </>
   );
 
-  const past =
-    history.length > 0 ? (
-      <LeaseRows
-        items={history}
-        webApp={webApp}
-        showAddress={false}
-        onOpen={onOpenLease}
-        onHidden={(lid) => setLeases((xs) => xs?.filter((x) => x.id !== lid) ?? null)}
-      />
-    ) : null;
+  const applications = (
+    <>
+      <IncomingApplications propertyId={id} onOpen={onApplication} bare />
+      <ShowingsBlock propertyId={id} webApp={webApp} />
+    </>
+  );
 
-  // Історію сховали (оренди прибрали) — не лишаємо порожню вкладку.
-  const shown = tab === "history" && history.length === 0 ? "overview" : tab;
-
+  const tabFor = (key: PropTab, icon: IconName, label: string, count?: number): PageTab => ({
+    key,
+    icon,
+    label,
+    count,
+    active: shown === key,
+    onClick: () => setTab(key),
+  });
+  const chatTab: PageTab[] = ov?.lease_id
+    ? [{ key: "chat", icon: "chat", label: t("ls_tab_chat"), count: ov.chat_unread, onClick: () => onChat(ov.lease_id as string) }]
+    : [];
+  const metersTab: PageTab[] = [{ key: "meters", icon: "meter", label: t("mt_open"), onClick: onMeters }];
   const tabs: PageTab[] = [
-    { key: "overview", icon: "home", label: t("ls_tab_overview"), active: shown === "overview", onClick: () => setTab("overview") },
-    { key: "profile", icon: "edit", label: t("prp_tab_profile"), active: shown === "profile", onClick: () => setTab("profile") },
-    ...(history.length > 0
-      ? [{ key: "history", icon: "clock" as const, label: t("prp_tab_history"), active: shown === "history", onClick: () => setTab("history") }]
+    tabFor("overview", "home", t("ls_tab_overview")),
+    ...(stage === "renting"
+      ? [tabFor("listing", "star", t("prp_tab_listing")), tabFor("applications", "users", t("prp_tab_applications"), ov?.new_applications)]
       : []),
-    ...(current
-      ? [{ key: "chat", icon: "chat" as const, label: t("ls_tab_chat"), count: current.unread, onClick: () => onChat(current.id) }]
-      : []),
-    { key: "meters", icon: "meter", label: t("mt_open"), onClick: onMeters },
+    ...(stage === "signing" ? [tabFor("contract", "doc", t("ls_tab_contract")), ...chatTab] : []),
+    ...(stage === "rented" || stage === "ending" ? [...metersTab, ...chatTab, tabFor("contract", "doc", t("ls_tab_contract"))] : []),
+    tabFor("flat", "building", t("prp_tab_flat")),
   ];
 
   return (
@@ -844,17 +963,30 @@ export function PropertyCard({
       />
 
       {shown === "overview" && overview}
-      {shown === "profile" && profile}
-      {shown === "history" && past}
+      {shown === "listing" && (
+        <ListingScreen
+          id={id}
+          webApp={webApp}
+          embedded
+          onBack={onBack}
+          onOwnership={onOwnership}
+          onProfile={onProfile}
+          onApplication={onApplication}
+          onChanged={reload}
+        />
+      )}
+      {shown === "applications" && applications}
+      {shown === "contract" && leaseBody("contract")}
+      {shown === "flat" && flat}
     </Screen>
   );
 }
 
-/** Блок «Оголошення» в картці вільної квартири (M6): стан і перехід до редагування. */
+/** Блок «Оголошення» на «Огляді» вільної квартири: стан і перехід до оголошення. */
 function ListingBlock({ listing, onOpen }: { listing: Listing | null; onOpen: () => void }) {
   const live = listing && ["draft", "active", "paused"].includes(listing.status) ? listing : null;
   return (
-    <section className={listing?.status === "active" ? "card accent" : "card"}>
+    <section className="card">
       <div className="stat">
         <h2 style={{ margin: 0, flex: 1 }}>{t("lst_title")}</h2>
         {live && <ListingChip status={live.status} />}
@@ -872,34 +1004,8 @@ function ListingBlock({ listing, onOpen }: { listing: Listing | null; onOpen: ()
   );
 }
 
-/** Блок «Оренда» в картці квартири: поточна оренда або як здати. */
-function LeaseBlock({
-  prop,
-  current,
-  onNew,
-  onOpen,
-}: {
-  prop: Property;
-  current: LeaseSummary | null;
-  onNew: () => void;
-  onOpen: (id: string) => void;
-}) {
-  if (current) {
-    return (
-      <section className="card accent">
-        <div className="stat">
-          <h2 style={{ margin: 0, flex: 1 }}>{t("prp_card_lease")}</h2>
-          <LeaseStatusChip status={current.status} />
-        </div>
-        <p className="row-title">{rentText(current.rent_amount)}</p>
-        <p className="hint small">{t("ls_period", { from: formatDate(current.start_date), to: formatDate(current.end_date) })}</p>
-        <button className="button" onClick={() => onOpen(current.id)}>
-          <Icon name="key" size={20} />
-          {t("prp_card_lease_open")}
-        </button>
-      </section>
-    );
-  }
+/** «Оренда за запрошенням» для вільної квартири: орендаря знайдено поза Домовиком. */
+function LeaseBlock({ prop, onNew }: { prop: Property; onNew: () => void }) {
   return (
     <section className="card">
       <div className="stat">
@@ -909,7 +1015,7 @@ function LeaseBlock({
       {prop.ownership_status === "verified" ? (
         <>
           <p className="hint small">{t("prp_card_free_hint")}</p>
-          <button className="button" onClick={onNew}>
+          <button className="button secondary" onClick={onNew}>
             <Icon name="key" size={20} />
             {t("ls_new_from_property")}
           </button>

@@ -1,10 +1,10 @@
-// Картка оренди (BOT_FLOWS §7): фото й ключові факти зверху, до активації — «шлях до
-// заселення» слайдером із крапками (як у формі умов), розділи сторінки — у нижній панелі,
-// налаштування сповіщень — дзвіночком у шапці.
+// Оренда (BOT_FLOWS §7, ADR 0023). `LeaseBody` — розділи оренди «Огляд» (шлях до заселення,
+// договір, оплати, розірвання) і «Договір» (умови й люди); їх показує і сторінка оренди
+// орендаря (`LeaseCard`), і сторінка квартири власника. Угорі — картка «Зараз».
 
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type TouchEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type TouchEvent } from "react";
 
-import { api, type ContractState, type Invite, type Lease, type Photo } from "../api/client";
+import { api, type ContractState, type Invite, type Lease, type NowOut, type Photo } from "../api/client";
 import { t, type TextKey } from "../i18n";
 import { Icon, type IconName } from "../icons";
 import { confirm, type WebApp } from "../telegram";
@@ -13,6 +13,7 @@ import { agreementSides, AgreementSheet } from "./AgreementBar";
 import { ContractBlock } from "./Contract";
 import { leaseAddress, LeaseStatusChip, TerminationBlock, termsLines } from "./Leases";
 import { PaymentsBlock } from "./Payments";
+import { NowCard } from "./NowCard";
 import { PageHead } from "./PageHead";
 
 const k = (key: string) => t(key as TextKey);
@@ -23,7 +24,6 @@ function money(n: number): string {
 
 // ------------------------------------------------------------ вкладки
 
-const TABS = ["overview", "terms", "people"] as const;
 
 // ------------------------------------------------------------ шлях до заселення
 
@@ -132,61 +132,46 @@ function StepNote({ children }: { children: ReactNode }) {
 
 // ------------------------------------------------------------ картка
 
-export function LeaseCard({
-  id,
+export type LeaseSection = "overview" | "contract";
+
+export function LeaseBody({
+  l,
+  onChange,
+  section,
   webApp,
-  onBack,
-  onChat,
+  onGone,
   onEdit,
   onInvite,
   onPropose,
-  onMeters,
 }: {
-  id: string;
+  l: Lease;
+  /** Оренда змінилась після дії (погодження, договір, оплата) — оновити сторінку. */
+  onChange: (lease?: Lease) => void;
+  section: LeaseSection;
   webApp: WebApp;
-  onBack: () => void;
-  onChat: () => void;
+  /** Оренди для цієї людини більше немає (вийшла, відмовилась, прибрала зі списку). */
+  onGone: () => void;
   onEdit: (lease: Lease) => void;
   onInvite: (invite: Invite) => void;
   onPropose: (lease: Lease) => void;
-  onMeters: () => void;
 }) {
-  const [l, setL] = useState<Lease | null>(null);
-  const [photos, setPhotos] = useState<Photo[]>([]);
   const [contract, setContract] = useState<ContractState | null>(null);
-  const [tab, setTab] = useStoredTab(`lease-tab:${id}`, TABS, "overview");
   const [sheet, setSheet] = useState(false);
   const [changes, setChanges] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    api.lease(id).then(setL).catch((e: unknown) => setError(errorText(e)));
-    api
-      .leasePhotos(id)
-      .then(setPhotos)
-      .catch(() => setPhotos([]));
-  }, [id]);
 
   async function run(action: () => Promise<Lease | void>) {
     setBusy(true);
     setError(null);
     try {
       const r = await action();
-      if (r) setL(r);
+      onChange(r ?? undefined);
     } catch (e) {
       setError(errorText(e));
     } finally {
       setBusy(false);
     }
-  }
-
-  if (!l) {
-    return (
-      <Screen onBack={onBack}>
-        {error ? <p className="error">{error}</p> : <div className="skeleton" style={{ height: 200 }} />}
-      </Screen>
-    );
   }
 
   const open = !["cancelled", "ended"].includes(l.status);
@@ -356,9 +341,7 @@ export function LeaseCard({
         webApp={webApp}
         heading={false}
         onState={setContract}
-        onActivated={() => {
-          api.lease(l.id).then(setL).catch(() => undefined);
-        }}
+        onActivated={() => onChange()}
       />
     );
 
@@ -469,7 +452,7 @@ export function LeaseCard({
               if (!(await confirm(webApp, t("ls_decline_confirm")))) return;
               await run(async () => {
                 await api.leaveLease(l.id);
-                onBack();
+                onGone();
               });
             }}
           >
@@ -487,7 +470,7 @@ export function LeaseCard({
               if (!(await confirm(webApp, t("ls_delete_confirm")))) return;
               await run(async () => {
                 await api.hideLease(l.id);
-                onBack();
+                onGone();
               });
             }}
           >
@@ -595,7 +578,7 @@ export function LeaseCard({
               if (!(await confirm(webApp, t("ls_leave_confirm")))) return;
               await run(async () => {
                 await api.leaveLease(l.id);
-                onBack();
+                onGone();
               });
             }}
           >
@@ -606,10 +589,92 @@ export function LeaseCard({
     </>
   );
 
+  return (
+    <>
+      {error && <p className="error">{error}</p>}
+      {section === "overview" && overview}
+      {section === "contract" && (
+        <>
+          {terms}
+          {people}
+        </>
+      )}
+      {sheet && <AgreementSheet lease={l} contract={contract} termsLines={termsLines} webApp={webApp} onClose={() => setSheet(false)} />}
+    </>
+  );
+}
+
+// ------------------------------------------------------------ сторінка оренди (орендар)
+
+const TABS = ["overview", "contract"] as const;
+
+export function LeaseCard({
+  id,
+  webApp,
+  onBack,
+  onChat,
+  onEdit,
+  onInvite,
+  onPropose,
+  onMeters,
+  onLandlord,
+}: {
+  id: string;
+  webApp: WebApp;
+  onBack: () => void;
+  onChat: () => void;
+  onEdit: (lease: Lease) => void;
+  onInvite: (invite: Invite) => void;
+  onPropose: (lease: Lease) => void;
+  onMeters: () => void;
+  /** Власник живої оренди бачить її на сторінці квартири (ADR 0023). */
+  onLandlord: (propertyId: string) => void;
+}) {
+  const [l, setL] = useState<Lease | null>(null);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [now, setNow] = useState<NowOut | null>(null);
+  const [tab, setTab] = useStoredTab(`lease-tab:${id}`, TABS, "overview");
+  const [error, setError] = useState<string | null>(null);
+
+  const reload = useCallback(
+    (lease?: Lease) => {
+      if (lease) setL(lease);
+      else api.lease(id).then(setL).catch((e: unknown) => setError(errorText(e)));
+      api
+        .leaseOverview(id)
+        .then((o) => setNow(o.now))
+        .catch(() => setNow(null));
+    },
+    [id],
+  );
+
+  useEffect(() => {
+    reload();
+    api
+      .leasePhotos(id)
+      .then(setPhotos)
+      .catch(() => setPhotos([]));
+  }, [id, reload]);
+
+  const landlordOpen = !!l && l.my_role === "landlord" && !["cancelled", "ended"].includes(l.status);
+  useEffect(() => {
+    if (l && landlordOpen) onLandlord(l.property_id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [landlordOpen]);
+
+  if (!l || landlordOpen) {
+    return (
+      <Screen onBack={onBack}>
+        {error ? <p className="error">{error}</p> : <div className="skeleton" style={{ height: 200 }} />}
+      </Screen>
+    );
+  }
+
+  const live = ["active", "ending", "ended"].includes(l.status);
+  const open = !["cancelled", "ended"].includes(l.status);
   const tabs: PageTab[] = [
     { key: "overview", icon: "home", label: t("ls_tab_overview"), active: tab === "overview", onClick: () => setTab("overview") },
-    { key: "terms", icon: "doc", label: t("ls_tab_terms"), active: tab === "terms", onClick: () => setTab("terms") },
-    { key: "people", icon: "users", label: t("ls_tab_people"), active: tab === "people", onClick: () => setTab("people") },
+    { key: "contract", icon: "doc", label: t("ls_tab_contract"), active: tab === "contract", onClick: () => setTab("contract") },
     { key: "chat", icon: "chat", label: t("ls_tab_chat"), count: l.unread, onClick: onChat },
     ...(live ? [{ key: "meters", icon: "meter" as const, label: t("mt_open"), onClick: onMeters }] : []),
   ];
@@ -628,13 +693,19 @@ export function LeaseCard({
           { label: t("lf_until"), value: formatDate(l.end_date) },
         ]}
       />
-
-      {error && <p className="error">{error}</p>}
-      {tab === "overview" && overview}
-      {tab === "terms" && terms}
-      {tab === "people" && people}
-
-      {sheet && <AgreementSheet lease={l} contract={contract} termsLines={termsLines} webApp={webApp} onClose={() => setSheet(false)} />}
+      {open && tab === "overview" && now && (
+        <NowCard now={now} onTarget={(target) => target === "contract" && setTab("contract")} />
+      )}
+      <LeaseBody
+        l={l}
+        onChange={reload}
+        section={tab}
+        webApp={webApp}
+        onGone={onBack}
+        onEdit={onEdit}
+        onInvite={onInvite}
+        onPropose={onPropose}
+      />
     </Screen>
   );
 }

@@ -34,6 +34,7 @@ from domovyk.modules.listings.service import ListingsConfig, ListingsService
 from domovyk.modules.moderation.schemas import BanIdentifiers, BanOut
 from domovyk.modules.moderation.service import ModerationService
 from domovyk.modules.notifications.service import NotificationsService
+from domovyk.modules.overview.service import OverviewService
 from domovyk.modules.payments.service import PaymentsConfig, PaymentsService
 from domovyk.modules.properties.service import PropertiesConfig, PropertiesService
 from domovyk.modules.search.service import SearchConfig, SearchService
@@ -494,5 +495,6 @@ def make_fake_services(
         search=search,
         showings=showings,
         applications=applications,
+        overview=OverviewService(properties, listings, applications, leases, contracts, payments),
     )
     return services, db

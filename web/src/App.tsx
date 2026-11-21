@@ -347,7 +347,7 @@ export function App() {
           applicationId={route.appId}
           initialRent={route.rent}
           onBack={back}
-          onSaved={(lease) => replace({ name: "lease", id: lease.id })}
+          onSaved={(lease) => replace({ name: "property", id: lease.property_id })}
         />
       );
       break;
@@ -371,6 +371,10 @@ export function App() {
           onChat={(id) => push({ name: "chat", id })}
           onMeters={() => push({ name: "meters", propertyId: route.id })}
           onListing={() => push({ name: "listing", id: route.id })}
+          onApplication={(id) => push({ name: "application", id })}
+          onEditLease={(lease) => push({ name: "lease-edit", id: lease.id })}
+          onPropose={(lease) => push({ name: "lease-propose", id: lease.id })}
+          onInvite={(leaseId, invite) => push({ name: "invite-share", leaseId, invite })}
           onDeleted={back}
         />
       );
@@ -432,6 +436,14 @@ export function App() {
           onPropose={() => push({ name: "lease-propose", id: route.id })}
           onMeters={() => push({ name: "meters", leaseId: route.id })}
           onInvite={(invite) => push({ name: "invite-share", leaseId: route.id, invite })}
+          onLandlord={(propertyId) =>
+            // Власник живої оренди бачить її на сторінці квартири (ADR 0023).
+            setStack((s) => {
+              const rest = s.slice(0, -1);
+              const prev = rest[rest.length - 1];
+              return prev?.name === "property" && prev.id === propertyId ? rest : [...rest, { name: "property", id: propertyId }];
+            })
+          }
         />
       );
       break;
@@ -440,14 +452,11 @@ export function App() {
         <LeaseFormLoader
           propertyId={route.propertyId}
           onBack={back}
-          onOpenLease={(id) =>
-            setStack([{ name: "home" }, { name: "property", id: route.propertyId }, { name: "lease", id }])
-          }
+          onOpenLease={() => setStack([{ name: "home" }, { name: "property", id: route.propertyId }])}
           onCreated={(lease, invite) =>
             setStack([
               { name: "home" },
               { name: "property", id: lease.property_id },
-              { name: "lease", id: lease.id },
               { name: "invite-share", leaseId: lease.id, invite },
             ])
           }

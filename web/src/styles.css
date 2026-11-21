@@ -4147,3 +4147,40 @@ a.button {
   display: flex;
   flex-direction: column;
 }
+
+/* ---- Картка «Зараз» (ADR 0023): одна наступна дія ---- */
+.now-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.now-card.tone-action {
+  border-color: var(--amber);
+  background: var(--amber-100);
+}
+
+.now-card.tone-ok {
+  background: var(--surface-2);
+}
+
+.now-label {
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.now-card.tone-action .now-label {
+  color: var(--amber-700);
+}
+
+.now-text {
+  margin: 0;
+  font-weight: 600;
+}
+
+.now-card .button {
+  margin: 4px 0 0;
+}

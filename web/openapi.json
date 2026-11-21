@@ -2198,6 +2198,29 @@
         "title": "LeaseOut",
         "type": "object"
       },
+      "LeaseOverview": {
+        "description": "Сторінка оренди (орендар, співмешканець): етап і «Зараз».",
+        "properties": {
+          "lease_id": {
+            "format": "uuid",
+            "title": "Lease Id",
+            "type": "string"
+          },
+          "now": {
+            "$ref": "#/components/schemas/NowOut"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/Stage"
+          }
+        },
+        "required": [
+          "lease_id",
+          "stage",
+          "now"
+        ],
+        "title": "LeaseOverview",
+        "type": "object"
+      },
       "LeaseStatus": {
         "enum": [
           "draft",
@@ -3608,6 +3631,82 @@
           "notify"
         ],
         "title": "NotifyIn",
+        "type": "object"
+      },
+      "NowCode": {
+        "description": "Що показати в картці «Зараз». Текст — у локалізації інтерфейсу.",
+        "enum": [
+          "verify_ownership",
+          "ownership_pending",
+          "ownership_rejected",
+          "fill_profile",
+          "publish_listing",
+          "new_applications",
+          "listing_paused",
+          "wait_applications",
+          "invite_tenant",
+          "review_proposal",
+          "agree_terms",
+          "wait_tenant_terms",
+          "tenant_agree",
+          "wait_landlord_terms",
+          "contract_names",
+          "contract_generate",
+          "sign_contract",
+          "confirm_external",
+          "wait_signatures",
+          "wait_contract",
+          "confirm_payment",
+          "rent_overdue",
+          "pay_rent",
+          "all_good",
+          "move_out"
+        ],
+        "title": "NowCode",
+        "type": "string"
+      },
+      "NowOut": {
+        "description": "Одна наступна дія: код (текст — у локалізації), тон і куди веде кнопка.",
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/NowCode"
+          },
+          "count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Count"
+          },
+          "on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "On"
+          },
+          "target": {
+            "$ref": "#/components/schemas/Target"
+          },
+          "tone": {
+            "$ref": "#/components/schemas/Tone"
+          }
+        },
+        "required": [
+          "code",
+          "tone",
+          "target"
+        ],
+        "title": "NowOut",
         "type": "object"
       },
       "OwnerPublic": {
@@ -5532,6 +5631,79 @@
         "title": "PropertyOut",
         "type": "object"
       },
+      "PropertyOverview": {
+        "description": "Сторінка квартири власника: етап, «Зараз» і що потрібно для вкладок.",
+        "properties": {
+          "chat_unread": {
+            "title": "Chat Unread",
+            "type": "integer"
+          },
+          "has_history": {
+            "title": "Has History",
+            "type": "boolean"
+          },
+          "lease_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lease Id"
+          },
+          "lease_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeaseStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "listing_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListingStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "new_applications": {
+            "title": "New Applications",
+            "type": "integer"
+          },
+          "now": {
+            "$ref": "#/components/schemas/NowOut"
+          },
+          "property_id": {
+            "format": "uuid",
+            "title": "Property Id",
+            "type": "string"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/Stage"
+          }
+        },
+        "required": [
+          "property_id",
+          "stage",
+          "now",
+          "lease_id",
+          "lease_status",
+          "listing_status",
+          "new_applications",
+          "chat_unread",
+          "has_history"
+        ],
+        "title": "PropertyOverview",
+        "type": "object"
+      },
       "PropertyUpdate": {
         "description": "Що можна змінити без повторної перевірки. Адреса не змінюється (лише новий об'єкт).",
         "properties": {
@@ -6894,6 +7066,18 @@
         "title": "SmokingPolicy",
         "type": "string"
       },
+      "Stage": {
+        "description": "Етап життя квартири: від нього залежать вкладки сторінки.",
+        "enum": [
+          "preparing",
+          "renting",
+          "signing",
+          "rented",
+          "ending"
+        ],
+        "title": "Stage",
+        "type": "string"
+      },
       "Stove": {
         "enum": [
           "gas",
@@ -6931,6 +7115,21 @@
           "application_approved"
         ],
         "title": "SystemCode",
+        "type": "string"
+      },
+      "Target": {
+        "description": "Куди веде кнопка картки «Зараз» (вкладка чи екран сторінки).",
+        "enum": [
+          "none",
+          "ownership",
+          "profile",
+          "listing",
+          "applications",
+          "overview",
+          "contract",
+          "invite"
+        ],
+        "title": "Target",
         "type": "string"
       },
       "TelegramUserOut": {
@@ -7120,6 +7319,15 @@
         ],
         "title": "TextIn",
         "type": "object"
+      },
+      "Tone": {
+        "enum": [
+          "action",
+          "wait",
+          "ok"
+        ],
+        "title": "Tone",
+        "type": "string"
       },
       "UnitKind": {
         "enum": [
@@ -10701,6 +10909,63 @@
         "summary": "Set Lease Notification Prefs"
       }
     },
+    "/api/v1/leases/{lease_id}/overview": {
+      "get": {
+        "description": "Етап оренди й картка «Зараз» для сторінки оренди (ADR 0023).",
+        "operationId": "lease_overview_api_v1_leases__lease_id__overview_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lease_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Lease Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaseOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Lease Overview"
+      }
+    },
     "/api/v1/leases/{lease_id}/payments": {
       "get": {
         "operationId": "payments_overview_api_v1_leases__lease_id__payments_get",
@@ -13867,6 +14132,63 @@
           }
         },
         "summary": "Add Meter"
+      }
+    },
+    "/api/v1/properties/{property_id}/overview": {
+      "get": {
+        "description": "Етап квартири й картка «Зараз» (ADR 0023).",
+        "operationId": "property_overview_api_v1_properties__property_id__overview_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "property_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Property Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropertyOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Property Overview"
       }
     },
     "/api/v1/properties/{property_id}/ownership": {

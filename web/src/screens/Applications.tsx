@@ -179,7 +179,16 @@ export function MyApplications({ onBack, onOpen }: { onBack: () => void; onOpen:
 }
 
 /** Заявки на оголошення квартири — блок на екрані оголошення власника. */
-export function IncomingApplications({ propertyId, onOpen }: { propertyId: string; onOpen: (id: string) => void }) {
+export function IncomingApplications({
+  propertyId,
+  onOpen,
+  bare = false,
+}: {
+  propertyId: string;
+  onOpen: (id: string) => void;
+  /** Вкладка «Заявки» сторінки квартири: список одразу, без згортки (назва вже на вкладці). */
+  bare?: boolean;
+}) {
   const [items, setItems] = useState<Application[] | null>(null);
   useEffect(() => {
     api
@@ -187,8 +196,19 @@ export function IncomingApplications({ propertyId, onOpen }: { propertyId: strin
       .then(setItems)
       .catch(() => setItems([]));
   }, [propertyId]);
-  if (!items) return null;
+  if (!items) return bare ? <div className="skeleton" /> : null;
   const pending = items.filter((x) => x.status === "pending").length;
+  const list =
+    items.length === 0 ? (
+      <p className="hint small">{t("ap_incoming_empty")}</p>
+    ) : (
+      <div className="result-list">
+        {items.map((x) => (
+          <ApplicationRow key={x.id} item={x} onOpen={() => onOpen(x.id)} />
+        ))}
+      </div>
+    );
+  if (bare) return <section className="card">{list}</section>;
   return (
     <Fold
       id={`incoming:${propertyId}`}
@@ -197,15 +217,7 @@ export function IncomingApplications({ propertyId, onOpen }: { propertyId: strin
       aside={pending > 0 ? <span className="count">{pending}</span> : undefined}
       defaultOpen={pending > 0}
     >
-      {items.length === 0 ? (
-        <p className="hint small">{t("ap_incoming_empty")}</p>
-      ) : (
-        <div className="result-list">
-          {items.map((x) => (
-            <ApplicationRow key={x.id} item={x} onOpen={() => onOpen(x.id)} />
-          ))}
-        </div>
-      )}
+      {list}
     </Fold>
   );
 }

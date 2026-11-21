@@ -812,6 +812,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/leases/{lease_id}/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lease Overview
+         * @description Етап оренди й картка «Зараз» для сторінки оренди (ADR 0023).
+         */
+        get: operations["lease_overview_api_v1_leases__lease_id__overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/leases/{lease_id}/payments": {
         parameters: {
             query?: never;
@@ -1566,6 +1586,26 @@ export interface paths {
         put?: never;
         /** Add Meter */
         post: operations["add_meter_api_v1_properties__property_id__meters_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/properties/{property_id}/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Property Overview
+         * @description Етап квартири й картка «Зараз» (ADR 0023).
+         */
+        get: operations["property_overview_api_v1_properties__property_id__overview_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2774,6 +2814,19 @@ export interface components {
             unread: number;
         };
         /**
+         * LeaseOverview
+         * @description Сторінка оренди (орендар, співмешканець): етап і «Зараз».
+         */
+        LeaseOverview: {
+            /**
+             * Lease Id
+             * Format: uuid
+             */
+            lease_id: string;
+            now: components["schemas"]["NowOut"];
+            stage: components["schemas"]["Stage"];
+        };
+        /**
          * LeaseStatus
          * @enum {string}
          */
@@ -3288,6 +3341,25 @@ export interface components {
             notify: boolean;
         };
         /**
+         * NowCode
+         * @description Що показати в картці «Зараз». Текст — у локалізації інтерфейсу.
+         * @enum {string}
+         */
+        NowCode: "verify_ownership" | "ownership_pending" | "ownership_rejected" | "fill_profile" | "publish_listing" | "new_applications" | "listing_paused" | "wait_applications" | "invite_tenant" | "review_proposal" | "agree_terms" | "wait_tenant_terms" | "tenant_agree" | "wait_landlord_terms" | "contract_names" | "contract_generate" | "sign_contract" | "confirm_external" | "wait_signatures" | "wait_contract" | "confirm_payment" | "rent_overdue" | "pay_rent" | "all_good" | "move_out";
+        /**
+         * NowOut
+         * @description Одна наступна дія: код (текст — у локалізації), тон і куди веде кнопка.
+         */
+        NowOut: {
+            code: components["schemas"]["NowCode"];
+            /** Count */
+            count?: number | null;
+            /** On */
+            on?: string | null;
+            target: components["schemas"]["Target"];
+            tone: components["schemas"]["Tone"];
+        };
+        /**
          * OwnerPublic
          * @description Що орендар бачить про власника до схвалення заявки (FR-APP-1): без контактів.
          */
@@ -3787,6 +3859,29 @@ export interface components {
             street: string;
             /** Units */
             units: components["schemas"]["UnitOut"][];
+        };
+        /**
+         * PropertyOverview
+         * @description Сторінка квартири власника: етап, «Зараз» і що потрібно для вкладок.
+         */
+        PropertyOverview: {
+            /** Chat Unread */
+            chat_unread: number;
+            /** Has History */
+            has_history: boolean;
+            /** Lease Id */
+            lease_id: string | null;
+            lease_status: components["schemas"]["LeaseStatus"] | null;
+            listing_status: components["schemas"]["ListingStatus"] | null;
+            /** New Applications */
+            new_applications: number;
+            now: components["schemas"]["NowOut"];
+            /**
+             * Property Id
+             * Format: uuid
+             */
+            property_id: string;
+            stage: components["schemas"]["Stage"];
         };
         /**
          * PropertyUpdate
@@ -4374,6 +4469,12 @@ export interface components {
          */
         SmokingPolicy: "no" | "balcony" | "yes";
         /**
+         * Stage
+         * @description Етап життя квартири: від нього залежать вкладки сторінки.
+         * @enum {string}
+         */
+        Stage: "preparing" | "renting" | "signing" | "rented" | "ending";
+        /**
          * Stove
          * @enum {string}
          */
@@ -4384,6 +4485,12 @@ export interface components {
          * @enum {string}
          */
         SystemCode: "lease_created" | "member_joined" | "member_left" | "terms_accepted" | "terms_change_requested" | "terms_declined" | "terms_updated" | "lease_cancelled" | "terms_proposed" | "proposal_accepted" | "proposal_declined" | "contract_ready" | "contract_signed_by" | "contract_external" | "contract_external_rejected" | "lease_activated" | "termination_requested" | "termination_withdrawn" | "lease_ended" | "payment_reported" | "payment_confirmed" | "payment_rejected" | "application_approved";
+        /**
+         * Target
+         * @description Куди веде кнопка картки «Зараз» (вкладка чи екран сторінки).
+         * @enum {string}
+         */
+        Target: "none" | "ownership" | "profile" | "listing" | "applications" | "overview" | "contract" | "invite";
         /** TelegramUserOut */
         TelegramUserOut: {
             /** First Name */
@@ -4451,6 +4558,11 @@ export interface components {
             /** Text */
             text: string;
         };
+        /**
+         * Tone
+         * @enum {string}
+         */
+        Tone: "action" | "wait" | "ok";
         /**
          * UnitKind
          * @enum {string}
@@ -6441,6 +6553,39 @@ export interface operations {
             };
         };
     };
+    lease_overview_api_v1_leases__lease_id__overview_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                lease_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaseOverview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     payments_overview_api_v1_leases__lease_id__payments_get: {
         parameters: {
             query?: never;
@@ -8328,6 +8473,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MetersOverview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    property_overview_api_v1_properties__property_id__overview_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyOverview"];
                 };
             };
             /** @description Validation Error */

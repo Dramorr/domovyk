@@ -37,6 +37,7 @@ from domovyk.modules.moderation.repository import SqlModerationRepository
 from domovyk.modules.moderation.service import ModerationService
 from domovyk.modules.notifications.repository import SqlNotificationsRepository
 from domovyk.modules.notifications.service import NotificationsService
+from domovyk.modules.overview.service import OverviewService
 from domovyk.modules.payments.repository import SqlPaymentsRepository
 from domovyk.modules.payments.service import PaymentsConfig, PaymentsService
 from domovyk.modules.properties.repository import SqlPropertiesRepository
@@ -67,6 +68,7 @@ class Services:
     search: SearchService
     showings: ShowingsService
     applications: ApplicationsService
+    overview: OverviewService
 
 
 def users_config(settings: Settings) -> UsersConfig:
@@ -289,6 +291,9 @@ class Container:
             search=search,
             showings=showings,
             applications=applications,
+            overview=OverviewService(
+                properties, listings, applications, leases, contracts, payments
+            ),
         )
 
     async def close(self) -> None:
