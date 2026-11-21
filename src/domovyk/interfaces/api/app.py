@@ -45,11 +45,13 @@ from domovyk.domain.contracts import EXTERNAL_PDF_MAX_BYTES, SIGNATURE_MAX_BYTES
 from domovyk.domain.leases import MemberRole
 from domovyk.domain.payments import RECEIPT_MAX_BYTES
 from domovyk.interfaces.api.download_links import DownloadLinks
+from domovyk.interfaces.api.feed import FeedOut, UnreadOut, feed_item
 from domovyk.interfaces.api.telegram_auth import (
     InitDataError,
     TelegramAuth,
     validate_init_data,
 )
+from domovyk.interfaces.telegram.notifications import make_renderer
 from domovyk.modules.applications.service import (
     ApplicationCard,
     ApplicationIn,
@@ -767,6 +769,25 @@ def create_app(
     @app.post("/api/v1/leases/{lease_id}/read", status_code=status.HTTP_204_NO_CONTENT)
     async def mark_lease_read(auth: Auth, lease_id: uuid.UUID, body: ReadIn) -> Response:
         await svc.leases.mark_read(auth.user.id, lease_id, body.message_id)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    # ------------------------------------------------- стрічка сповіщень (дзвіночок)
+
+    render = make_renderer(settings.mini_app_url)
+
+    @app.get("/api/v1/notifications")
+    async def notification_feed(auth: Auth) -> FeedOut:
+        entries = await svc.notifications.feed(auth.user.id)
+        items = [x for e in entries if (x := feed_item(e, render)) is not None]
+        return FeedOut(items=items, unread=await svc.notifications.unread_count(auth.user.id))
+
+    @app.get("/api/v1/notifications/unread")
+    async def notification_unread(auth: Auth) -> UnreadOut:
+        return UnreadOut(unread=await svc.notifications.unread_count(auth.user.id))
+
+    @app.post("/api/v1/notifications/read", status_code=status.HTTP_204_NO_CONTENT)
+    async def notifications_read(auth: Auth) -> Response:
+        await svc.notifications.mark_all_read(auth.user.id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     @app.get("/api/v1/leases/{lease_id}/notifications")

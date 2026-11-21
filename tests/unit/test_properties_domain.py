@@ -14,6 +14,7 @@ from domovyk.domain.properties import (
     VerificationStatus,
     building_key,
     can_collect_documents,
+    display_street,
     normalize_apartment,
     normalize_house_number,
     street_key,
@@ -87,3 +88,23 @@ def test_ownership_transitions() -> None:
         VERIFICATION.transition(VerificationStatus.DRAFT, VerificationStatus.VERIFIED)
     assert can_collect_documents(OwnershipStatus.REJECTED)
     assert not can_collect_documents(OwnershipStatus.PENDING)
+
+
+@pytest.mark.parametrize(
+    ("street", "short", "full"),
+    [
+        ("Болгарська вулиця", "вул. Болгарська", "вулиця Болгарська"),
+        ("вулиця Тараса Шевченка", "вул. Тараса Шевченка", "вулиця Тараса Шевченка"),
+        (
+            "проспект В'ячеслава Чорновола",
+            "просп. В'ячеслава Чорновола",
+            "проспект В'ячеслава Чорновола",
+        ),
+        ("вул. Шевченка", "вул. Шевченка", "вулиця Шевченка"),
+        ("площа Ринок", "пл. Ринок", "площа Ринок"),
+        ("Тестова", "Тестова", "Тестова"),
+    ],
+)
+def test_display_street_puts_type_first(street: str, short: str, full: str) -> None:
+    assert display_street(street) == short
+    assert display_street(street, full=True) == full

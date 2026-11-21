@@ -83,6 +83,14 @@ async def test_full_ownership_cycle(
     assert sent == 3
     assert {m.chat_id for m in notifier.messages} == {ADMIN_TG, OWNER}
 
+    # Стрічка (дзвіночок): власник бачить своє доставлене, після відкриття — прочитане.
+    feed = await s.notifications.feed(OWNER)
+    assert [e.type for e in feed] == ["ownership_verified"] and not feed[0].read
+    assert await s.notifications.unread_count(OWNER) == 1
+    await s.notifications.mark_all_read(OWNER)
+    assert await s.notifications.unread_count(OWNER) == 0
+    assert await s.notifications.unread_count(ADMIN_TG) == 2
+
     it_clock.advance(timedelta(days=31))
     assert await s.properties.purge_documents() == 2
 

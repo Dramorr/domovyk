@@ -13,6 +13,8 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 
+from domovyk.domain.properties import display_street
+
 _ENV = Environment(
     loader=FileSystemLoader(Path(__file__).parent / "templates"),
     autoescape=select_autoescape(["html"]),
@@ -76,7 +78,8 @@ def render_contract(snapshot: dict[str, Any]) -> str:
     start = date.fromisoformat(snapshot["start_date"])
     end = date.fromisoformat(snapshot["end_date"])
     apt = snapshot.get("apartment")
-    address = f"м. {snapshot['city']}, {snapshot['street']}, буд. {snapshot['house_number']}"
+    street = display_street(snapshot["street"], full=True)
+    address = f"м. {snapshot['city']}, {street}, буд. {snapshot['house_number']}"
     if apt:
         address += f", кв. {apt}"
     if snapshot.get("unit_kind") == "room":

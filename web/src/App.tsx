@@ -12,6 +12,7 @@ import { ListingScreen } from "./screens/Listing";
 import { FavoritesScreen, ListingView, SearchScreen } from "./screens/Search";
 import { ApplicationScreen, MyApplications } from "./screens/Applications";
 import { MetersScreen } from "./screens/Meters";
+import { NotificationsScreen } from "./screens/Notifications";
 import { Profile } from "./screens/Profile";
 import { PropertyProfile } from "./screens/PropertyProfile";
 import { NewProperty, OwnershipScreen, PropertyCard, PropertyList } from "./screens/Properties";
@@ -43,6 +44,7 @@ type Route =
   | { name: "invite"; token: string }
   | { name: "chat"; id: string }
   | { name: "lease-notify"; id: string }
+  | { name: "notifications" }
   | { name: "meters"; leaseId?: string; propertyId?: string }
   | { name: "listing"; id: string }
   | { name: "listing-view"; id: string }
@@ -95,6 +97,8 @@ export function App() {
   // Стек екранів усередині вкладки: «Назад» повертає на попередній.
   const [stack, setStack] = useState<Route[]>([{ name: "home" }]);
   const [modCount, setModCount] = useState<number | null>(null);
+  // Непрочитані сповіщення (дзвіночок у шапці): оновлюємо на кожному переході.
+  const [unread, setUnread] = useState(0);
 
   const route = stack[stack.length - 1];
   const push = (r: Route) => setStack((s) => [...s, r]);
@@ -137,6 +141,31 @@ export function App() {
         .catch(() => setModCount(null));
   }, [ready, isStaff, atHome]);
 
+  useEffect(() => {
+    if (!ready) return;
+    api
+      .notificationsUnread()
+      .then((r) => setUnread(r.unread))
+      .catch(() => undefined);
+  }, [ready, stack]);
+
+  // Перехід зі сповіщення в стрічці: той самий deep link, що й у кнопці бота.
+  const openStart = useCallback(
+    (start: string) => {
+      const routes = routeFromStart(start, isStaff);
+      if (!routes.length) return;
+      const needed = modeForRoute(routes);
+      if (needed && user?.mode && user.mode !== needed) {
+        api
+          .setMode(needed)
+          .then((u) => setState((s) => (s.kind === "ready" ? { kind: "ready", me: { ...s.me, user: u } } : s)))
+          .catch(() => undefined);
+      }
+      setStack(routes);
+    },
+    [isStaff, user?.mode],
+  );
+
   // Розділи меню відкриваються поверх головної: [головна, розділ, …].
   const activeTab: Tab | null = (() => {
     if (stack.length === 1 && stack[0]?.name === "home") return "home";
@@ -168,6 +197,8 @@ export function App() {
       mode,
       isStaff,
       modCount,
+      unread,
+      openNotifications: () => setStack((s) => [...s, { name: "notifications" }]),
       userName: user?.display_name ?? "",
       // Будь-який розділ — поверх головної: «Назад» завжди веде туди.
       go: (tab: Tab) => setStack(tab === "home" ? [{ name: "home" }] : [{ name: "home" }, { name: tab }]),
@@ -181,7 +212,7 @@ export function App() {
         bot: botLink(),
       },
     }),
-    [activeTab, mode, isStaff, modCount, switchMode, user?.display_name, webApp, state],
+    [activeTab, mode, isStaff, modCount, unread, switchMode, user?.display_name, webApp, state],
   );
 
   if (!webApp) {
@@ -261,6 +292,7 @@ export function App() {
           onBack={stack.length > 1 ? back : undefined}
           onUserChange={setUser}
           onDeleted={() => setState({ kind: "deleted" })}
+          onLeaseNotify={(id) => push({ name: "lease-notify", id })}
         />
       );
       break;
@@ -398,7 +430,6 @@ export function App() {
           onChat={() => push({ name: "chat", id: route.id })}
           onEdit={() => push({ name: "lease-edit", id: route.id })}
           onPropose={() => push({ name: "lease-propose", id: route.id })}
-          onNotify={() => push({ name: "lease-notify", id: route.id })}
           onMeters={() => push({ name: "meters", leaseId: route.id })}
           onInvite={(invite) => push({ name: "invite-share", leaseId: route.id, invite })}
         />
@@ -443,6 +474,9 @@ export function App() {
       break;
     case "chat":
       screen = <Chat key={route.id} source={{ kind: "lease", id: route.id }} onBack={back} />;
+      break;
+    case "notifications":
+      screen = <NotificationsScreen onBack={back} onOpen={openStart} onRead={() => setUnread(0)} />;
       break;
     case "lease-notify":
       screen = <LeaseNotifications id={route.id} onBack={back} />;

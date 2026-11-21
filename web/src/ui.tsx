@@ -28,6 +28,9 @@ type Nav = {
   mode: Mode;
   isStaff: boolean;
   modCount: number | null;
+  /** Непрочитані сповіщення — число на дзвіночку в шапці. */
+  unread: number;
+  openNotifications: () => void;
   userName: string;
   go: (tab: Tab) => void;
   switchMode: () => void;
@@ -230,7 +233,18 @@ export function Header({ onBack, title, actions }: { onBack?: () => void; title?
       )}
       {title ? <span className="appbar-title">{title}</span> : <span className="brand">Домовик</span>}
       {/* Дії сторінки (дзвіночок сповіщень тощо) — праворуч, перед меню. */}
-      {actions && <span className="appbar-actions">{actions}</span>}
+      {(actions || nav) && (
+        <span className="appbar-actions">
+          {actions}
+          {/* Дзвіночок — на кожній сторінці: стрічка всіх сповіщень, звідти — на потрібну сторінку. */}
+          {nav && (
+            <button className="icon-button bell-button" onClick={nav.openNotifications} aria-label={t("ntf_feed_title")}>
+              <Icon name="bell" size={24} />
+              {nav.unread > 0 && <span className="dot">{nav.unread > 99 ? "99+" : nav.unread}</span>}
+            </button>
+          )}
+        </span>
+      )}
       {nav ? (
         <button className="icon-button menu-button" onClick={() => setMenu(true)} aria-label={t("menu_title")} aria-haspopup="dialog">
           <Icon name="menu" size={28} />
@@ -545,17 +559,34 @@ export function errorText(e: unknown): string {
 }
 
 /** Адреса об'єкта для показу власнику (повна: вона його). */
-// Тип вулиці скорочуємо, як прийнято в адресах: «вулиця Шевченка» → «вул. Шевченка».
-const STREET_TYPES: [RegExp, string][] = [
-  [/(^|\s)вулиця(?=\s|$)/i, "$1вул."],
-  [/(^|\s)проспект(?=\s|$)/i, "$1просп."],
-  [/(^|\s)провулок(?=\s|$)/i, "$1пров."],
-  [/(^|\s)бульвар(?=\s|$)/i, "$1бульв."],
-  [/(^|\s)площа(?=\s|$)/i, "$1пл."],
+// Тип вулиці скорочуємо й ставимо попереду, як прийнято в адресах:
+// «Болгарська вулиця» → «вул. Болгарська». Те саме робить бекенд (domain/properties.display_street).
+const STREET_TYPES: [string, string][] = [
+  ["вулиця", "вул."],
+  ["вул", "вул."],
+  ["проспект", "просп."],
+  ["просп", "просп."],
+  ["провулок", "пров."],
+  ["пров", "пров."],
+  ["бульвар", "бульв."],
+  ["бульв", "бульв."],
+  ["площа", "пл."],
+  ["пл", "пл."],
+  ["набережна", "наб."],
+  ["узвіз", "узвіз"],
+  ["майдан", "майдан"],
 ];
 
 export function shortStreet(street: string): string {
-  return STREET_TYPES.reduce((s, [re, short]) => s.replace(re, short), street);
+  const value = street.replace(/\s+/g, " ").trim();
+  for (const [word, short] of STREET_TYPES) {
+    // Слово типу окремим словом (з крапкою чи без), будь-де в назві.
+    const re = new RegExp(`(^|[\\s,])${word}\\.?(?=[\\s,]|$)`, "i");
+    if (!re.test(value)) continue;
+    const name = value.replace(re, "$1").replace(/\s+/g, " ").replace(/^[\s,.]+|[\s,.]+$/g, "");
+    return name ? `${short} ${name}` : value;
+  }
+  return value;
 }
 
 export function formatAddress(p: { street: string; house_number: string; apartment?: string | null }): string {

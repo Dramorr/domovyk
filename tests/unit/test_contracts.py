@@ -201,7 +201,7 @@ async def test_generate_needs_agreed_terms_and_names(env: tuple[Services, FakeDb
     # Текст договору: сторони, адреса, строк, піднайм заборонено, без реквізитів картки.
     html = db.pdf.last_html or ""
     assert OWNER_NAME in html and TENANT_NAME in html
-    assert "вул. Шевченка" in html and "18 000" in html and "«01» грудня 2026" in html
+    assert "вулиця Шевченка" in html and "18 000" in html and "«01» грудня 2026" in html
     assert "заборонений" in html and "4111" not in html
     assert any(n.payload.get("event") == "contract_ready" for n in db.prop.notifications)
 

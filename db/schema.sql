@@ -873,6 +873,8 @@ CREATE TABLE notifications (
     created_at  timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_notifications_pending ON notifications(send_after) WHERE sent_at IS NULL;
+-- Стрічка в Mini App (дзвіночок): доставлені сповіщення людини, найновіші першими.
+CREATE INDEX idx_notifications_feed ON notifications(user_id, sent_at DESC) WHERE sent_at IS NOT NULL;
 
 CREATE TABLE events (
     id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

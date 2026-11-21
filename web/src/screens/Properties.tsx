@@ -25,7 +25,7 @@ import {
 } from "../ui";
 import { isOpenLease, LeaseRows, LeaseStatusChip, rentText } from "./Leases";
 import { ListingChip } from "./Listing";
-import { PhotoSlider } from "./Photos";
+import { PageHead } from "./PageHead";
 import { CompletenessBar, PublishHint } from "./PropertyProfile";
 import { Stepper, type Step } from "./Stepper";
 
@@ -807,19 +807,41 @@ export function PropertyCard({
 
   return (
     <Screen onBack={onBack} tabs={tabs}>
-      {photos && photos.length > 0 && <PhotoSlider photos={photos} source={{ kind: "property", id }} />}
-      {photos && photos.length === 0 && (
-        <button type="button" className="photo-empty" onClick={onProfile}>
-          <Icon name="photo" size={28} />
-          <span>{t("prp_card_add_photos")}</span>
-        </button>
-      )}
-      <h1 className="left">{formatAddress(prop)}</h1>
-      <p className="hint left">
-        {roomsText(prop.rooms)}
-        {prop.area && ` · ${t("sqm", { area: prop.area })}`}
-        {prop.district && ` · ${prop.district}`}
-      </p>
+      <PageHead
+        photos={photos ?? []}
+        source={{ kind: "property", id }}
+        chip={
+          current ? (
+            <LeaseStatusChip status={current.status} />
+          ) : listing && ["draft", "active", "paused"].includes(listing.status) ? (
+            <ListingChip status={listing.status} />
+          ) : (
+            <Chip tone="neutral">{t("prp_free")}</Chip>
+          )
+        }
+        title={formatAddress(prop)}
+        facts={
+          current
+            ? [
+                { label: t("lf_rent"), value: rentText(current.rent_amount) },
+                { label: t("pf_fact_rooms"), value: roomsText(prop.rooms) },
+                { label: t("lf_until"), value: formatDate(current.end_date) },
+              ]
+            : [
+                { label: t("pf_fact_rooms"), value: roomsText(prop.rooms) },
+                ...(prop.area ? [{ label: t("pf_fact_area"), value: t("sqm", { area: prop.area }) }] : []),
+                ...(prop.district ? [{ label: t("pf_fact_district"), value: prop.district }] : []),
+              ]
+        }
+        empty={
+          photos && (
+            <button type="button" className="photo-empty" onClick={onProfile}>
+              <Icon name="photo" size={28} />
+              <span>{t("prp_card_add_photos")}</span>
+            </button>
+          )
+        }
+      />
 
       {shown === "overview" && overview}
       {shown === "profile" && profile}

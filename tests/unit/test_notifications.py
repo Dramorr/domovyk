@@ -10,6 +10,7 @@ from domovyk.adapters.notifier.base import NotifierError
 from domovyk.container import Services
 from domovyk.core.clock import FixedClock
 from domovyk.core.tx import Tx
+from domovyk.interfaces.api.feed import feed_item
 from domovyk.interfaces.telegram.notifications import make_renderer
 from domovyk.modules.notifications.service import NotificationType, PendingNotification
 from tests.fakes import PRIVACY_V, TERMS_V, FakeDb, make_fake_services
@@ -98,3 +99,27 @@ def test_moderation_alert_text_has_ban_hint() -> None:
     assert msg is not None
     assert "/ban 43" in msg.text and "&lt;Іван&gt;" in msg.text
     assert msg.buttons[0].web_app_url == APP + "?start=mod"
+
+
+async def test_feed_shows_delivered_newest_first_and_marks_read() -> None:
+    clock = FixedClock(datetime(2026, 11, 5, 12, tzinfo=UTC))
+    s, _, user_id = await _setup(clock)
+    payload = {"property_id": "p1", "street": "Болгарська вулиця", "house_number": "3"}
+    await _enqueue(s, user_id, NotificationType.OWNERSHIP_VERIFIED, payload, "k1")
+    await _enqueue(s, user_id, NotificationType.MODERATION_QUEUE, {}, "q1")
+    # Ще не доставлене не показуємо: дзвіночок — про те, що людина вже отримала.
+    assert await s.notifications.feed(42) == []
+
+    render = make_renderer(APP)
+    assert await s.notifications.send_pending(render, FakeNotifier()) == 2
+    feed = await s.notifications.feed(42)
+    assert [e.type for e in feed] == ["moderation_queue", "ownership_verified"]
+    assert await s.notifications.unread_count(42) == 2
+
+    item = feed_item(feed[1], render)
+    assert item is not None and item.start == "prop_p1" and not item.read
+    assert "<" not in item.text and "вул. Болгарська, 3" in item.text
+
+    await s.notifications.mark_all_read(42)
+    assert await s.notifications.unread_count(42) == 0
+    assert all(e.read for e in await s.notifications.feed(42))

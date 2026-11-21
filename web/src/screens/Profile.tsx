@@ -4,11 +4,12 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { api, type City, type Personal, type User } from "../api/client";
-import { t } from "../i18n";
+import { api, type City, type LeaseSummary, type Personal, type User } from "../api/client";
+import { t, type TextKey } from "../i18n";
 import { confirm, type WebApp } from "../telegram";
 import { Icon } from "../icons";
-import { Avatar, Divider, errorCode, errorField, errorText, Fold, MascotTip, Screen } from "../ui";
+import { Avatar, Divider, errorCode, errorField, errorText, Fold, ListRow, MascotTip, Screen } from "../ui";
+import { isOpenLease, leaseAddress } from "./Leases";
 import { isValidName } from "./Onboarding";
 
 const AVATAR_MAX_MB = 15; // як avatar_max_bytes на бекенді
@@ -31,13 +32,24 @@ export function Profile({
   onBack,
   onUserChange,
   onDeleted,
+  onLeaseNotify,
 }: {
   user: User;
   webApp: WebApp;
   onBack?: () => void;
   onUserChange: (user: User) => void;
   onDeleted: () => void;
+  /** Налаштування сповіщень однієї оренди (NTF-LEASE). */
+  onLeaseNotify: (leaseId: string) => void;
 }) {
+  // Оренди, для яких можна налаштувати сповіщення: лише незавершені.
+  const [leases, setLeases] = useState<LeaseSummary[] | null>(null);
+  useEffect(() => {
+    api
+      .leases()
+      .then((all) => setLeases(all.filter((l) => isOpenLease(l.status))))
+      .catch(() => setLeases([]));
+  }, []);
   const [name, setName] = useState(user.display_name);
   const [personal, setPersonal] = useState<Personal | null>(null);
   const [form, setForm] = useState<Form>(toForm(null));
@@ -276,6 +288,21 @@ export function Profile({
             {!user.has_phone && <p className="hint small">{t("prof_phone_need")}</p>}
           </>
         )}
+      </Fold>
+
+      <Fold id="profile:notifications" icon="bell" title={t("ntf_settings_title")}>
+        <p className="hint small">{t("ntf_settings_hint")}</p>
+        {leases === null && <div className="skeleton" />}
+        {leases && leases.length === 0 && <p className="hint small">{t("ntf_settings_none")}</p>}
+        {leases?.map((l) => (
+          <ListRow
+            key={l.id}
+            icon="key"
+            title={leaseAddress(l)}
+            sub={t(`ls_role_${l.my_role}` as TextKey)}
+            onClick={() => onLeaseNotify(l.id)}
+          />
+        ))}
       </Fold>
 
       <Fold id="profile:reviews" icon="star" title={t("prof_tab_reviews")}>

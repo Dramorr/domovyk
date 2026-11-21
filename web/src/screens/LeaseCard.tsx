@@ -13,7 +13,7 @@ import { agreementSides, AgreementSheet } from "./AgreementBar";
 import { ContractBlock } from "./Contract";
 import { leaseAddress, LeaseStatusChip, TerminationBlock, termsLines } from "./Leases";
 import { PaymentsBlock } from "./Payments";
-import { PhotoSlider } from "./Photos";
+import { PageHead } from "./PageHead";
 
 const k = (key: string) => t(key as TextKey);
 
@@ -138,7 +138,6 @@ export function LeaseCard({
   onBack,
   onChat,
   onEdit,
-  onNotify,
   onInvite,
   onPropose,
   onMeters,
@@ -148,7 +147,6 @@ export function LeaseCard({
   onBack: () => void;
   onChat: () => void;
   onEdit: (lease: Lease) => void;
-  onNotify: () => void;
   onInvite: (invite: Invite) => void;
   onPropose: (lease: Lease) => void;
   onMeters: () => void;
@@ -616,40 +614,20 @@ export function LeaseCard({
     ...(live ? [{ key: "meters", icon: "meter" as const, label: t("mt_open"), onClick: onMeters }] : []),
   ];
 
-  const bell = (
-    <button className="icon-button" onClick={onNotify} aria-label={t("ls_notify")}>
-      <Icon name="bell" size={24} />
-    </button>
-  );
-
   return (
-    <Screen onBack={onBack} actions={bell} tabs={tabs}>
-      {photos.length > 0 && (
-        <div className="lease-hero">
-          <PhotoSlider photos={photos} source={{ kind: "lease", id: l.id }} compact />
-        </div>
-      )}
-      <section className={`card lease-head${photos.length ? " over-photo" : ""}`}>
-        <div className="lease-head-top">
-          <LeaseStatusChip status={l.status} />
-          <span className="hint small">{k(`ls_role_${l.my_role}`)}</span>
-        </div>
-        <h1>{leaseAddress(l)}</h1>
-        <dl className="facts">
-          <div>
-            <dt>{t("lf_rent")}</dt>
-            <dd>{money(l.rent_amount)}</dd>
-          </div>
-          <div>
-            <dt>{t("lf_due")}</dt>
-            <dd>{t("lf_due_value", { day: String(l.rent_due_day) })}</dd>
-          </div>
-          <div>
-            <dt>{t("lf_until")}</dt>
-            <dd>{formatDate(l.end_date)}</dd>
-          </div>
-        </dl>
-      </section>
+    <Screen onBack={onBack} tabs={tabs}>
+      <PageHead
+        photos={photos}
+        source={{ kind: "lease", id: l.id }}
+        chip={<LeaseStatusChip status={l.status} />}
+        aside={k(`ls_role_${l.my_role}`)}
+        title={leaseAddress(l)}
+        facts={[
+          { label: t("lf_rent"), value: money(l.rent_amount) },
+          { label: t("lf_due"), value: t("lf_due_value", { day: String(l.rent_due_day) }) },
+          { label: t("lf_until"), value: formatDate(l.end_date) },
+        ]}
+      />
 
       {error && <p className="error">{error}</p>}
       {tab === "overview" && overview}

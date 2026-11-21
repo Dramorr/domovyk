@@ -61,6 +61,8 @@ export type ShowingsBoard = S["ShowingsBoard"];
 export type SlotChoice = S["SlotChoice"];
 export type ShowingAnswer = S["ShowingAnswer"];
 export type DeclineReason = S["DeclineReason"];
+export type NotificationFeed = S["FeedOut"];
+export type NotificationItem = S["FeedItemOut"];
 /** Чат оренди або заявки — однакові запити, різна адреса. */
 export type ChatSource = { kind: "lease" | "application"; id: string };
 
@@ -388,6 +390,10 @@ export const api = {
   cancelShowing: (id: string) => request<ApplicationCard>("POST", `${a(id)}/showing/cancel`),
   answerShowing: (id: string, answer: ShowingAnswer) =>
     request<ApplicationCard>("POST", `${a(id)}/showing/answer`, { answer }),
+  // Стрічка сповіщень (дзвіночок у шапці)
+  notifications: () => request<NotificationFeed>("GET", "/api/v1/notifications"),
+  notificationsUnread: () => request<S["UnreadOut"]>("GET", "/api/v1/notifications/unread"),
+  notificationsRead: () => request<void>("POST", "/api/v1/notifications/read"),
   notifyPrefs: (id: string) => request<NotifyPrefs>("GET", `${l(id)}/notifications`),
   setNotifyPrefs: (id: string, body: NotifyPrefs) => request<NotifyPrefs>("PUT", `${l(id)}/notifications`, body),
 

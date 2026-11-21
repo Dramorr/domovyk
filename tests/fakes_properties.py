@@ -16,7 +16,7 @@ from domovyk.adapters.notifier.base import Button, NotifierError
 from domovyk.adapters.storage.base import FileNotFoundInStorage
 from domovyk.domain.properties import OwnershipStatus, PropertyKind, UnitKind, VerificationStatus
 from domovyk.modules.notifications.repository import GIVE_UP_ATTEMPTS
-from domovyk.modules.notifications.schemas import PendingNotification
+from domovyk.modules.notifications.schemas import FeedEntry, PendingNotification
 from domovyk.modules.properties.repository import (
     NewBuilding,
     NewProperty,
@@ -95,6 +95,7 @@ class _Notification:
     attempts: int = 0
     last_error: str | None = None
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    read_at: datetime | None = None
 
 
 LVIV = CityOut(code="lviv", name="Львів", region="Львівська область", status="active")
@@ -540,6 +541,25 @@ class FakeNotificationsRepository:
         else:
             n.attempts += 1
             n.send_after = retry_at
+
+    def _delivered(self, user_id: uuid.UUID) -> list[_Notification]:
+        return [n for n in self.db.notifications if n.user_id == user_id and n.sent_at]
+
+    async def feed(self, user_id: uuid.UUID, limit: int) -> list[FeedEntry]:
+        items = sorted(self._delivered(user_id), key=lambda n: (n.sent_at, n.id), reverse=True)
+        return [
+            FeedEntry(
+                n.id, n.type, dict(n.payload), n.sent_at or n.created_at, n.read_at is not None
+            )
+            for n in items[:limit]
+        ]
+
+    async def unread_count(self, user_id: uuid.UUID) -> int:
+        return sum(1 for n in self._delivered(user_id) if n.read_at is None)
+
+    async def mark_all_read(self, user_id: uuid.UUID, at: datetime) -> None:
+        for n in self._delivered(user_id):
+            n.read_at = n.read_at or at
 
 
 class FakePrefs:

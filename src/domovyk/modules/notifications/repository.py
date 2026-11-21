@@ -11,7 +11,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from domovyk.core.tx import Tx, session_of
 from domovyk.modules.notifications.models import NotificationPreferenceRow, NotificationRow
-from domovyk.modules.notifications.schemas import PendingNotification
+from domovyk.modules.notifications.schemas import FeedEntry, PendingNotification
 
 # Позначка «більше не пробувати»: більше за будь-який ліміт спроб (smallint).
 GIVE_UP_ATTEMPTS = 32767
@@ -49,6 +49,13 @@ class NotificationsRepository(Protocol):
     ) -> None:
         """retry_at=None — більше не пробувати."""
         ...
+
+    async def feed(self, user_id: uuid.UUID, limit: int) -> list[FeedEntry]:
+        """Доставлені сповіщення людини, найновіші першими."""
+        ...
+
+    async def unread_count(self, user_id: uuid.UUID) -> int: ...
+    async def mark_all_read(self, user_id: uuid.UUID, at: datetime) -> None: ...
 
 
 class SqlNotificationsRepository:
@@ -148,6 +155,43 @@ class SqlNotificationsRepository:
                 ],
                 set_={"enabled": enabled, "params": params},
             )
+        )
+
+    async def feed(self, user_id: uuid.UUID, limit: int) -> list[FeedEntry]:
+        rows = await self._s.scalars(
+            select(NotificationRow)
+            .where(NotificationRow.user_id == user_id, NotificationRow.sent_at.is_not(None))
+            .order_by(NotificationRow.sent_at.desc(), NotificationRow.id.desc())
+            .limit(limit)
+        )
+        return [
+            FeedEntry(
+                r.id, r.type, dict(r.payload), r.sent_at or r.created_at, r.read_at is not None
+            )
+            for r in rows
+        ]
+
+    async def unread_count(self, user_id: uuid.UUID) -> int:
+        count = await self._s.scalar(
+            select(func.count())
+            .select_from(NotificationRow)
+            .where(
+                NotificationRow.user_id == user_id,
+                NotificationRow.sent_at.is_not(None),
+                NotificationRow.read_at.is_(None),
+            )
+        )
+        return int(count or 0)
+
+    async def mark_all_read(self, user_id: uuid.UUID, at: datetime) -> None:
+        await self._s.execute(
+            update(NotificationRow)
+            .where(
+                NotificationRow.user_id == user_id,
+                NotificationRow.sent_at.is_not(None),
+                NotificationRow.read_at.is_(None),
+            )
+            .values(read_at=at)
         )
 
     async def count_since(self, user_id: uuid.UUID, type_: str, since: datetime) -> int:

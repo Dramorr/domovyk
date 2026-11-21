@@ -10,6 +10,7 @@ from urllib.parse import quote
 
 from domovyk.adapters.notifier.base import Button
 from domovyk.core.clock import to_kyiv
+from domovyk.domain.properties import display_street
 from domovyk.interfaces.telegram.keyboards import mini_app_url
 from domovyk.interfaces.telegram.texts import uk
 from domovyk.modules.notifications.service import (
@@ -21,7 +22,7 @@ from domovyk.modules.notifications.service import (
 
 
 def format_address(payload: Mapping[str, Any]) -> str:
-    street = escape(str(payload.get("street") or ""))
+    street = escape(display_street(str(payload.get("street") or "")))
     house = escape(str(payload.get("house_number") or ""))
     apartment = payload.get("apartment")
     if apartment:

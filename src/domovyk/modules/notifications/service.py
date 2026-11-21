@@ -22,6 +22,7 @@ from domovyk.modules.notifications.repository import NotificationsRepository
 from domovyk.modules.notifications.schemas import (
     LEASE_OPTIONAL_TYPES,
     QUIET_HOURS_DEFAULT,
+    FeedEntry,
     LeaseNotificationPrefs,
     NotificationType,
     PendingNotification,
@@ -30,6 +31,7 @@ from domovyk.modules.notifications.schemas import (
 from domovyk.modules.users.service import UsersService
 
 __all__ = [
+    "FeedEntry",
     "LeaseNotificationPrefs",
     "NotificationType",
     "NotificationsService",
@@ -43,6 +45,7 @@ log = logging.getLogger(__name__)
 Renderer = Callable[[PendingNotification], RenderedMessage | None]
 MAX_ATTEMPTS = 5
 RETRY_DELAY = timedelta(minutes=2)
+FEED_LIMIT = 50
 
 
 class NotificationsService:
@@ -136,6 +139,25 @@ class NotificationsService:
         if _in_quiet_hours(hour, prefs.quiet_from, prefs.quiet_to):
             payload = {**payload, "_silent": True}
         return await self.enqueue(tx, user_id, type_, payload, dedupe_key=dedupe_key)
+
+    # ------------------------------------------------- стрічка (дзвіночок у Mini App)
+
+    async def feed(self, telegram_uid: int, *, limit: int = FEED_LIMIT) -> list[FeedEntry]:
+        """Останні доставлені сповіщення людини. Тексти рендерить інтерфейс."""
+        user = await self._users.require_active(telegram_uid)
+        async with self._tx.begin() as tx:
+            return await self._repo(tx).feed(user.id, limit)
+
+    async def unread_count(self, telegram_uid: int) -> int:
+        user = await self._users.require_active(telegram_uid)
+        async with self._tx.begin() as tx:
+            return await self._repo(tx).unread_count(user.id)
+
+    async def mark_all_read(self, telegram_uid: int) -> None:
+        """Людина відкрила стрічку — усе доставлене вважаємо прочитаним."""
+        user = await self._users.require_active(telegram_uid)
+        async with self._tx.begin() as tx:
+            await self._repo(tx).mark_all_read(user.id, self._clock.now())
 
     async def send_pending(self, render: Renderer, notifier: Notifier, *, limit: int = 50) -> int:
         """Розіслати те, що вже можна (воркер). Повертає кількість надісланих."""

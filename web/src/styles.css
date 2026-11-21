@@ -2,6 +2,9 @@
    Своя світла тема, не залежить від теми Telegram. Акценти — зелений домовика. */
 
 :root {
+  /* шрифти: Unbounded — лише логотип «Домовик», заголовки — Rubik, текст — Manrope */
+  --font-logo: Unbounded, Rubik, sans-serif;
+  --font-head: Rubik, Manrope, sans-serif;
   /* бренд */
   --brand: #1e4d3b;
   --brand-700: #163a2c;
@@ -91,13 +94,13 @@ button {
 }
 
 .brand {
-  font: 700 19px Unbounded, sans-serif;
+  font: 700 19px var(--font-logo);
   letter-spacing: -0.01em;
   color: var(--brand-ink);
 }
 
 .appbar-title {
-  font: 600 17px Unbounded, sans-serif;
+  font: 600 17px var(--font-head);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -216,13 +219,13 @@ button {
 /* ---------------------------------------------------------------- типографіка */
 
 h1 {
-  font: 700 24px/1.2 Unbounded, sans-serif;
+  font: 700 24px/1.2 var(--font-head);
   letter-spacing: -0.015em;
   margin: 8px 0 8px;
 }
 
 h2 {
-  font: 600 17px/1.3 Unbounded, sans-serif;
+  font: 600 17px/1.3 var(--font-head);
   margin: 0 0 10px;
 }
 
@@ -1623,7 +1626,7 @@ label.file-button {
 }
 
 .meter-value {
-  font-family: "Unbounded", "Manrope", sans-serif;
+  font-family: var(--font-head);
   font-size: 22px;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
@@ -2702,12 +2705,12 @@ label.file-button {
   border-radius: 50%;
   background: var(--brand);
   color: var(--on-brand);
-  font: 700 26px Unbounded, sans-serif;
+  font: 700 26px var(--font-head);
 }
 
 .profile-name {
   margin: 0 0 6px;
-  font: 700 20px Unbounded, sans-serif;
+  font: 700 20px var(--font-head);
   overflow-wrap: anywhere;
 }
 
@@ -3296,7 +3299,7 @@ button.info-row {
 .fold-title {
   flex: 1;
   min-width: 0;
-  font-family: Unbounded, sans-serif;
+  font-family: var(--font-head);
   font-size: 16px;
   font-weight: 600;
   line-height: 1.25;
@@ -3580,7 +3583,7 @@ a.button {
 }
 
 .lc-price {
-  font-family: Unbounded, sans-serif;
+  font-family: var(--font-head);
   font-size: 20px;
   font-weight: 700;
 }
@@ -3662,7 +3665,7 @@ a.button {
 .lv-price {
   margin: 0 0 4px;
   color: var(--brand-ink);
-  font-family: Unbounded, sans-serif;
+  font-family: var(--font-head);
   font-size: 20px;
   font-weight: 700;
 }
@@ -3813,6 +3816,75 @@ a.button {
   margin-left: 0;
 }
 
+.bell-button {
+  position: relative;
+}
+
+.bell-button .dot {
+  position: absolute;
+  top: 2px;
+  right: 0;
+}
+
+/* ---- Стрічка сповіщень (дзвіночок) ---- */
+.feed {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.feed-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.feed-item.unread {
+  border-color: var(--brand-100);
+  background: var(--brand-50);
+}
+
+.feed-item .feed-mark {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 7px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.feed-item.unread .feed-mark {
+  background: var(--brand);
+}
+
+.feed-text {
+  flex: 1;
+  min-width: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.feed-time {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+.feed-item .icon {
+  flex: none;
+  margin-top: 2px;
+  color: var(--text-2);
+}
+
 /* ---- Нижня панель розділів сторінки (лише локальні посилання; ADR 0015) ---- */
 .app.with-tabs .screen {
   padding-bottom: calc(92px + env(safe-area-inset-bottom));
@@ -3874,38 +3946,38 @@ a.button {
   color: #fff;
 }
 
-/* ---- Картка оренди: фото, факти, шлях до заселення ---- */
-.lease-hero {
+/* ---- Шапка квартири й оренди (PageHead): фото й факти; шлях до заселення ---- */
+.page-hero {
   margin: 0 -16px;
 }
 
-.lease-hero .photo-slider {
+.page-hero .photo-slider {
   margin: 0;
   border-radius: 0;
   box-shadow: none;
 }
 
 /* Картка з адресою наїжджає на фото — крапки фото піднімаємо над нею. */
-.lease-hero .photo-slider > .photo-dots {
+.page-hero .photo-slider > .photo-dots {
   bottom: 38px;
 }
 
-.lease-head {
+.page-head {
   position: relative;
   margin-top: 8px;
 }
 
-.lease-head.over-photo {
+.page-head.over-photo {
   margin-top: -28px;
 }
 
-.lease-head-top {
+.page-head-top {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.lease-head h1 {
+.page-head h1 {
   margin: 8px 0 12px;
   text-align: left;
   font-size: 20px;

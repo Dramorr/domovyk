@@ -30,6 +30,7 @@ from domovyk.domain.applications import (
     clean_application_message,
 )
 from domovyk.domain.listings import ListingStatus
+from domovyk.domain.properties import display_street
 from domovyk.domain.showings import ShowingAnswer, SlotStatus, resolve_showing
 from domovyk.modules.analytics.service import AnalyticsService, EventName, EventSource
 from domovyk.modules.applications.repository import ApplicationRecord, ApplicationsRepository
@@ -657,7 +658,7 @@ class ApplicationsService:
                     listing,
                     {
                         "starts_at": starts_at.isoformat(),
-                        "address": f"{prop.street}, {prop.house_number}",
+                        "address": f"{display_street(prop.street)}, {prop.house_number}",
                         "city": prop.city,
                     },
                     dedupe=f"application:{app.id}:{event}:{app.slot_id}:{user_id}",

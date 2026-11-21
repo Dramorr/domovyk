@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
@@ -42,6 +43,17 @@ class PendingNotification:
     user_id: uuid.UUID
     type: str
     payload: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class FeedEntry:
+    """Доставлене сповіщення для стрічки в Mini App (дзвіночок)."""
+
+    id: int
+    type: str
+    payload: dict[str, Any]
+    at: datetime
+    read: bool
 
 
 @dataclass(frozen=True)

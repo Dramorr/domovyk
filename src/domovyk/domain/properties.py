@@ -143,6 +143,43 @@ def street_key(street: str) -> str:
     return f"{street_type} {_SPACES.sub(' ', name).strip()}"
 
 
+# Як показувати тип вулиці: скорочено (картки, бот) і повністю (договір).
+_STREET_SHORT = {
+    "вул": "вул.",
+    "просп": "просп.",
+    "пл": "пл.",
+    "бульв": "бульв.",
+    "пров": "пров.",
+    "наб": "наб.",
+}
+_STREET_FULL = {
+    "вул": "вулиця",
+    "просп": "проспект",
+    "пл": "площа",
+    "бульв": "бульвар",
+    "пров": "провулок",
+    "наб": "набережна",
+}
+
+
+def display_street(street: str, *, full: bool = False) -> str:
+    """Вулиця для показу: тип завжди попереду.
+
+    «Болгарська вулиця» → «вул. Болгарська»; «проспект Свободи» → «просп. Свободи»;
+    з `full=True` (договір) → «вулиця Болгарська». Без типу — як є.
+    """
+    value = _base(street).strip(" ,.")
+    found = _TYPE_RE.search(value)
+    if not found:
+        return value
+    kind = _STREET_TYPES[found.group(1).lower()]
+    name = _SPACES.sub(" ", _TYPE_RE.sub(" ", value)).strip(" ,.")
+    if not name:
+        return value
+    label = (_STREET_FULL if full else _STREET_SHORT).get(kind, kind)
+    return f"{label} {name}"
+
+
 def normalize_house_number(raw: str) -> str:
     """«12 А», «буд. 12а», «12-а» → «12а»; «5/1» лишається."""
     value = _HOUSE_PREFIX.sub("", _base(raw).lower())
