@@ -84,7 +84,7 @@ from domovyk.modules.leases.service import (
     TerminationIn,
 )
 from domovyk.modules.listings.service import ListingIn, ListingOut, ListingState, PublishIn
-from domovyk.modules.overview.service import LeaseOverview, PropertyOverview
+from domovyk.modules.overview.service import AttentionOut, LeaseOverview, PropertyOverview
 from domovyk.modules.payments.service import (
     CashIn,
     DecisionIn,
@@ -406,6 +406,11 @@ def create_app(
     @app.get("/api/v1/properties/{property_id}")
     async def get_property(auth: Auth, property_id: uuid.UUID) -> PropertyOut:
         return await svc.properties.get_mine(auth.user.id, property_id)
+
+    @app.get("/api/v1/me/attention")
+    async def my_attention(auth: Auth) -> AttentionOut:
+        """Скільки речей чекає дії в кожному режимі — крапка біля перемикача (ADR 0023)."""
+        return await svc.overview.attention(auth.user.id)
 
     @app.get("/api/v1/properties/{property_id}/overview")
     async def property_overview(auth: Auth, property_id: uuid.UUID) -> PropertyOverview:

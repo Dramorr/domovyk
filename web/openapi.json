@@ -570,6 +570,25 @@
         "title": "ApproveIn",
         "type": "object"
       },
+      "AttentionOut": {
+        "description": "Скільки речей чекає дії людини в кожному режимі — для крапки біля перемикача режимів.\n\nРахуємо лише «Зараз» з тоном `action`: очікування іншої сторони крапки не ставить.",
+        "properties": {
+          "landlord": {
+            "title": "Landlord",
+            "type": "integer"
+          },
+          "tenant": {
+            "title": "Tenant",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "landlord",
+          "tenant"
+        ],
+        "title": "AttentionOut",
+        "type": "object"
+      },
       "BathroomType": {
         "enum": [
           "separate",
@@ -11960,6 +11979,53 @@
           }
         },
         "summary": "Update Me"
+      }
+    },
+    "/api/v1/me/attention": {
+      "get": {
+        "description": "Скільки речей чекає дії в кожному режимі — крапка біля перемикача (ADR 0023).",
+        "operationId": "my_attention_api_v1_me_attention_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttentionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "My Attention"
       }
     },
     "/api/v1/me/avatar": {

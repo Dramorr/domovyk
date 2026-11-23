@@ -1073,6 +1073,26 @@ export interface paths {
         patch: operations["update_me_api_v1_me_patch"];
         trace?: never;
     };
+    "/api/v1/me/attention": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Attention
+         * @description Скільки речей чекає дії в кожному режимі — крапка біля перемикача (ADR 0023).
+         */
+        get: operations["my_attention_api_v1_me_attention_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/avatar": {
         parameters: {
             query?: never;
@@ -2174,6 +2194,18 @@ export interface components {
         ApproveIn: {
             /** Owner Name */
             owner_name: string;
+        };
+        /**
+         * AttentionOut
+         * @description Скільки речей чекає дії людини в кожному режимі — для крапки біля перемикача режимів.
+         *
+         *     Рахуємо лише «Зараз» з тоном `action`: очікування іншої сторони крапки не ставить.
+         */
+        AttentionOut: {
+            /** Landlord */
+            landlord: number;
+            /** Tenant */
+            tenant: number;
         };
         /**
          * BathroomType
@@ -7156,6 +7188,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_attention_api_v1_me_attention_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttentionOut"];
                 };
             };
             /** @description Validation Error */

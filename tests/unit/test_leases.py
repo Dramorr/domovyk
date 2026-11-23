@@ -568,3 +568,26 @@ async def test_overview_follows_property_through_stages(env: tuple[Services, Fak
     # Чужу квартиру огляд не віддає.
     with pytest.raises(NotFound):
         await s.overview.property(STRANGER, pid)
+
+
+async def test_attention_counts_actions_per_mode(env: tuple[Services, FakeDb]) -> None:
+    """Крапка біля перемикача: рахуємо лише «Зараз», що чекає саме цю людину."""
+    s, db = env
+    assert (await s.overview.attention(TENANT)).model_dump() == {"landlord": 0, "tenant": 0}
+
+    pid = await _verified_flat(s, db)
+    # Порожня анкета — дія власника.
+    assert (await s.overview.attention(OWNER)).landlord == 1
+
+    lease, invite = await s.leases.create_lease(OWNER, _lease(pid))
+    assert (await s.overview.attention(OWNER)).model_dump() == {"landlord": 1, "tenant": 0}
+
+    await s.leases.accept_invite(TENANT, invite.token)
+    # Тепер умови погоджує орендар; власник лише чекає — крапки в нього немає.
+    assert (await s.overview.attention(TENANT)).model_dump() == {"landlord": 0, "tenant": 1}
+    assert (await s.overview.attention(OWNER)).landlord == 0
+
+    await s.leases.accept_terms(TENANT, lease.id)
+    # Договір: обом треба вписати ПІБ чи згенерувати PDF — крапка в кожного у своєму режимі.
+    assert (await s.overview.attention(TENANT)).tenant == 1
+    assert (await s.overview.attention(OWNER)).landlord == 1

@@ -3028,6 +3028,27 @@ button.info-row {
   flex: none;
 }
 
+/* Крапка «в іншому режимі щось чекає» (ADR 0023): бурштинова, без числа — лише привід глянути. */
+.mode-chip {
+  position: relative;
+}
+
+.mode-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 11px;
+  height: 11px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--amber);
+}
+
+.menu-button .mode-dot {
+  top: 6px;
+  right: 4px;
+}
+
 /* ---- ONB-4 «Що тебе привело?»: картки ділять вільний простір, у кожній — жива сценка ---- */
 /* «Що тебе привело?»: два рядки на всю ширину. Наведення, фокус чи тап — з-за нижнього
    краю картки визирає маленький маскот свого режиму. */

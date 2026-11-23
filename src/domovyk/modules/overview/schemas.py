@@ -42,3 +42,13 @@ class LeaseOverview(BaseModel):
     lease_id: uuid.UUID
     stage: Stage
     now: NowOut
+
+
+class AttentionOut(BaseModel):
+    """Скільки речей чекає дії людини в кожному режимі — для крапки біля перемикача режимів.
+
+    Рахуємо лише «Зараз» з тоном `action`: очікування іншої сторони крапки не ставить.
+    """
+
+    landlord: int  # квартири, де «Зараз» чекає власника
+    tenant: int  # оренди, де «Зараз» чекає орендаря чи співмешканця

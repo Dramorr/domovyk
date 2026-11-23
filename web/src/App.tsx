@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { api, setInitData, type Invite, type Lease, type Me, type Property, type User } from "./api/client";
+import { api, setInitData, type Attention, type Invite, type Lease, type Me, type Property, type User } from "./api/client";
 import { BOT_USERNAME, botLink } from "./config";
 import { t } from "./i18n";
 import { Chat } from "./screens/Chat";
@@ -99,6 +99,8 @@ export function App() {
   const [modCount, setModCount] = useState<number | null>(null);
   // Непрочитані сповіщення (дзвіночок у шапці): оновлюємо на кожному переході.
   const [unread, setUnread] = useState(0);
+  // Що чекає дії в кожному режимі: крапка біля перемикача, коли щось є в іншому.
+  const [attention, setAttention] = useState<Attention | null>(null);
 
   const route = stack[stack.length - 1];
   const push = (r: Route) => setStack((s) => [...s, r]);
@@ -146,6 +148,10 @@ export function App() {
     api
       .notificationsUnread()
       .then((r) => setUnread(r.unread))
+      .catch(() => undefined);
+    api
+      .attention()
+      .then(setAttention)
       .catch(() => undefined);
   }, [ready, stack]);
 
@@ -199,6 +205,7 @@ export function App() {
       modCount,
       unread,
       openNotifications: () => setStack((s) => [...s, { name: "notifications" }]),
+      otherWaiting: attention ? (mode === "tenant" ? attention.landlord : attention.tenant) : 0,
       userName: user?.display_name ?? "",
       // Будь-який розділ — поверх головної: «Назад» завжди веде туди.
       go: (tab: Tab) => setStack(tab === "home" ? [{ name: "home" }] : [{ name: "home" }, { name: tab }]),
@@ -212,7 +219,7 @@ export function App() {
         bot: botLink(),
       },
     }),
-    [activeTab, mode, isStaff, modCount, unread, switchMode, user?.display_name, webApp, state],
+    [activeTab, mode, isStaff, modCount, unread, attention, switchMode, user?.display_name, webApp, state],
   );
 
   if (!webApp) {

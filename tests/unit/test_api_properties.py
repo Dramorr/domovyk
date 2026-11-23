@@ -200,3 +200,5 @@ async def test_lease_endpoints(client: httpx.AsyncClient, now: datetime, db: Fak
     )
     assert r.json()["quiet_from"] == 23
     assert len((await client.get("/api/v1/leases", headers=tenant)).json()) == 1
+    r = await client.get("/api/v1/me/attention", headers=tenant)
+    assert r.status_code == 200 and set(r.json()) == {"landlord", "tenant"}

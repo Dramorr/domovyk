@@ -63,6 +63,7 @@ export type ShowingAnswer = S["ShowingAnswer"];
 export type DeclineReason = S["DeclineReason"];
 export type NotificationFeed = S["FeedOut"];
 export type NowOut = S["NowOut"];
+export type Attention = S["AttentionOut"];
 export type PropertyOverview = S["PropertyOverview"];
 export type NotificationItem = S["FeedItemOut"];
 /** Чат оренди або заявки — однакові запити, різна адреса. */
@@ -398,6 +399,8 @@ export const api = {
   // Стрічка сповіщень (дзвіночок у шапці)
   notifications: () => request<NotificationFeed>("GET", "/api/v1/notifications"),
   notificationsUnread: () => request<S["UnreadOut"]>("GET", "/api/v1/notifications/unread"),
+  // Що чекає дії в кожному режимі — крапка біля перемикача (ADR 0023).
+  attention: () => request<Attention>("GET", "/api/v1/me/attention"),
   notificationsRead: () => request<void>("POST", "/api/v1/notifications/read"),
   notifyPrefs: (id: string) => request<NotifyPrefs>("GET", `${l(id)}/notifications`),
   setNotifyPrefs: (id: string, body: NotifyPrefs) => request<NotifyPrefs>("PUT", `${l(id)}/notifications`, body),

@@ -16,6 +16,7 @@ from domovyk.domain.overview import (
     LeaseFacts,
     Now,
     PropertyFacts,
+    Tone,
     lease_now,
     property_now,
     property_stage,
@@ -25,11 +26,11 @@ from domovyk.modules.applications.service import ApplicationsService
 from domovyk.modules.contracts.service import ContractsService
 from domovyk.modules.leases.service import LeaseOut, LeasesService
 from domovyk.modules.listings.service import ListingsService
-from domovyk.modules.overview.schemas import LeaseOverview, NowOut, PropertyOverview
+from domovyk.modules.overview.schemas import AttentionOut, LeaseOverview, NowOut, PropertyOverview
 from domovyk.modules.payments.service import PaymentsService
 from domovyk.modules.properties.service import PropertiesService
 
-__all__ = ["LeaseOverview", "NowOut", "OverviewService", "PropertyOverview"]
+__all__ = ["AttentionOut", "LeaseOverview", "NowOut", "OverviewService", "PropertyOverview"]
 
 _OPEN = frozenset(
     {
@@ -110,6 +111,25 @@ class OverviewService:
             stage=property_stage(lease.status, None),
             now=_out(await self._lease_now(telegram_uid, lease)),
         )
+
+    async def attention(self, telegram_uid: int) -> AttentionOut:
+        """Що чекає дії в кожному режимі (крапка біля перемикача, ADR 0023).
+
+        Та сама логіка, що й картка «Зараз»: квартира чи оренда рахується,
+        коли її «Зараз» має тон `action`. У типового власника 1–2 квартири,
+        тож окремого запиту в БД під це не робимо.
+        """
+        landlord = 0
+        for prop in await self._properties.list_mine(telegram_uid):
+            ov = await self.property(telegram_uid, prop.id)
+            landlord += ov.now.tone is Tone.ACTION
+        tenant = 0
+        for item in await self._leases.list_mine(telegram_uid):
+            if item.my_role == "landlord" or item.status not in _OPEN:
+                continue
+            lease = await self._leases.get(telegram_uid, item.id)
+            tenant += (await self._lease_now(telegram_uid, lease)).tone is Tone.ACTION
+        return AttentionOut(landlord=landlord, tenant=tenant)
 
     async def _lease_now(self, telegram_uid: int, lease: LeaseOut) -> Now:
         facts = LeaseFacts(

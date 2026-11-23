@@ -31,6 +31,8 @@ type Nav = {
   /** Непрочитані сповіщення — число на дзвіночку в шапці. */
   unread: number;
   openNotifications: () => void;
+  /** Скільки речей чекає дії в іншому режимі — крапка біля перемикача й на меню. */
+  otherWaiting: number;
   userName: string;
   go: (tab: Tab) => void;
   switchMode: () => void;
@@ -105,6 +107,7 @@ function MenuSheet({ nav, onClose }: { nav: Nav; onClose: () => void }) {
             <Icon name={tenant ? "search" : "building"} size={16} />
             {tenant ? t("mode_tenant_short") : t("mode_landlord_short")}
             <Icon name="swap" size={14} />
+            {nav.otherWaiting > 0 && <span className="mode-dot" aria-label={t("mode_other_waiting")} />}
           </button>
         </div>
         <nav className="menu-list" aria-label={t("nav_label")}>
@@ -248,7 +251,11 @@ export function Header({ onBack, title, actions }: { onBack?: () => void; title?
       {nav ? (
         <button className="icon-button menu-button" onClick={() => setMenu(true)} aria-label={t("menu_title")} aria-haspopup="dialog">
           <Icon name="menu" size={28} />
-          {!!nav.modCount && nav.isStaff && <span className="dot">{nav.modCount}</span>}
+          {!!nav.modCount && nav.isStaff ? (
+            <span className="dot">{nav.modCount}</span>
+          ) : (
+            nav.otherWaiting > 0 && <span className="mode-dot" aria-label={t("mode_other_waiting")} />
+          )}
         </button>
       ) : (
         <span className="badge">{t("beta")}</span>
